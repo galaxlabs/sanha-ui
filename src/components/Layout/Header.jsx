@@ -1,8 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Menu, User, LogOut, Settings, Palette, Sun, Moon, ChevronDown } from 'lucide-react';
+import { Bell, Menu, LogOut, Settings, Palette, Sun, Moon, ChevronDown, FileText, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getNotifications } from '../../api/frappe';
+
+/* ── state badge colors for notification list ── */
+const N_COLORS = {
+  Halal: '#16a34a', Approved: '#059669', Haram: '#dc2626', Rejected: '#ef4444',
+  Doubtful: '#d97706', Draft: '#64748b', Submitted: '#2563eb',
+  'Under Review': '#7c3aed', Hold: '#ea580c', Returned: '#f59e0b',
+  'Submitted to SB': '#0891b2', 'Returned To Evaluation': '#c2410c',
+};
 
 const PAGE_TITLES = {
   '/dashboard':     'Dashboard',
@@ -23,7 +32,14 @@ export default function Header({ onToggleSidebar }) {
   const { user, logout, isAdmin } = useAuth();
   const { theme, setTheme, THEMES } = useTheme();
   const [open, setOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [notifs, setNotifs] = useState([]);
+  const [notifsRead, setNotifsRead] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('notifs_read') || '[]')); } catch { return new Set(); }
+  });
+  const [notifsLoading, setNotifsLoading] = useState(false);
   const ref = useRef(null);
+  const bellRef = useRef(null);
 
   const path = location.pathname;
   let title = PAGE_TITLES[path] || 'Query Portal';
@@ -39,10 +55,49 @@ export default function Header({ onToggleSidebar }) {
   useEffect(() => {
     function handler(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false);
     }
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  /* Fetch notifications when bell is opened */
+  useEffect(() => {
+    if (!bellOpen || !user) return;
+    setNotifsLoading(true);
+    getNotifications(user.name, isAdmin?.(), 15)
+      .then(setNotifs)
+      .catch(() => {})
+      .finally(() => setNotifsLoading(false));
+  }, [bellOpen]);
+
+  const unreadCount = notifs.filter(n => !notifsRead.has(n.id)).length;
+
+  const markAllRead = () => {
+    const ids = new Set(notifs.map(n => n.id));
+    setNotifsRead(ids);
+    try { localStorage.setItem('notifs_read', JSON.stringify([...ids])); } catch {}
+  };
+
+  const markOneRead = (id) => {
+    setNotifsRead(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem('notifs_read', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
+  const relTime = (ts) => {
+    if (!ts) return '';
+    const diff = Date.now() - new Date(ts).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
 
   const handleLogout = async () => {
     setOpen(false);
@@ -91,9 +146,120 @@ export default function Header({ onToggleSidebar }) {
         </button>
 
         {/* Notification bell */}
-        <button className="btn btn-ghost btn-icon" style={{ color: 'var(--text-muted)', position: 'relative' }} title="Notifications">
-          <Bell size={17} />
-        </button>
+        <div ref={bellRef} style={{ position: 'relative' }}>
+          <button
+            className="btn btn-ghost btn-icon"
+            style={{ color: 'var(--text-muted)', position: 'relative' }}
+            title="Notifications"
+            onClick={() => { setBellOpen(v => !v); setOpen(false); }}
+          >
+            <Bell size={17} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 2, right: 2,
+                width: unreadCount > 9 ? 18 : 14, height: 14,
+                background: '#dc2626', borderRadius: 999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.6rem', fontWeight: 800, color: '#fff', lineHeight: 1,
+                border: '1.5px solid var(--surface-header, #fff)',
+                pointerEvents: 'none',
+              }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+            )}
+          </button>
+
+          {bellOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+              width: 340, background: 'var(--surface-card)', border: '1px solid var(--border-base)',
+              borderRadius: 14, boxShadow: '0 8px 30px rgba(0,0,0,.14)', zIndex: 200,
+              overflow: 'hidden',
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 14px 10px', borderBottom: '1px solid var(--border-base)' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  Notifications {unreadCount > 0 && (
+                    <span style={{ background: '#dc2626', color: '#fff', borderRadius: 999,
+                      padding: '1px 7px', fontSize: '0.7rem', fontWeight: 800, marginLeft: 6 }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: '0.72rem', color: 'var(--brand-600)', fontWeight: 600, display:'flex', alignItems:'center', gap:4 }}>
+                    <Check size={12} /> Mark all read
+                  </button>
+                )}
+              </div>
+
+              {/* List */}
+              <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+                {notifsLoading ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Loading…
+                  </div>
+                ) : notifs.length === 0 ? (
+                  <div style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <Bell size={28} style={{ margin: '0 auto 8px', display: 'block', opacity: .4 }} />
+                    <div style={{ fontSize: '0.8rem' }}>No recent activity</div>
+                  </div>
+                ) : notifs.map(n => {
+                  const isRead = notifsRead.has(n.id);
+                  const stateColor = N_COLORS[n.state] || '#64748b';
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => { markOneRead(n.id); setBellOpen(false); navigate(`/queries/${n.id}`); }}
+                      style={{
+                        display: 'flex', gap: 10, padding: '10px 14px', cursor: 'pointer',
+                        background: isRead ? 'transparent' : 'var(--brand-50,rgba(22,163,74,.04))',
+                        borderBottom: '1px solid var(--border-base)',
+                        transition: 'background .12s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50,#f8fafc)'}
+                      onMouseLeave={e => e.currentTarget.style.background = isRead ? 'transparent' : 'var(--brand-50,rgba(22,163,74,.04))'}
+                    >
+                      {/* State dot */}
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: stateColor + '18',
+                        display: 'flex', alignItems:'center', justifyContent:'center', flexShrink: 0, marginTop: 1 }}>
+                        <FileText size={14} color={stateColor} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: isRead ? 500 : 700,
+                          color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {n.title}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', marginTop: 2 }}>
+                          <span style={{ color: stateColor, fontWeight: 600 }}>{n.state}</span>
+                          {n.client && <span style={{ color: 'var(--text-muted)', marginLeft: 5 }}>· {n.client}</span>}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }}>
+                        {relTime(n.time)}
+                      </div>
+                      {!isRead && (
+                        <div style={{ width: 6, height: 6, borderRadius: 999, background: '#2563eb',
+                          flexShrink: 0, alignSelf: 'center', marginLeft: 2 }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border-base)', textAlign: 'center' }}>
+                <button
+                  onClick={() => { setBellOpen(false); navigate('/queries'); }}
+                  style={{ background: 'none', border: 'none', fontSize: '0.78rem', color: 'var(--brand-600)',
+                    fontWeight: 600, cursor: 'pointer' }}>
+                  View all queries →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Profile dropdown */}
         <div ref={ref} style={{ position: 'relative' }}>

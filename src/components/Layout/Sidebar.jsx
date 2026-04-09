@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Users, Building2, ClipboardList,
   Settings, LogOut, Shield, Star, Package, BarChart2,
   CheckCircle, XCircle, AlertTriangle, Clock, Search,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getPortalLogoUrl } from '../../api/frappe';
 
 const NAV_GROUPS = {
   Admin: [
@@ -65,6 +67,14 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { group, links } = getRoleLinks(user?.roles || []);
+  const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
+
+  /* Listen for logo updates from Settings page */
+  useEffect(() => {
+    const handler = e => setLogoUrl(e.detail?.url || null);
+    window.addEventListener('portal-logo-updated', handler);
+    return () => window.removeEventListener('portal-logo-updated', handler);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -79,15 +89,25 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 38, height: 38, background: '#16a34a', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Shield size={22} color="#fff" />
+        {logoUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img
+              src={logoUrl}
+              alt="Portal Logo"
+              style={{ maxHeight: 40, maxWidth: 160, objectFit: 'contain' }}
+            />
           </div>
-          <div>
-            <div className="sidebar-logo-text">SANHA</div>
-            <div className="sidebar-logo-sub">Halal Query Portal</div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 38, height: 38, background: '#16a34a', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Shield size={22} color="#fff" />
+            </div>
+            <div>
+              <div className="sidebar-logo-text">SANHA</div>
+              <div className="sidebar-logo-sub">Halal Query Portal</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Nav */}
