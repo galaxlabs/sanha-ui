@@ -1,12 +1,24 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Users, Building2, ClipboardList,
   Settings, LogOut, Shield, Star, Package, BarChart2,
   CheckCircle, XCircle, AlertTriangle, Clock, Search,
+  ChevronDown, ChevronRight, Layers, PieChart, List,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl } from '../../api/frappe';
+
+/* ─── Report sub-items (shared across all roles that have Reports) ─── */
+const REPORT_CHILDREN = [
+  { label: 'All Queries',    to: '/reports#all' },
+  { label: 'By State',       to: '/reports#byState' },
+  { label: 'By Type',        to: '/reports#byType' },
+  { label: 'Pivot Analysis', to: '/reports#pivot' },
+  { label: 'State Charts',   to: '/reports#charts' },
+  { label: 'Approved RM',    to: '/reports#approved' },
+  { label: 'Expired Docs',   to: '/reports#expired' },
+];
 
 const NAV_GROUPS = {
   Admin: [
@@ -15,7 +27,7 @@ const NAV_GROUPS = {
     { label: 'Clients',        icon: Users,            to: '/clients' },
     { label: 'Query Types',    icon: ClipboardList,    to: '/query-types' },
     { label: 'Raw Materials',  icon: Package,          to: '/raw-materials' },
-    { label: 'Reports',        icon: BarChart2,        to: '/reports' },
+    { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
     { label: 'Settings',       icon: Settings,         to: '/settings' },
   ],
   Evaluation: [
@@ -23,6 +35,7 @@ const NAV_GROUPS = {
     { label: 'Queries',        icon: FileText,         to: '/queries' },
     { label: 'Submitted',      icon: CheckCircle,      to: '/queries?state=Submitted' },
     { label: 'Returned to Me', icon: AlertTriangle,    to: '/queries?state=Returned+To+Evaluation' },
+    { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
   ],
   'SB User': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
@@ -31,18 +44,23 @@ const NAV_GROUPS = {
     { label: 'Under Review',   icon: Search,           to: '/queries?state=Under+Review' },
     { label: 'On Hold',        icon: Clock,            to: '/queries?state=Hold' },
     { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
-    { label: 'Reports',        icon: BarChart2,        to: '/reports' },
+    { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
   ],
   Client: [
     { label: 'My Queries',    icon: FileText,  to: '/queries' },
     { label: 'Create Query',  icon: Star,      to: '/queries/new' },
+    { label: 'Reports',       icon: BarChart2, to: '/reports', children: [
+      { label: 'All Queries',  to: '/reports#all' },
+      { label: 'By State',     to: '/reports#byState' },
+      { label: 'By Type',      to: '/reports#byType' },
+    ]},
   ],
   'Certificate Manager': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
     { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
     { label: 'Halal',          icon: Star,             to: '/queries?state=Halal' },
     { label: 'Haram',          icon: XCircle,          to: '/queries?state=Haram' },
-    { label: 'Reports',        icon: BarChart2,        to: '/reports' },
+    { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
   ],
 };
 
@@ -64,8 +82,19 @@ function getRoleLinks(roles = []) {
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { group, links } = getRoleLinks(user?.roles || []);
   const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
+  // Track which expandable items are open (default: Reports open if on /reports)
+  const [expanded, setExpanded] = useState(() => {
+    return location.pathname.startsWith('/reports') ? new Set(['Reports']) : new Set();
+  });
+
+  const toggleExpand = (label) => setExpanded(prev => {
+    const next = new Set(prev);
+    next.has(label) ? next.delete(label) : next.add(label);
+    return next;
+  });
 
   /* Listen for logo updates from Settings page */
   useEffect(() => {
@@ -111,16 +140,64 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="sidebar-nav">
         {group && <div className="sidebar-section-title">{group} Menu</div>}
-        {links.map(link => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-          >
-            <link.icon size={18} />
-            {link.label}
-          </NavLink>
-        ))}
+        {links.map(link => {
+          const hasChildren = link.children?.length > 0;
+          const isOpen = expanded.has(link.label);
+          const isReportsActive = location.pathname.startsWith('/reports');
+
+          if (hasChildren) {
+            return (
+              <div key={link.to}>
+                {/* Parent row — clicking navigates AND toggles */}
+                <button
+                  onClick={() => { navigate(link.to); toggleExpand(link.label); }}
+                  className={`nav-item${isReportsActive ? ' active' : ''}`}
+                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+                >
+                  <link.icon size={18} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{link.label}</span>
+                  {isOpen
+                    ? <ChevronDown size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                    : <ChevronRight size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                  }
+                </button>
+                {/* Children */}
+                {isOpen && (
+                  <div style={{ paddingLeft: 16, borderLeft: '2px solid #e2e8f0', marginLeft: 20, marginBottom: 4 }}>
+                    {link.children.map(child => {
+                      const tab = child.to.split('#')[1] || '';
+                      const isChildActive = isReportsActive && location.hash === `#${tab}`;
+                      return (
+                        <button
+                          key={child.to}
+                          onClick={() => navigate(`/reports?tab=${tab}`)}
+                          className={`nav-item${isChildActive ? ' active' : ''}`}
+                          style={{
+                            width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                            cursor: 'pointer', fontSize: '0.8rem', padding: '5px 10px',
+                          }}
+                        >
+                          {child.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            >
+              <link.icon size={18} />
+              {link.label}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Footer */}

@@ -32,7 +32,7 @@ const DEFAULT = {
   colorState: true,
   reportTitle: '',
   compactMode: false,
-  perPage: 25,
+  perPage: 'all',
   cols: ALL_COL_KEYS,
 };
 
@@ -87,7 +87,17 @@ function BulkSettings({ opts, setOpts }) {
       </div>
       <div>
         <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Per Page</div>
-        <BtnGroup k="perPage" options={[[10,'10'],[25,'25'],[50,'50'],['all','All (∞)']]} />
+        <select
+          value={opts.perPage}
+          onChange={e => set('perPage', e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          style={{ padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.8rem', background: '#fff', cursor: 'pointer', color: '#374151' }}
+        >
+          <option value="all">All Records</option>
+          <option value={100}>100 per page</option>
+          <option value={50}>50 per page</option>
+          <option value={25}>25 per page</option>
+          <option value={10}>10 per page</option>
+        </select>
       </div>
       <div>
         <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Columns</div>

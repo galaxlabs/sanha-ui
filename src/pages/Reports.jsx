@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
@@ -183,8 +183,16 @@ export default function Reports() {
   const { user, isAdmin, hasRole } = useAuth();
   const { error: showError } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [tab, setTab] = useState('all');
+  // Allow sidebar to deep-link to a specific tab via ?tab=byState etc.
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'all');
+
+  // When URL ?tab= changes (e.g. sidebar navigation), sync to tab state
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t) setTab(t);
+  }, [searchParams]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
