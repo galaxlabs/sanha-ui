@@ -21,7 +21,9 @@ function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (allowedRoles && !isAdmin() && !allowedRoles.some(r => hasRole(r))) {
+  // If allowedRoles specified AND user has roles loaded AND none match → redirect
+  // But if user has NO roles yet (still loading/failed), let them through to avoid blank pages
+  if (allowedRoles && user.roles?.length > 0 && !isAdmin() && !allowedRoles.some(r => hasRole(r))) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;

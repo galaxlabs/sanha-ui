@@ -57,7 +57,8 @@ function getRoleLinks(roles = []) {
     return { group: 'Certificate Manager', links: NAV_GROUPS['Certificate Manager'] };
   if (roles.includes('Client'))
     return { group: 'Client', links: NAV_GROUPS.Client };
-  return { group: null, links: [] };
+  // Fallback: user is logged in but role detection failed — show minimal client nav
+  return { group: 'Portal', links: NAV_GROUPS.Client };
 }
 
 export default function Sidebar() {

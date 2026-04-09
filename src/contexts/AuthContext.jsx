@@ -34,6 +34,17 @@ export function AuthProvider({ children }) {
           if (cp) clientName = cp.for_value;
         } catch { /* ignore */ }
       }
+
+      // If no portal role detected (getUserRoles failed), infer from User Permission
+      // e.g. Client users often can't read their own User doc via REST
+      const PORTAL_ROLES = ['Client', 'Evaluation', 'SB User', 'Certificate Manager',
+                            'Admin', 'System Manager', 'Administrator'];
+      if (!roles.some(r => PORTAL_ROLES.includes(r))) {
+        if (clientName) {
+          roles = [...roles, 'Client'];
+        }
+      }
+
       setUser({ name, full_name, roles, clientName });
     } catch {
       setUser(null);

@@ -69,10 +69,37 @@ export async function getSession() {
   return res;
 }
 
-/* ── User roles ── */
+/* ── User roles — tries multiple methods, returns only portal roles ── */
 export async function getUserRoles(user) {
-  const res = await request('GET', `/api/resource/User/${encodeURIComponent(user)}`);
-  return (res.data?.roles || []).map(r => r.role);
+  const SYSTEM_ROLES = ['All', 'Guest'];
+
+  // Method 1: read User doc via REST (works for admin/privileged users)
+  try {
+    const res = await request('GET', `/api/resource/User/${encodeURIComponent(user)}`);
+    const roles = (res.data?.roles || []).map(r => r.role).filter(r => !SYSTEM_ROLES.includes(r));
+    if (roles.length) return roles;
+  } catch { /* fallthrough */ }
+
+  // Method 2: Frappe whitelisted utility method
+  try {
+    const res = await request('GET', `/api/method/frappe.utils.user.get_user_roles?user=${encodeURIComponent(user)}`);
+    if (Array.isArray(res.message)) {
+      const roles = res.message.filter(r => !SYSTEM_ROLES.includes(r));
+      if (roles.length) return roles;
+    }
+  } catch { /* fallthrough */ }
+
+  // Method 3: frappe.client.get (uses Frappe client permission, not direct REST)
+  try {
+    const params = new URLSearchParams({ doctype: 'User', name: user, fieldname: 'roles' });
+    const res = await request('GET', `/api/method/frappe.client.get_value?${params}`);
+    if (res.message?.roles) {
+      const roles = (res.message.roles || []).map(r => r.role || r).filter(r => !SYSTEM_ROLES.includes(r));
+      if (roles.length) return roles;
+    }
+  } catch { /* fallthrough */ }
+
+  return [];
 }
 
 /* ── Generic DocType CRUD ── */
