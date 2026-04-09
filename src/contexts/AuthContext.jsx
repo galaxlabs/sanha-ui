@@ -35,11 +35,8 @@ export function AuthProvider({ children }) {
   }, [fetchUser]);
 
   const login = async (usr, pwd) => {
-    // When using API token auth, skip cookie login — token already authenticates all requests
-    const API_KEY = import.meta.env.VITE_API_KEY || '';
-    if (!API_KEY) {
-      await apiLogin(usr, pwd);
-    }
+    // Always do the cookie login so the server creates a session for this user
+    await apiLogin(usr, pwd);
     await fetchUser();
   };
 

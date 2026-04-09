@@ -1,9 +1,13 @@
 /* ── Frappe REST API helper ── */
 
+// VITE_FRAPPE_URL is only used by the local dev Vite proxy config.
+// In production (Vercel) BASE stays empty — all requests use Vercel proxy rewrites
+// which forward /api/* cookies transparently, keeping per-user session auth.
 const BASE = import.meta.env.VITE_FRAPPE_URL || '';
-const API_KEY = import.meta.env.VITE_API_KEY || '';
-const API_SECRET = import.meta.env.VITE_API_SECRET || '';
-const API_USER = import.meta.env.VITE_API_USER || '';
+
+// NOTE: API token auth is intentionally NOT used here — it would force every
+// request to authenticate as Administrator, breaking role-based access for
+// Client, Evaluator and SB User accounts.
 
 function getCsrfToken() {
   return window.csrf_token || getCookie('X-Frappe-CSRF-Token') || '';
@@ -17,7 +21,6 @@ function getCookie(name) {
 }
 
 function authHeaders() {
-  if (API_KEY && API_SECRET) return { Authorization: `token ${API_KEY}:${API_SECRET}` };
   return { 'X-Frappe-CSRF-Token': getCsrfToken() };
 }
 
@@ -26,7 +29,7 @@ async function request(method, url, data = null) {
   const opts = {
     method,
     headers,
-    credentials: API_KEY ? 'omit' : 'include',
+    credentials: 'include',   // always send session cookie
   };
   if (data && method !== 'GET') {
     opts.headers['Content-Type'] = 'application/json';
@@ -61,7 +64,7 @@ export async function logout() {
 }
 
 export async function getSession() {
-  if (API_KEY && API_USER) return { message: API_USER };
+  // Always ask the server — never short-circuit with a hardcoded user
   const res = await request('GET', '/api/method/frappe.auth.get_logged_user');
   return res;
 }
@@ -128,7 +131,7 @@ export async function uploadFile(file, doctype, docname, fieldname) {
   const res = await fetch(BASE + '/api/method/upload_file', {
     method: 'POST',
     headers,
-    credentials: API_KEY ? 'omit' : 'include',
+    credentials: 'include',
     body: fd,
   });
   const json = await res.json().catch(() => ({}));
@@ -303,7 +306,7 @@ export async function uploadLogoFile(file) {
   const headers = { Accept: 'application/json', ...authHeaders() };
   const res = await fetch(BASE + '/api/method/upload_file', {
     method: 'POST', headers,
-    credentials: API_KEY ? 'omit' : 'include',
+    credentials: 'include',
     body: fd,
   });
   const json = await res.json().catch(() => ({}));
