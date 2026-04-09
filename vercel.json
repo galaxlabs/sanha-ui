@@ -1,14 +1,30 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://evaluation.sanha.org.pk/api/:path*"
+    },
+    {
+      "source": "/files/:path*",
+      "destination": "https://evaluation.sanha.org.pk/files/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "https://evaluation.sanha.org.pk/assets/:path*"
+    },
+    {
+      "source": "/((?!api/|files/|assets/).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        { "key": "X-Frame-Options",        "value": "SAMEORIGIN" }
       ]
     }
   ]
 }
+

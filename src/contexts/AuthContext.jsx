@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await apiLogout();
+    try { await apiLogout(); } catch { /* ignore – token auth has no server session */ }
     setUser(null);
   };
 

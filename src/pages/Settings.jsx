@@ -84,12 +84,16 @@ export default function SettingsPage() {
 }
 
 /* ── Logo Panel ── */
+const DEFAULT_LOGO = '/sanha-logo.png';
+
 function LogoPanel({ addToast }) {
   const [current, setCurrent] = useState(() => getPortalLogoUrl());
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const inputRef = useRef(null);
+
+  const isDefault = current === DEFAULT_LOGO;
 
   const handlePick = e => {
     const f = e.target.files[0];
@@ -121,11 +125,13 @@ function LogoPanel({ addToast }) {
     }
   };
 
-  const handleRemove = () => {
-    savePortalLogoUrl(null);
-    setCurrent(null); setPreview(null); setFile(null);
-    window.dispatchEvent(new CustomEvent("portal-logo-updated", { detail: { url: null } }));
-    addToast("Logo removed", "success");
+  const handleReset = () => {
+    savePortalLogoUrl(null);            // removes override → getPortalLogoUrl returns DEFAULT_LOGO
+    setCurrent(DEFAULT_LOGO);
+    setPreview(null);
+    setFile(null);
+    window.dispatchEvent(new CustomEvent("portal-logo-updated", { detail: { url: DEFAULT_LOGO } }));
+    addToast("Reset to default logo", "success");
   };
 
   return (
@@ -140,7 +146,7 @@ function LogoPanel({ addToast }) {
       >
         {(preview || current) ? (
           <img src={preview || current} alt="Logo"
-            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", padding: 8 }} />
         ) : (
           <div style={{ textAlign: "center", color: "var(--text-muted)" }}>
             <Upload size={28} style={{ margin: "0 auto 6px", display: "block" }} />
@@ -158,26 +164,24 @@ function LogoPanel({ addToast }) {
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button className="btn btn-outline btn-sm" onClick={() => inputRef.current?.click()}>
-            <Upload size={14} /> {current || preview ? "Replace Logo" : "Choose File"}
+            <Upload size={14} /> Replace Logo
           </button>
           {(file || preview) && (
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? <><RefreshCw size={13} className="spin" /> Uploading…</> : <><Save size={13} /> Save Logo</>}
             </button>
           )}
-          {current && !preview && (
-            <button className="btn btn-sm"
-              onClick={handleRemove}
+          {!isDefault && !preview && (
+            <button className="btn btn-sm" onClick={handleReset}
               style={{ border: "1px solid #fca5a5", color: "#b91c1c", background: "#fff1f2" }}>
-              <Trash2 size={13} /> Remove
+              <Trash2 size={13} /> Reset to Default
             </button>
           )}
         </div>
-        {current && (
-          <div style={{ marginTop: 10, fontSize: "0.72rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
-            Current: <span style={{ color: "var(--brand-600)" }}>{current}</span>
-          </div>
-        )}
+        <div style={{ marginTop: 10, fontSize: "0.72rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
+          Active: <span style={{ color: "var(--brand-600)" }}>{current}</span>
+          {isDefault && <span style={{ marginLeft: 6, color: "#16a34a", fontWeight: 600 }}>(default)</span>}
+        </div>
       </div>
     </div>
   );

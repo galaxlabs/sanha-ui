@@ -326,8 +326,11 @@ export async function setPortalLogo(fileUrl) {
   return fileUrl;
 }
 
+/* Default to the logo bundled in the Vite public/ folder */
+const DEFAULT_LOGO = '/sanha-logo.png';
+
 export function getPortalLogoUrl() {
-  return localStorage.getItem('portal_logo_url') || null;
+  return localStorage.getItem('portal_logo_url') || DEFAULT_LOGO;
 }
 
 export function savePortalLogoUrl(url) {
