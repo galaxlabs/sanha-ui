@@ -108,10 +108,12 @@ export default function Header({ onToggleSidebar }) {
   const initials = (user?.full_name || user?.name || 'U')
     .split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  /* Role label */
+  /* Role label — show clientName if available, otherwise role, never "Guest" */
   const roleLabel = isAdmin?.()
     ? 'Administrator'
-    : user?.roles?.find(r => ['Client','Evaluation','SB User','Certificate Manager'].includes(r)) || 'User';
+    : user?.clientName
+      ? user.clientName
+      : user?.roles?.find(r => ['Client','Evaluation','SB User','Certificate Manager'].includes(r)) || '';
 
   const ThemeIcon = THEME_ICONS[theme] || Sun;
 

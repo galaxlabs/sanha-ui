@@ -34,11 +34,8 @@ const NAV_GROUPS = {
     { label: 'Reports',        icon: BarChart2,        to: '/reports' },
   ],
   Client: [
-    { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
-    { label: 'My Queries',     icon: FileText,         to: '/queries' },
-    { label: 'Submit Query',   icon: Star,             to: '/queries/new' },
-    { label: 'Returned',       icon: AlertTriangle,    to: '/queries?state=Returned' },
-    { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
+    { label: 'My Queries',   icon: FileText,  to: '/queries' },
+    { label: 'Submit Query', icon: Star,       to: '/queries/new' },
   ],
   'Certificate Manager': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
@@ -60,7 +57,7 @@ function getRoleLinks(roles = []) {
     return { group: 'Certificate Manager', links: NAV_GROUPS['Certificate Manager'] };
   if (roles.includes('Client'))
     return { group: 'Client', links: NAV_GROUPS.Client };
-  return { group: 'Guest', links: [] };
+  return { group: null, links: [] };
 }
 
 export default function Sidebar() {
@@ -112,7 +109,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        <div className="sidebar-section-title">{group} Menu</div>
+        {group && <div className="sidebar-section-title">{group} Menu</div>}
         {links.map(link => (
           <NavLink
             key={link.to}
@@ -131,7 +128,7 @@ export default function Sidebar() {
           <div className="user-avatar">{initials}</div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div className="user-name truncate">{user?.full_name || user?.name || 'User'}</div>
-            <div className="user-role">{group}</div>
+            <div className="user-role">{user?.clientName || group || ''}</div>
           </div>
           <button onClick={handleLogout} className="btn btn-ghost btn-icon" title="Logout" style={{ color: '#94a3b8' }}>
             <LogOut size={17} />

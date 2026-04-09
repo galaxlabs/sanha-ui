@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { getPortalLogoUrl } from '../api/frappe';
 
 export default function Login() {
   const { login } = useAuth();
@@ -13,6 +14,7 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -34,9 +36,12 @@ export default function Login() {
       <div className="login-card">
         {/* Logo */}
         <div className="login-logo">
-          <div className="login-logo-circle">
-            <Shield size={34} color="#fff" />
-          </div>
+          <img
+            src={logoUrl}
+            alt="SANHA"
+            style={{ height: 90, width: 'auto', objectFit: 'contain', marginBottom: 6, filter: 'drop-shadow(0 2px 12px rgba(0,0,0,.25))' }}
+            onError={e => { e.target.onerror = null; e.target.src = '/sanha-logo.png'; }}
+          />
           <h1>SANHA</h1>
           <p>Halal Certification Query Portal</p>
         </div>
@@ -108,18 +113,6 @@ export default function Login() {
                 : 'Sign In'}
             </button>
           </form>
-
-          {/* Role hints */}
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,.08)' }}>
-            <div style={{ fontSize: '0.68rem', color: 'rgba(148,163,184,.6)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8, textAlign: 'center' }}>Portal Roles</div>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {[['Client','#22c55e'], ['Evaluation','#60a5fa'], ['SB User','#a78bfa'], ['Admin','#f59e0b']].map(([role, color]) => (
-                <span key={role} style={{ padding: '3px 10px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, background: `${color}18`, color, border: `1px solid ${color}30`, letterSpacing: '.03em' }}>
-                  {role}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
 
         <p style={{ color: 'rgba(100,116,139,.6)', marginTop: 18, fontSize: '0.72rem', textAlign: 'center' }}>
