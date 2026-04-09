@@ -34,8 +34,8 @@ const NAV_GROUPS = {
     { label: 'Reports',        icon: BarChart2,        to: '/reports' },
   ],
   Client: [
-    { label: 'My Queries',   icon: FileText,  to: '/queries' },
-    { label: 'Submit Query', icon: Star,       to: '/queries/new' },
+    { label: 'My Queries',    icon: FileText,  to: '/queries' },
+    { label: 'Create Query',  icon: Star,      to: '/queries/new' },
   ],
   'Certificate Manager': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
