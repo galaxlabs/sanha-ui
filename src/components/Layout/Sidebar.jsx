@@ -114,8 +114,13 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      {/* Logo */}
-      <div className="sidebar-logo">
+      {/* Logo — click to go to Dashboard */}
+      <div
+        className="sidebar-logo"
+        onClick={() => navigate('/dashboard')}
+        style={{ cursor: 'pointer' }}
+        title="Go to Dashboard"
+      >
         {logoUrl ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img

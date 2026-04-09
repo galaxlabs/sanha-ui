@@ -85,9 +85,9 @@ export default function QueryList() {
     return f;
   }, [isClient, user, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate]);
 
-  const load = useCallback(async (reset = true) => {
+  const load = useCallback(async (reset = true, atPage = 0) => {
     setLoading(true);
-    const start = reset ? 0 : page * PAGE_SIZE;
+    const start = reset ? 0 : atPage * PAGE_SIZE;
     try {
       const rows = await getQueries(buildFilters(), PAGE_SIZE + 1, start);
       const slice = rows.slice(0, PAGE_SIZE);
@@ -100,7 +100,7 @@ export default function QueryList() {
       }
       else setQueries(prev => [...prev, ...slice]);
     } finally { setLoading(false); }
-  }, [buildFilters, page]);
+  }, [buildFilters]);
 
   /* Sync URL → state on navigation */
   useEffect(() => {
@@ -418,8 +418,17 @@ export default function QueryList() {
 
           {hasMore && (
             <div style={{ padding: '14px 18px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
-              <button className="btn btn-outline btn-sm" onClick={() => { setPage(p => p + 1); load(false); }}>
-                Load More
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={loading}
+                onClick={() => {
+                  const nextPage = page + 1;
+                  setPage(nextPage);
+                  load(false, nextPage);
+                }}
+                style={{ minWidth: 120 }}
+              >
+                {loading ? 'Loading…' : `Load More (${queries.length} / ${totalCount})`}
               </button>
             </div>
           )}
