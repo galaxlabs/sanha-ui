@@ -482,7 +482,7 @@ export default function ClientsPage() {
           <button className="btn btn-outline btn-sm" onClick={loadExpiring} disabled={expiringLoading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertTriangle size={14} /> Expiring ({stats.expiring + stats.expired})
           </button>
-          {isAdmin && (
+          {isAdmin() && (
             <button className="btn btn-primary btn-sm" onClick={() => setModalClient({})} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Plus size={14} /> New Client
             </button>
@@ -567,7 +567,7 @@ export default function ClientsPage() {
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn btn-outline btn-sm" onClick={() => navigate(`/queries?client=${encodeURIComponent(c.name)}`)}>View Queries</button>
-                        {isAdmin && <button className="btn btn-ghost btn-sm" onClick={() => setModalClient(c)} title="Edit"><Edit3 size={13} /></button>}
+                        {isAdmin() && <button className="btn btn-ghost btn-sm" onClick={() => setModalClient(c)} title="Edit"><Edit3 size={13} /></button>}
                       </div>
                     </td>
                   </tr>

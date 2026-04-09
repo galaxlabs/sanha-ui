@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Printer, ArrowLeft, CheckSquare, List, LayoutGrid } from 'lucide-react';
-import { getDoc } from '../api/frappe';
+import { getQueriesByNames } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 
 /* ─── State badge colors ─── */
@@ -87,7 +87,7 @@ function BulkSettings({ opts, setOpts }) {
       </div>
       <div>
         <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Per Page</div>
-        <BtnGroup k="perPage" options={[[10,'10'],[25,'25'],[50,'50'],[100,'All']]} />
+        <BtnGroup k="perPage" options={[[10,'10'],[25,'25'],[50,'50'],['all','All (∞)']]} />
       </div>
       <div>
         <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Columns</div>
@@ -146,21 +146,37 @@ export default function PrintBulk() {
     try { localStorage.setItem('printBulkOpts', JSON.stringify(opts)); } catch {}
   }, [opts]);
 
-  /* Fetch all query docs from IDs in URL */
+  /* Fetch all query docs — try sessionStorage first, then batch API call */
   useEffect(() => {
+    const src = searchParams.get('src');
+
+    // Fast path: data was passed via sessionStorage (from Reports page)
+    if (src === 'session') {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem('printBulkRows') || '[]');
+        if (stored.length > 0) {
+          setDocs(stored);
+          setLoading(false);
+          return;
+        }
+      } catch { /* fallthrough to API fetch */ }
+    }
+
+    // Fallback: fetch by IDs via a single batch API call (much faster than individual getDoc)
     const raw = searchParams.get('ids') || '';
     const ids = raw.split(',').map(decodeURIComponent).filter(Boolean);
     if (!ids.length) { setLoading(false); return; }
 
-    Promise.allSettled(ids.map(id => getDoc('Query', id))).then(results => {
-      const loaded = [], errs = [];
-      results.forEach((r, i) => {
-        if (r.status === 'fulfilled') loaded.push(r.value);
-        else errs.push(`${ids[i]}: ${r.reason?.message || 'Failed'}`);
-      });
-      setDocs(loaded);
-      setErrors(errs);
-    }).finally(() => setLoading(false));
+    getQueriesByNames(ids)
+      .then(loaded => {
+        setDocs(loaded);
+        if (loaded.length < ids.length) {
+          const found = new Set(loaded.map(d => d.name));
+          setErrors(ids.filter(id => !found.has(id)).map(id => `${id}: Not found`));
+        }
+      })
+      .catch(e => setErrors([`Failed to load queries: ${e.message}`]))
+      .finally(() => setLoading(false));
   }, [searchParams]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -168,7 +184,8 @@ export default function PrintBulk() {
 
   const enabledCols = opts.cols || ALL_COL_KEYS;
   const hasCols = key => enabledCols.includes(key);
-  const perPage = opts.perPage || 25;
+  // 'all' means put everything on one page
+  const perPage = opts.perPage === 'all' ? Math.max(docs.length, 1) : (opts.perPage || 25);
   const pages = [];
   for (let i = 0; i < docs.length; i += perPage) pages.push(docs.slice(i, i + perPage));
   const totalPages = Math.max(pages.length, 1);

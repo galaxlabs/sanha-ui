@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, logout as apiLogout, getSession, getUserRoles, getDoc } from '../api/frappe';
+import { login as apiLogin, logout as apiLogout, getSession, getUserRoles, getDoc, getUserPermissions } from '../api/frappe';
 
 const AuthContext = createContext(null);
 
@@ -24,7 +24,17 @@ export function AuthProvider({ children }) {
         const doc = await getDoc('User', name);
         full_name = doc?.full_name || name;
       } catch { /* ignore */ }
-      setUser({ name, full_name, roles });
+      // For non-admin users, find their linked Client via User Permissions
+      let clientName = null;
+      const adminRoles = ['Admin', 'System Manager', 'Administrator'];
+      if (!roles.some(r => adminRoles.includes(r))) {
+        try {
+          const perms = await getUserPermissions(name);
+          const cp = perms.find(p => p.allow === 'Client');
+          if (cp) clientName = cp.for_value;
+        } catch { /* ignore */ }
+      }
+      setUser({ name, full_name, roles, clientName });
     } catch {
       setUser(null);
     }

@@ -238,6 +238,20 @@ export async function getQueriesForReport(extraFilters = []) {
   });
 }
 
+/* ── Batch fetch multiple queries by name list (used by PrintBulk) ── */
+export async function getQueriesByNames(names) {
+  if (!names.length) return [];
+  return getList('Query', {
+    filters: [['name', 'in', names]],
+    fields: [
+      'name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state',
+      'query_types', 'client_name', 'client_code', 'owner', 'creation', 'modified',
+    ],
+    orderBy: 'creation desc',
+    limit: names.length + 20,
+  });
+}
+
 /* ── Script report with correct endpoint ── */
 export async function runScriptReport(reportName, filters = {}) {
   const params = new URLSearchParams({

@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import PrintQuery from './pages/PrintQuery';
 import PrintBulk from './pages/PrintBulk';
+import PrintGrouped from './pages/PrintGrouped';
 import { Spinner } from './components/UI/Loaders';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -88,6 +89,12 @@ function AppRoutes() {
       <Route path="/reports" element={
         <ProtectedRoute>
           <AppLayout><Reports /></AppLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/print-grouped" element={
+        <ProtectedRoute>
+          <AppLayout><PrintGrouped /></AppLayout>
         </ProtectedRoute>
       } />
 

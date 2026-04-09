@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle } from 'lucide-react';
+import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText } from 'lucide-react';
+import { getPortalLogoUrl } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
@@ -107,16 +108,79 @@ function PivotTable({ rows, rowKey, colKey, title }) {
 
 /* ─── Tabs ─── */
 const TABS = [
-  { id: 'all', label: 'All Queries', icon: Table },
-  { id: 'pivot', label: 'Pivot Analysis', icon: Layers },
-  { id: 'charts', label: 'State Charts', icon: BarChart2 },
-  { id: 'approved', label: 'Approved RM', icon: null },
-  { id: 'expired', label: 'Expired Docs', icon: AlertTriangle },
-  { id: 'counts', label: 'RM Counts', icon: null },
+  { id: 'all',      label: 'All Queries',    icon: Table },
+  { id: 'byState',  label: 'By State',        icon: Layers },
+  { id: 'byType',   label: 'By Type',         icon: FileText },
+  { id: 'pivot',    label: 'Pivot Analysis',  icon: null },
+  { id: 'charts',   label: 'State Charts',    icon: BarChart2 },
+  { id: 'approved', label: 'Approved RM',     icon: null },
+  { id: 'expired',  label: 'Expired Docs',    icon: AlertTriangle },
+  { id: 'counts',   label: 'RM Counts',       icon: null },
 ];
 
+/* ─── Grouped query view (shared by By State + By Type tabs) ─── */
+function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, fmt }) {
+  const nonEmpty = groups.filter(g => rows.some(r => (r[groupBy] || 'Unknown') === g));
+  if (!nonEmpty.length) return (
+    <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>No data matching filters</div>
+  );
+  return (
+    <div>
+      {nonEmpty.map(group => {
+        const gRows = rows.filter(r => (r[groupBy] || 'Unknown') === group);
+        const color = groupColors?.[group] || '#475569';
+        return (
+          <div key={group} style={{ marginBottom: 16 }}>
+            <div style={{
+              padding: '9px 16px',
+              background: color + '18',
+              borderLeft: `5px solid ${color}`,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontWeight: 700, fontSize: '0.875rem', color }}>
+                <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background:color, marginRight:8, verticalAlign:'middle' }}/>
+                {group}
+              </span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', background: '#fff', padding: '2px 10px', borderRadius: 12 }}>
+                {gRows.length} {gRows.length === 1 ? 'query' : 'queries'}
+              </span>
+            </div>
+            <div className="table-wrap" style={{ borderTop: 'none' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 36 }}>#</th>
+                    <th>Query ID</th><th>Raw Material</th><th>Type</th>
+                    <th>Manufacturer</th><th>Supplier</th>
+                    {showClient && <th>Client</th>}
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gRows.map((r, i) => (
+                    <tr key={r.name}>
+                      <td style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{i + 1}</td>
+                      <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>
+                      <td style={{ fontWeight:500 }}>{r.raw_material || '—'}</td>
+                      <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
+                      <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
+                      <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
+                      {showClient && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
+                      <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Reports() {
-  const { isAdmin, hasRole } = useAuth();
+  const { user, isAdmin, hasRole } = useAuth();
   const { error: showError } = useToast();
   const navigate = useNavigate();
 
@@ -141,17 +205,22 @@ export default function Reports() {
   const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
 
-  /* Load all queries for client-side pivot */
+  /* Load all queries — filter to client's own records for non-admin users */
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
-        const data = await frappe.getQueriesForReport();
+        // If non-admin user has a linked client, restrict to their records only
+        const extraFilters = (!isAdmin() && user?.clientName)
+          ? [['client_name', '=', user.clientName]]
+          : [];
+        const data = await frappe.getQueriesForReport(extraFilters);
         setRows(data);
       } catch (e) { showError(e.message); }
       finally { setLoading(false); }
     }
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Load script report */
@@ -224,7 +293,27 @@ export default function Reports() {
   const toggleRow = (name) => setSelected(s => { const n = new Set(s); n.has(name) ? n.delete(name) : n.add(name); return n; });
   const toggleAll = () => setSelected(allChecked ? new Set() : new Set(filtered.map(r => r.name)));
   const clearSel  = () => setSelected(new Set());
-  const goBulkPrint = (ids) => { if (ids.length) navigate(`/queries/print-bulk?ids=${ids.map(encodeURIComponent).join(',')}`); };
+  // Store row data in sessionStorage so PrintBulk doesn't need to re-fetch
+  const goBulkPrint = (ids) => {
+    if (!ids.length) return;
+    const rows = filtered.filter(r => ids.includes(r.name));
+    sessionStorage.setItem('printBulkRows', JSON.stringify(rows));
+    navigate('/queries/print-bulk?src=session');
+  };
+
+  // Navigate to grouped print page with rows stored in sessionStorage
+  const goGroupedPrint = (mode) => {
+    if (!filtered.length) return;
+    sessionStorage.setItem('printGrouped', JSON.stringify({
+      rows: filtered,
+      mode,
+      fromDate,
+      toDate,
+      clientFilter,
+      userClientName: user?.clientName || null,
+    }));
+    navigate('/reports/print-grouped');
+  };
 
   const COLS = [
     { fieldname:'name', label:'ID' },
@@ -262,7 +351,7 @@ export default function Reports() {
                 style={{ display:'flex', alignItems:'center', gap:5 }}
                 title="Print all filtered"
               >
-                Print Filtered ({filtered.length})
+                <Printer size={14} /> Print Filtered ({filtered.length})
               </button>
               {someChecked && (
                 <button
@@ -270,10 +359,20 @@ export default function Reports() {
                   onClick={() => goBulkPrint([...selected])}
                   style={{ display:'flex', alignItems:'center', gap:5 }}
                 >
-                  Print Selected ({selected.size})
+                  <Printer size={14} /> Print Selected ({selected.size})
                 </button>
               )}
             </>
+          )}
+          {(tab === 'byState' || tab === 'byType') && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => goGroupedPrint(tab)}
+              disabled={filtered.length === 0}
+              style={{ display:'flex', alignItems:'center', gap:5 }}
+            >
+              <Printer size={14} /> Print Report ({filtered.length})
+            </button>
           )}
         </div>
       </div>
@@ -290,7 +389,7 @@ export default function Reports() {
             <option value="">All Types</option>
             {allTypes.map(t=><option key={t} value={t}>{t}</option>)}
           </select>
-          {isAdmin && (
+          {isAdmin() && (
             <select className="form-control" style={{ flex: '1 1 150px', fontSize: '0.8rem' }} value={clientFilter} onChange={e=>setClientFilter(e.target.value)}>
               <option value="">All Clients</option>
               {allClients.map(c=><option key={c} value={c}>{c}</option>)}
@@ -328,7 +427,7 @@ export default function Reports() {
                         <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'#2563eb' }} title={allChecked ? 'Deselect all' : 'Select all'} />
                       </th>
                       <th>ID</th><th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
-                      <th>Type</th><th>Status</th>{isAdmin && <th>Client</th>}<th>Date</th>
+                      <th>Type</th><th>Status</th>{isAdmin() && <th>Client</th>}<th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -344,7 +443,7 @@ export default function Reports() {
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
                         <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
                         <td><StatusBadge state={r.workflow_state} /></td>
-                        {isAdmin && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
+                        {isAdmin() && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
                         <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>
                       </tr>
                     ))}
@@ -354,11 +453,35 @@ export default function Reports() {
             </div>
           )}
 
+          {/* ─── By State Tab ─── */}
+          {tab === 'byState' && (
+            <GroupedQueryView
+              rows={filtered}
+              groupBy="workflow_state"
+              groups={ALL_STATES}
+              groupColors={STATE_COLORS}
+              showClient={isAdmin()}
+              fmt={fmt}
+            />
+          )}
+
+          {/* ─── By Type Tab ─── */}
+          {tab === 'byType' && (
+            <GroupedQueryView
+              rows={filtered}
+              groupBy="query_types"
+              groups={[...new Set(rows.map(r => r.query_types).filter(Boolean))].sort()}
+              groupColors={null}
+              showClient={isAdmin()}
+              fmt={fmt}
+            />
+          )}
+
           {/* ─── Pivot Analysis Tab ─── */}
           {tab === 'pivot' && (
             <div>
               <PivotTable rows={filtered} rowKey="query_types" colKey="workflow_state" title="Query Type × Workflow State" />
-              {isAdmin && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Workflow State" />}
+              {isAdmin() && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Workflow State" />}
               <PivotTable rows={filtered} rowKey="query_types" colKey="manufacturer" title="Query Type × Manufacturer (top)" />
             </div>
           )}
@@ -378,7 +501,7 @@ export default function Reports() {
                 <div style={{ fontWeight:600, fontSize:'0.875rem', marginBottom:16 }}>Top Manufacturers</div>
                 <BarChart data={mfData} />
               </div>
-              {isAdmin && (
+              {isAdmin() && (
                 <div className="card">
                   <div style={{ fontWeight:600, fontSize:'0.875rem', marginBottom:16 }}>Top Clients</div>
                   <BarChart data={clientData} />
