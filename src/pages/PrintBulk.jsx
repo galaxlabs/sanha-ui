@@ -11,15 +11,29 @@ const STATE_COLOR = {
   'Under Review':'#7c3aed', Hold:'#ea580c',
 };
 
+/* ─── Column definitions ─── */
+const COLUMNS = [
+  { key: 'id',     label: 'Query ID' },
+  { key: 'rm',     label: 'Raw Material' },
+  { key: 'type',   label: 'Type' },
+  { key: 'mfr',    label: 'Manufacturer' },
+  { key: 'sup',    label: 'Supplier' },
+  { key: 'client', label: 'Client' },
+  { key: 'status', label: 'Status' },
+  { key: 'date',   label: 'Date' },
+  { key: 'docs',   label: 'Documents' },
+];
+const ALL_COL_KEYS = COLUMNS.map(c => c.key);
+
 /* ─── Print settings (persisted per bulk-print mode) ─── */
 const DEFAULT = {
   orientation: 'landscape',
   fontSize: 12,
-  showDocs: true,
-  showMeta: true,
   colorState: true,
   reportTitle: '',
   compactMode: false,
+  perPage: 25,
+  cols: ALL_COL_KEYS,
 };
 
 function BulkSettings({ opts, setOpts }) {
@@ -68,10 +82,36 @@ function BulkSettings({ opts, setOpts }) {
         <BtnGroup k="fontSize" options={[[10,'XS'],[12,'S'],[13,'M'],[14,'L']]} />
       </div>
       <div style={{ display: 'flex', gap: 16 }}>
-        <Tog k="compactMode" label="Compact (no doc rows)" />
-        <Tog k="showDocs"    label="Show documents column" />
-        <Tog k="showMeta"    label="Show dates/owner" />
+        <Tog k="compactMode" label="Compact rows" />
         <Tog k="colorState"  label="Color status" />
+      </div>
+      <div>
+        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Per Page</div>
+        <BtnGroup k="perPage" options={[[10,'10'],[25,'25'],[50,'50'],[100,'All']]} />
+      </div>
+      <div>
+        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Columns</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {COLUMNS.map(col => {
+            const active = (opts.cols || ALL_COL_KEYS).includes(col.key);
+            return (
+              <button
+                key={col.key}
+                onClick={() => set('cols', active
+                  ? (opts.cols || ALL_COL_KEYS).filter(k => k !== col.key)
+                  : [...(opts.cols || ALL_COL_KEYS), col.key]
+                )}
+                style={{
+                  padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
+                  borderColor: active ? '#2563eb' : '#e2e8f0',
+                  background:  active ? '#2563eb' : '#fff',
+                  color:       active ? '#fff' : '#64748b',
+                  fontWeight:  active ? 700 : 400,
+                }}
+              >{col.label}</button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -125,6 +165,13 @@ export default function PrintBulk() {
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const enabledCols = opts.cols || ALL_COL_KEYS;
+  const hasCols = key => enabledCols.includes(key);
+  const perPage = opts.perPage || 25;
+  const pages = [];
+  for (let i = 0; i < docs.length; i += perPage) pages.push(docs.slice(i, i + perPage));
+  const totalPages = Math.max(pages.length, 1);
 
   const colWidths = opts.orientation === 'landscape'
     ? { id: 100, rm: 200, type: 80, mfr: 130, sup: 130, client: 80, status: 90, date: 80, docs: 80 }
@@ -197,67 +244,84 @@ export default function PrintBulk() {
 
         {docs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No queries to display</div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: opts.fontSize }}>
-            <thead>
-              <tr style={{ background: '#f1f5f9' }}>
-                <th style={{ ...TH, width: colWidths.id }}>#</th>
-                <th style={{ ...TH, width: colWidths.id }}>Query ID</th>
-                <th style={{ ...TH, width: colWidths.rm }}>Raw Material</th>
-                <th style={{ ...TH, width: colWidths.type }}>Type</th>
-                <th style={{ ...TH, width: colWidths.mfr }}>Manufacturer</th>
-                <th style={{ ...TH, width: colWidths.sup }}>Supplier</th>
-                <th style={{ ...TH, width: colWidths.client }}>Client</th>
-                <th style={{ ...TH, width: colWidths.status }}>Status</th>
-                {opts.showMeta && <th style={{ ...TH, width: colWidths.date }}>Date</th>}
-                {opts.showDocs && !opts.compactMode && <th style={{ ...TH, width: colWidths.docs }}>Docs</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map((q, idx) => (
-                <tr key={q.name} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
-                  <td style={{ ...TD, color: '#94a3b8', fontSize: 11 }}>{idx + 1}</td>
-                  <td style={{ ...TD, fontWeight: 700, color: '#2563eb', fontFamily: 'monospace', fontSize: opts.fontSize - 1 }}>{q.name}</td>
-                  <td style={{ ...TD, fontWeight: 600 }}>{q.raw_material || '—'}</td>
-                  <td style={{ ...TD, color: '#64748b' }}>{q.query_types || '—'}</td>
-                  <td style={{ ...TD }}>{q.manufacturer || '—'}</td>
-                  <td style={{ ...TD }}>{q.supplier || '—'}</td>
-                  <td style={{ ...TD, color: '#64748b' }}>{q.client_name || '—'}</td>
-                  <td style={{ ...TD }}>
-                    {opts.colorState ? (
-                      <span style={{ color: STATE_COLOR[q.workflow_state] || '#64748b', fontWeight: 700, fontSize: opts.fontSize - 1 }}>
-                        {q.workflow_state}
-                      </span>
-                    ) : q.workflow_state}
-                  </td>
-                  {opts.showMeta && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.creation)}</td>}
-                  {opts.showDocs && !opts.compactMode && (
-                    <td style={{ ...TD }}><DocCount docs={q.documents} /></td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-            {/* Summary footer row */}
-            <tfoot>
-              <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                <td colSpan={2} style={{ ...TH, color: '#374151' }}>Total: {docs.length}</td>
-                <td colSpan={5} style={{ ...TD }}>
-                  {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
-                    <span key={s} style={{ marginRight: 10, fontSize: 11 }}>
-                      <span style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 700 }}>{s}</span>: {docs.filter(d => d.workflow_state === s).length}
-                    </span>
-                  ))}
-                </td>
-                {opts.showMeta && <td style={TD} />}
-                {opts.showDocs && !opts.compactMode && (
-                  <td style={{ ...TD, fontWeight: 700 }}>
-                    {docs.reduce((a, d) => a + (d.documents?.length || 0), 0)} total
-                  </td>
+        ) : pages.map((pageRows, pageIdx) => {
+          const startIdx = pageIdx * perPage;
+          const isLast = pageIdx === pages.length - 1;
+          return (
+            <div
+              key={pageIdx}
+              style={{ breakAfter: isLast ? 'auto' : 'page', marginBottom: isLast ? 0 : 8 }}
+            >
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: opts.fontSize }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9' }}>
+                    <th style={{ ...TH, width: 30 }}>#</th>
+                    {hasCols('id')     && <th style={{ ...TH, width: colWidths.id }}>Query ID</th>}
+                    {hasCols('rm')     && <th style={{ ...TH, width: colWidths.rm }}>Raw Material</th>}
+                    {hasCols('type')   && <th style={{ ...TH, width: colWidths.type }}>Type</th>}
+                    {hasCols('mfr')    && <th style={{ ...TH, width: colWidths.mfr }}>Manufacturer</th>}
+                    {hasCols('sup')    && <th style={{ ...TH, width: colWidths.sup }}>Supplier</th>}
+                    {hasCols('client') && <th style={{ ...TH, width: colWidths.client }}>Client</th>}
+                    {hasCols('status') && <th style={{ ...TH, width: colWidths.status }}>Status</th>}
+                    {hasCols('date')   && <th style={{ ...TH, width: colWidths.date }}>Date</th>}
+                    {hasCols('docs') && !opts.compactMode && <th style={{ ...TH, width: colWidths.docs }}>Docs</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((q, i) => {
+                    const idx = startIdx + i;
+                    return (
+                      <tr key={q.name} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                        <td style={{ ...TD, color: '#94a3b8', fontSize: 11 }}>{idx + 1}</td>
+                        {hasCols('id') && <td style={{ ...TD, fontWeight: 700, color: '#2563eb', fontFamily: 'monospace', fontSize: opts.fontSize - 1 }}>{q.name}</td>}
+                        {hasCols('rm') && <td style={{ ...TD, fontWeight: 600 }}>{q.raw_material || '—'}</td>}
+                        {hasCols('type') && <td style={{ ...TD, color: '#64748b' }}>{q.query_types || '—'}</td>}
+                        {hasCols('mfr') && <td style={{ ...TD }}>{q.manufacturer || '—'}</td>}
+                        {hasCols('sup') && <td style={{ ...TD }}>{q.supplier || '—'}</td>}
+                        {hasCols('client') && <td style={{ ...TD, color: '#64748b' }}>{q.client_name || '—'}</td>}
+                        {hasCols('status') && (
+                          <td style={{ ...TD }}>
+                            {opts.colorState ? (
+                              <span style={{ color: STATE_COLOR[q.workflow_state] || '#64748b', fontWeight: 700, fontSize: opts.fontSize - 1 }}>
+                                {q.workflow_state}
+                              </span>
+                            ) : q.workflow_state}
+                          </td>
+                        )}
+                        {hasCols('date') && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.creation)}</td>}
+                        {hasCols('docs') && !opts.compactMode && <td style={{ ...TD }}><DocCount docs={q.documents} /></td>}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {isLast && (
+                  <tfoot>
+                    <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+                      <td colSpan={2} style={{ ...TH, color: '#374151' }}>Total: {docs.length}</td>
+                      <td colSpan={Math.max(enabledCols.length - 2, 1)} style={{ ...TD }}>
+                        {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
+                          <span key={s} style={{ marginRight: 10, fontSize: 11 }}>
+                            <span style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 700 }}>{s}</span>: {docs.filter(d => d.workflow_state === s).length}
+                          </span>
+                        ))}
+                      </td>
+                      {hasCols('docs') && !opts.compactMode && (
+                        <td style={{ ...TD, fontWeight: 700 }}>
+                          {docs.reduce((a, d) => a + (d.documents?.length || 0), 0)} docs
+                        </td>
+                      )}
+                    </tr>
+                  </tfoot>
                 )}
-              </tr>
-            </tfoot>
-          </table>
-        )}
+              </table>
+              {/* Page number footer */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 6, paddingBottom: isLast ? 0 : 16, borderBottom: isLast ? 'none' : '1px dashed #e2e8f0' }}>
+                <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, docs.length)}</span>
+                <span>Page {pageIdx + 1} / {totalPages}</span>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Footer */}
         <div style={{ marginTop: 24, paddingTop: 12, borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>

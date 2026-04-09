@@ -260,3 +260,109 @@ export async function getFilterOptions() {
   const res = await request('GET', '/api/method/sanha.api.query_report.get_filter_options');
   return res.message || { clients: [], query_types: [] };
 }
+
+/* ── Password change ── */
+export async function updatePassword(oldPwd, newPwd) {
+  const res = await request('POST', '/api/method/frappe.client.set_value', {
+    doctype: 'User',
+    name: 'Administrator',
+    fieldname: 'new_password',
+    value: newPwd,
+  });
+  // Frappe provides a dedicated endpoint for password change
+  const r = await fetch(BASE + '/api/method/frappe.core.doctype.user.user.update_password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeaders() },
+    credentials: 'include',
+    body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }),
+  });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json?.message || 'Password change failed');
+  return json;
+}
+
+/* ── Admin: change any user's password ── */
+export async function adminSetPassword(userName, newPwd) {
+  const r = await fetch(BASE + '/api/method/frappe.core.doctype.user.user.update_password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeaders() },
+    credentials: 'include',
+    body: JSON.stringify({ user: userName, logout_all_sessions: 0, new_password: newPwd }),
+  });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(json?.message || 'Password change failed');
+  return json;
+}
+
+/* ── Logo: upload to Site Settings (Frappe Website Settings) ── */
+export async function uploadLogoFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('is_private', '0');
+  fd.append('folder', 'Home');
+  const headers = { Accept: 'application/json', ...authHeaders() };
+  const res = await fetch(BASE + '/api/method/upload_file', {
+    method: 'POST', headers,
+    credentials: API_KEY ? 'omit' : 'include',
+    body: fd,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.exc) throw new Error(json._error_message || json.message || 'Upload failed');
+  return json.message; // { file_url, name, ... }
+}
+
+export async function setPortalLogo(fileUrl) {
+  // Store in a singleton settings doc or localStorage-backed system setting
+  const res = await request('PUT', '/api/resource/Website Settings/Website Settings', {
+    brand_html: '', // leave blank
+    favicon: fileUrl.includes('favicon') ? fileUrl : undefined,
+  });
+  // Also try Website Settings banner_image field
+  try {
+    await request('PUT', '/api/resource/Website Settings/Website Settings', { banner_image: fileUrl });
+  } catch {}
+  // Save to localStorage as fallback
+  localStorage.setItem('portal_logo_url', fileUrl);
+  return fileUrl;
+}
+
+export function getPortalLogoUrl() {
+  return localStorage.getItem('portal_logo_url') || null;
+}
+
+export function savePortalLogoUrl(url) {
+  if (url) localStorage.setItem('portal_logo_url', url);
+  else localStorage.removeItem('portal_logo_url');
+}
+
+/* ── Notifications: recent query activity ── */
+export async function getNotifications(userEmail, isAdminUser = false, limit = 15) {
+  const filters = isAdminUser ? [] : [['owner', '=', userEmail]];
+  const rows = await getList('Query', {
+    filters,
+    fields: ['name', 'raw_material', 'workflow_state', 'owner', 'modified', 'client_name'],
+    orderBy: 'modified desc',
+    limit,
+  });
+  // Return as notification-style items
+  return rows.map(q => ({
+    id: q.name,
+    title: q.raw_material || q.name,
+    body: `State: ${q.workflow_state}`,
+    time: q.modified,
+    state: q.workflow_state,
+    owner: q.owner,
+    client: q.client_name,
+    read: false,
+  }));
+}
+
+/* ── List all users (admin only) ── */
+export async function listUsers() {
+  return getList('User', {
+    filters: [['name', '!=', 'Guest'], ['enabled', '=', 1]],
+    fields: ['name', 'full_name', 'email', 'user_type', 'last_login'],
+    orderBy: 'full_name asc',
+    limit: 200,
+  });
+}
