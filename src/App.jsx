@@ -66,7 +66,7 @@ function AppRoutes() {
 
       <Route path="/queries/print-bulk" element={
         <ProtectedRoute>
-          <AppLayout><PrintBulk /></AppLayout>
+          <PrintBulk />
         </ProtectedRoute>
       } />
 
@@ -96,7 +96,7 @@ function AppRoutes() {
 
       <Route path="/reports/print-grouped" element={
         <ProtectedRoute>
-          <AppLayout><PrintGrouped /></AppLayout>
+          <PrintGrouped />
         </ProtectedRoute>
       } />
 

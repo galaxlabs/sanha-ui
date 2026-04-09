@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Printer, CheckSquare, Square,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getQueries, getClients, getQueryTypes } from '../api/frappe';
+import { getQueries, getClients, getQueryTypes, getQueriesForReport } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import QueryCard from '../components/UI/QueryCard';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
@@ -53,6 +53,8 @@ export default function QueryList() {
 
   /* Selection state */
   const [selected, setSelected] = useState(new Set());
+  const [allMatchingSelected, setAllMatchingSelected] = useState(false); // "all records" mode
+  const [totalCount, setTotalCount] = useState(0); // total matching filters (server-side)
 
   /* Dropdown options */
   const [clientOptions, setClientOptions] = useState([]);
@@ -90,7 +92,12 @@ export default function QueryList() {
       const rows = await getQueries(buildFilters(), PAGE_SIZE + 1, start);
       const slice = rows.slice(0, PAGE_SIZE);
       setHasMore(rows.length > PAGE_SIZE);
-      if (reset) { setQueries(slice); setPage(0); setSelected(new Set()); }
+      if (reset) {
+        setQueries(slice); setPage(0); setSelected(new Set());
+        setAllMatchingSelected(false);
+        // Get total count for "select all X" banner
+        getQueries(buildFilters(), 9999, 0).then(all => setTotalCount(all.length)).catch(() => {});
+      }
       else setQueries(prev => [...prev, ...slice]);
     } finally { setLoading(false); }
   }, [buildFilters, page]);
@@ -125,18 +132,41 @@ export default function QueryList() {
 
   /* ─── Selection helpers ─── */
   const allChecked  = queries.length > 0 && queries.every(q => selected.has(q.name));
-  const someChecked = selected.size > 0;
+  const someChecked = selected.size > 0 || allMatchingSelected;
 
   const toggleRow = (name, e) => {
     e.stopPropagation();
+    setAllMatchingSelected(false);
     setSelected(s => { const n = new Set(s); n.has(name) ? n.delete(name) : n.add(name); return n; });
   };
-  const toggleAll  = () => setSelected(allChecked ? new Set() : new Set(queries.map(q => q.name)));
-  const clearSel   = () => setSelected(new Set());
+  const toggleAll = () => {
+    setAllMatchingSelected(false);
+    setSelected(allChecked ? new Set() : new Set(queries.map(q => q.name)));
+  };
+  const clearSel = () => { setSelected(new Set()); setAllMatchingSelected(false); };
 
-  const goBulkPrint = (ids) => {
+  // Select ALL records matching current filters (fetches all IDs from server)
+  const selectAllMatching = async () => {
+    setLoading(true);
+    try {
+      const all = await getQueries(buildFilters(), 9999, 0);
+      setSelected(new Set(all.map(q => q.name)));
+      setAllMatchingSelected(true);
+    } finally { setLoading(false); }
+  };
+
+  const goBulkPrint = async (ids) => {
     if (!ids.length) return;
-    navigate(`/queries/print-bulk?ids=${ids.map(encodeURIComponent).join(',')}`);
+    // Fetch full row data and store in sessionStorage for PrintBulk
+    try {
+      const { getQueriesByNames } = await import('../api/frappe');
+      const rows = await getQueriesByNames(ids);
+      sessionStorage.setItem('printBulkRows', JSON.stringify(rows));
+      navigate('/queries/print-bulk?src=session');
+    } catch {
+      // Fallback: pass IDs via URL
+      navigate(`/queries/print-bulk?ids=${ids.map(encodeURIComponent).join(',')}`);
+    }
   };
 
   /* ─── State quick-tabs ─── */
@@ -202,18 +232,39 @@ export default function QueryList() {
 
       {/* ─── Selection action bar ─── */}
       {someChecked && (
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 18px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 18px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1d4ed8' }}>
-            {selected.size} of {queries.length} selected
+            {allMatchingSelected ? `All ${totalCount} records selected` : `${selected.size} of ${queries.length} selected`}
           </span>
           <button className="btn btn-primary btn-sm" onClick={() => goBulkPrint([...selected])} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Printer size={13} /> Print Selected ({selected.size})
+            <Printer size={13} /> Print Selected ({allMatchingSelected ? totalCount : selected.size})
           </button>
           <button className="btn btn-outline btn-sm" onClick={() => goBulkPrint(queries.map(q => q.name))} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Printer size={13} /> Print Filtered ({queries.length})
           </button>
           <button className="btn btn-ghost btn-sm" onClick={clearSel} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <X size={13} /> Clear Selection
+            <X size={13} /> Clear
+          </button>
+        </div>
+      )}
+
+      {/* ─── "Select all matching" banner (shown when page rows all checked but more exist) ─── */}
+      {allChecked && !allMatchingSelected && totalCount > queries.length && (
+        <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 8, padding: '8px 18px', marginBottom: 12, fontSize: '0.82rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
+          All {queries.length} records on this page are selected.
+          <button
+            onClick={selectAllMatching}
+            style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#1d4ed8', padding: 0 }}
+          >
+            Select all {totalCount} matching records
+          </button>
+        </div>
+      )}
+      {allMatchingSelected && (
+        <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 8, padding: '8px 18px', marginBottom: 12, fontSize: '0.82rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
+          All {totalCount} matching records are selected.
+          <button onClick={clearSel} style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#1d4ed8', padding: 0 }}>
+            Clear selection
           </button>
         </div>
       )}
@@ -355,7 +406,9 @@ export default function QueryList() {
           {/* Selection footer */}
           {someChecked && (
             <div style={{ padding: '10px 18px', borderTop: '1px solid #bfdbfe', background: '#eff6ff', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: '#1d4ed8', fontWeight: 600 }}>{selected.size} selected</span>
+              <span style={{ fontSize: '0.8rem', color: '#1d4ed8', fontWeight: 600 }}>
+                {allMatchingSelected ? `All ${totalCount} records` : `${selected.size} selected`}
+              </span>
               <button className="btn btn-primary btn-sm" onClick={() => goBulkPrint([...selected])} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Printer size={12} /> Print Selected
               </button>
