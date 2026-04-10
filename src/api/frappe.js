@@ -268,15 +268,33 @@ export async function getQueriesForReport(extraFilters = []) {
 /* ── Batch fetch multiple queries by name list (used by PrintBulk) ── */
 export async function getQueriesByNames(names) {
   if (!names.length) return [];
-  return getList('Query', {
-    filters: [['name', 'in', names]],
-    fields: [
-      'name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state',
-      'query_types', 'client_name', 'client_code', 'owner', 'creation', 'modified',
-    ],
-    orderBy: 'creation desc',
-    limit: names.length + 20,
-  });
+  const FIELDS = [
+    'name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state',
+    'query_types', 'client_name', 'client_code', 'owner', 'creation', 'modified',
+  ];
+  // Frappe GET URL has a ~8 KB limit — split into chunks of 100 to stay safe
+  const CHUNK = 100;
+  if (names.length <= CHUNK) {
+    return getList('Query', {
+      filters: [['name', 'in', names]],
+      fields: FIELDS,
+      orderBy: 'creation desc',
+      limit: names.length + 20,
+    });
+  }
+  // Multiple chunks, fetched sequentially to avoid server overload
+  const results = [];
+  for (let i = 0; i < names.length; i += CHUNK) {
+    const chunk = names.slice(i, i + CHUNK);
+    const rows = await getList('Query', {
+      filters: [['name', 'in', chunk]],
+      fields: FIELDS,
+      orderBy: 'creation desc',
+      limit: chunk.length + 5,
+    });
+    results.push(...rows);
+  }
+  return results;
 }
 
 /* ── Script report with correct endpoint ── */
