@@ -12,7 +12,15 @@ import { Spinner, EmptyState } from '../components/UI/Loaders';
 import { STATE_META } from '../utils/workflow';
 
 const ALL_STATES = Object.keys(STATE_META);
-const PAGE_SIZE = 25;
+const PAGE_SIZES = [25, 50, 100, 200, 300, 400, 500, 'all'];
+const PRINT_COUNTS = [
+  { label: 'All Matching', value: 'all' },
+  { label: 'First 50',    value: 50 },
+  { label: 'First 100',   value: 100 },
+  { label: 'First 200',   value: 200 },
+  { label: 'First 500',   value: 500 },
+  { label: 'Loaded Only', value: 'loaded' },
+];
 
 /* ─── Active filter tag ─── */
 function Tag({ label, onRemove }) {
@@ -51,10 +59,21 @@ export default function QueryList() {
   const [hasMore,        setHasMore]        = useState(false);
   const [clientName,     setClientName]     = useState('');
 
+  /* Pagination */
+  const [pageSize, setPageSize] = useState(25);
+
   /* Selection state */
   const [selected, setSelected] = useState(new Set());
   const [allMatchingSelected, setAllMatchingSelected] = useState(false); // "all records" mode
   const [totalCount, setTotalCount] = useState(0); // total matching filters (server-side)
+
+  /* Exclude-mode per filter field (shows records NOT matching the chosen value) */
+  const [excludeState,  setExcludeState]  = useState(false);
+  const [excludeType,   setExcludeType]   = useState(false);
+  const [excludeClient, setExcludeClient] = useState(false);
+
+  /* How many records to fetch when "Print List" is clicked */
+  const [printLimit, setPrintLimit] = useState('all');
 
   /* Dropdown options */
   const [clientOptions, setClientOptions] = useState([]);
@@ -74,24 +93,25 @@ export default function QueryList() {
   const buildFilters = useCallback(() => {
     const f = [];
     if (isClient) f.push(['owner', '=', user.name]);
-    if (stateFilter)          f.push(['workflow_state', '=', stateFilter]);
-    if (typeFilter)           f.push(['query_types',    '=', typeFilter]);
-    if (clientFilter && !isClient) f.push(['client_name', '=', clientFilter]);
-    if (mfrFilter.trim())      f.push(['manufacturer', 'like', `%${mfrFilter.trim()}%`]);
-    if (supplierFilter.trim()) f.push(['supplier',     'like', `%${supplierFilter.trim()}%`]);
-    if (searchText.trim())     f.push(['raw_material', 'like', `%${searchText.trim()}%`]);
+    if (stateFilter)               f.push(['workflow_state', excludeState  ? '!=' : '=', stateFilter]);
+    if (typeFilter)                f.push(['query_types',    excludeType   ? '!=' : '=', typeFilter]);
+    if (clientFilter && !isClient) f.push(['client_name',   excludeClient ? '!=' : '=', clientFilter]);
+    if (mfrFilter.trim())          f.push(['manufacturer', 'like', `%${mfrFilter.trim()}%`]);
+    if (supplierFilter.trim())     f.push(['supplier',     'like', `%${supplierFilter.trim()}%`]);
+    if (searchText.trim())         f.push(['raw_material', 'like', `%${searchText.trim()}%`]);
     if (fromDate) f.push(['creation', '>=', fromDate]);
     if (toDate)   f.push(['creation', '<=', toDate + ' 23:59:59']);
     return f;
-  }, [isClient, user, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate]);
+  }, [isClient, user, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate, excludeState, excludeType, excludeClient]);
 
   const load = useCallback(async (reset = true, atPage = 0) => {
     setLoading(true);
-    const start = reset ? 0 : atPage * PAGE_SIZE;
+    const limit = pageSize === 'all' ? 9999 : pageSize;
+    const start = reset ? 0 : atPage * limit;
     try {
-      const rows = await getQueries(buildFilters(), PAGE_SIZE + 1, start);
-      const slice = rows.slice(0, PAGE_SIZE);
-      setHasMore(rows.length > PAGE_SIZE);
+      const rows = await getQueries(buildFilters(), pageSize === 'all' ? limit : limit + 1, start);
+      const slice = pageSize === 'all' ? rows : rows.slice(0, limit);
+      setHasMore(pageSize !== 'all' && rows.length > limit);
       if (reset) {
         setQueries(slice); setPage(0); setSelected(new Set());
         setAllMatchingSelected(false);
@@ -100,7 +120,7 @@ export default function QueryList() {
       }
       else setQueries(prev => [...prev, ...slice]);
     } finally { setLoading(false); }
-  }, [buildFilters]);
+  }, [buildFilters, pageSize]);
 
   /* Sync URL → state on navigation */
   useEffect(() => {
@@ -112,7 +132,9 @@ export default function QueryList() {
     if (c || t) setShowAdvanced(true);
   }, [searchParams]);
 
-  useEffect(() => { load(true); }, [stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate]);
+  // Re-load whenever filters OR page size changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(true); }, [load]);
 
   const pushParams = (updates) => {
     const next = new URLSearchParams(searchParams);
@@ -123,6 +145,7 @@ export default function QueryList() {
   const clearAll = () => {
     setStateFilter(''); setTypeFilter(''); setClientFilter(''); setMfrFilter('');
     setSupplierFilter(''); setFromDate(''); setToDate(''); setSearchText('');
+    setExcludeState(false); setExcludeType(false); setExcludeClient(false);
     setSearchParams({}, { replace: true });
   };
 
@@ -169,6 +192,22 @@ export default function QueryList() {
     }
   };
 
+  // Print List with configurable count
+  const goPrintList = async () => {
+    setLoading(true);
+    try {
+      let ids;
+      if (printLimit === 'loaded') {
+        ids = queries.map(q => q.name);
+      } else {
+        const count = printLimit === 'all' ? 9999 : Number(printLimit);
+        const rows = await getQueries(buildFilters(), count, 0);
+        ids = rows.map(q => q.name);
+      }
+      await goBulkPrint(ids);
+    } finally { setLoading(false); }
+  };
+
   /* ─── State quick-tabs ─── */
   const stateGroups = [
     { label: 'All', value: '' },
@@ -193,10 +232,10 @@ export default function QueryList() {
             {isClient ? 'My Queries' : clientFilter ? `Queries — ${clientName || clientFilter}` : 'Query Management'}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-            <p className="text-sm text-gray" style={{ margin: 0 }}>{queries.length} records shown</p>
-            {clientFilter  && <Tag label={`Client: ${clientName || clientFilter}`} onRemove={() => { setClientFilter(''); pushParams({ client: '' }); }} />}
-            {stateFilter   && <Tag label={`State: ${stateFilter}`}    onRemove={() => { setStateFilter('');    pushParams({ state: '' }); }} />}
-            {typeFilter    && <Tag label={`Type: ${typeFilter}`}       onRemove={() => { setTypeFilter('');    pushParams({ type: '' }); }} />}
+            <p className="text-sm text-gray" style={{ margin: 0 }}>{queries.length}{totalCount > queries.length ? ` / ${totalCount}` : ''} records{pageSize !== 'all' && hasMore ? ` (${pageSize} per page)` : ''}</p>
+            {clientFilter  && <Tag label={`${excludeClient ? '≠ ' : ''}Client: ${clientName || clientFilter}`} onRemove={() => { setClientFilter(''); setExcludeClient(false); pushParams({ client: '' }); }} />}
+            {stateFilter   && <Tag label={`${excludeState ? '≠ ' : ''}State: ${stateFilter}`}    onRemove={() => { setStateFilter('');  setExcludeState(false);  pushParams({ state: '' }); }} />}
+            {typeFilter    && <Tag label={`${excludeType ? '≠ ' : ''}Type: ${typeFilter}`}        onRemove={() => { setTypeFilter('');   setExcludeType(false);   pushParams({ type: '' }); }} />}
             {mfrFilter     && <Tag label={`Mfr: ${mfrFilter}`}        onRemove={() => setMfrFilter('')} />}
             {supplierFilter && <Tag label={`Supplier: ${supplierFilter}`} onRemove={() => setSupplierFilter('')} />}
             {fromDate      && <Tag label={`From: ${fromDate}`}        onRemove={() => setFromDate('')} />}
@@ -212,16 +251,26 @@ export default function QueryList() {
           >
             {viewMode === 'table' ? <LayoutGrid size={15} /> : <List size={15} />}
           </button>
-          {/* Print filtered */}
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={() => goBulkPrint(queries.map(q => q.name))}
-            title="Print all visible"
-            disabled={queries.length === 0}
-            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-          >
-            <Printer size={14} /> Print List
-          </button>
+          {/* Print List with count selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={goPrintList}
+              disabled={queries.length === 0 || loading}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, borderRadius: '6px 0 0 6px', borderRight: 'none' }}
+              title={`Print ${printLimit === 'all' ? 'all matching' : printLimit === 'loaded' ? 'loaded records' : `first ${printLimit}`}`}
+            >
+              <Printer size={14} /> Print
+            </button>
+            <select
+              value={printLimit}
+              onChange={e => setPrintLimit(e.target.value === 'all' || e.target.value === 'loaded' ? e.target.value : Number(e.target.value))}
+              style={{ height: 32, fontSize: '0.72rem', border: '1px solid #e2e8f0', borderLeft: '1px solid #e2e8f0', borderRadius: '0 6px 6px 0', padding: '0 4px', background: '#fff', cursor: 'pointer', minWidth: 90 }}
+              title="Records to print"
+            >
+              {PRINT_COUNTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
           {(isClient || isAdmin()) && (
             <button className="btn btn-primary btn-sm" onClick={() => navigate('/queries/new')}>
               <Plus size={15} /> New Query
@@ -277,16 +326,62 @@ export default function QueryList() {
             <input className="form-control" style={{ paddingLeft: 32 }} placeholder="Search raw material…" value={searchText}
               onChange={e => { setSearchText(e.target.value); pushParams({ q: e.target.value }); }} />
           </div>
-          <select className="form-control form-select" style={{ flex: '1 1 180px' }} value={stateFilter}
-            onChange={e => { setStateFilter(e.target.value); pushParams({ state: e.target.value }); }}>
-            <option value="">All States</option>
-            {ALL_STATES.map(s => <option key={s} value={s}>{STATE_META[s]?.label || s}</option>)}
-          </select>
-          <select className="form-control form-select" style={{ flex: '1 1 160px' }} value={typeFilter}
-            onChange={e => { setTypeFilter(e.target.value); pushParams({ type: e.target.value }); }}>
-            <option value="">All Types</option>
-            {typeOptions.map(t => <option key={t.name} value={t.name}>{t.query_type_name || t.name}</option>)}
-          </select>
+
+          {/* State filter + exclude toggle */}
+          <div style={{ display: 'flex', gap: 0, flex: '1 1 200px' }}>
+            <select className="form-control form-select" style={{ borderRadius: '6px 0 0 6px', borderRight: 'none' }} value={stateFilter}
+              onChange={e => { setStateFilter(e.target.value); pushParams({ state: e.target.value }); if (!e.target.value) setExcludeState(false); }}>
+              <option value="">All States</option>
+              {ALL_STATES.map(s => <option key={s} value={s}>{STATE_META[s]?.label || s}</option>)}
+            </select>
+            <button
+              title={excludeState ? 'Exclude mode active: showing records NOT matching this state' : 'Click to exclude this state instead of filter by it'}
+              disabled={!stateFilter}
+              onClick={() => setExcludeState(v => !v)}
+              style={{
+                padding: '0 10px', border: '1px solid', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: stateFilter ? 'pointer' : 'not-allowed',
+                fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap',
+                borderColor: excludeState ? '#dc2626' : '#e2e8f0',
+                background: excludeState ? '#fef2f2' : '#f8fafc',
+                color: excludeState ? '#dc2626' : '#94a3b8',
+              }}
+            >≠</button>
+          </div>
+
+          {/* Type filter + exclude toggle */}
+          <div style={{ display: 'flex', gap: 0, flex: '1 1 180px' }}>
+            <select className="form-control form-select" style={{ borderRadius: '6px 0 0 6px', borderRight: 'none' }} value={typeFilter}
+              onChange={e => { setTypeFilter(e.target.value); pushParams({ type: e.target.value }); if (!e.target.value) setExcludeType(false); }}>
+              <option value="">All Types</option>
+              {typeOptions.map(t => <option key={t.name} value={t.name}>{t.query_type_name || t.name}</option>)}
+            </select>
+            <button
+              title={excludeType ? 'Exclude mode active: showing records NOT matching this type' : 'Click to exclude this type instead of filter by it'}
+              disabled={!typeFilter}
+              onClick={() => setExcludeType(v => !v)}
+              style={{
+                padding: '0 10px', border: '1px solid', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: typeFilter ? 'pointer' : 'not-allowed',
+                fontWeight: 700, fontSize: '0.82rem',
+                borderColor: excludeType ? '#dc2626' : '#e2e8f0',
+                background: excludeType ? '#fef2f2' : '#f8fafc',
+                color: excludeType ? '#dc2626' : '#94a3b8',
+              }}
+            >≠</button>
+          </div>
+
+          {/* Page size selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+            <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>Show:</span>
+            <select
+              className="form-control form-select"
+              style={{ width: 86, fontSize: '0.8rem' }}
+              value={pageSize}
+              onChange={e => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            >
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 'all' ? 'All' : s}</option>)}
+            </select>
+          </div>
+
           <button className="btn btn-outline btn-sm" onClick={() => setShowAdvanced(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
             <Filter size={13} /> Advanced {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
@@ -296,11 +391,25 @@ export default function QueryList() {
         {showAdvanced && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
             {isAdmin() && (
-              <select className="form-control form-select" style={{ flex: '1 1 180px' }} value={clientFilter}
-                onChange={e => { setClientFilter(e.target.value); pushParams({ client: e.target.value }); }}>
-                <option value="">All Clients</option>
-                {clientOptions.map(c => <option key={c.name} value={c.name}>{c.client_name || c.name}</option>)}
-              </select>
+              <div style={{ display: 'flex', gap: 0, flex: '1 1 200px' }}>
+                <select className="form-control form-select" style={{ borderRadius: '6px 0 0 6px', borderRight: 'none' }} value={clientFilter}
+                  onChange={e => { setClientFilter(e.target.value); pushParams({ client: e.target.value }); if (!e.target.value) setExcludeClient(false); }}>
+                  <option value="">All Clients</option>
+                  {clientOptions.map(c => <option key={c.name} value={c.name}>{c.client_name || c.name}</option>)}
+                </select>
+                <button
+                  title={excludeClient ? 'Exclude mode active: showing records NOT from this client' : 'Click to exclude this client instead of filter'}
+                  disabled={!clientFilter}
+                  onClick={() => setExcludeClient(v => !v)}
+                  style={{
+                    padding: '0 10px', border: '1px solid', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: clientFilter ? 'pointer' : 'not-allowed',
+                    fontWeight: 700, fontSize: '0.82rem',
+                    borderColor: excludeClient ? '#dc2626' : '#e2e8f0',
+                    background: excludeClient ? '#fef2f2' : '#f8fafc',
+                    color: excludeClient ? '#dc2626' : '#94a3b8',
+                  }}
+                >≠</button>
+              </div>
             )}
             <input className="form-control" style={{ flex: '1 1 160px' }} placeholder="Manufacturer…" value={mfrFilter}
               onChange={e => setMfrFilter(e.target.value)} />
