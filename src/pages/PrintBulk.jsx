@@ -27,26 +27,31 @@ const COLUMNS = [
 ];
 const ALL_COL_KEYS = COLUMNS.map(c => c.key);
 
+/* ─── Fixed company info (not user-editable) ─── */
+const ORG_NAME    = 'SANHA HALAL';
+const ORG_ADDRESS = 'Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. Phase 5, Karachi';
+const ORG_CONTACT = 'Email: karachi@sanha.org.pk | Ph: +92 21 35295263';
+const FOOTER_TEXT = 'SANHA Halal Pakistan — Halal Evaluation Portal';
+
 /* ─── Print settings (persisted per bulk-print mode) ─── */
 const DEFAULT = {
-  orientation:  'landscape',
-  fontSize:     12,
-  colorState:   true,
-  reportTitle:  '',
-  compactMode:  false,
-  perPage:      'all',
-  cols:         ALL_COL_KEYS,
-  /* Header / Footer */
+  orientation:    'landscape',
+  fontSize:       12,
+  colorState:     true,
+  reportTitle:    '',
+  compactMode:    false,
+  perPage:        'all',
+  cols:           ALL_COL_KEYS,
+  /* Display toggles */
   showLogo:       true,
   showOrgInfo:    true,
+  showClientInfo: true,
   showSummary:    true,
   showDisclaimer: true,
   showPageNums:   true,
-  orgName:    'SANHA HALAL',
-  orgAddress: 'Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. Phase 5, Karachi',
-  orgContact: 'Email: karachi@sanha.org.pk | Ph: +92 21 35295263',
-  footerLeft:  'SANHA Halal Pakistan — Halal Evaluation Portal',
-  footerRight: '',
+  /* Grouping */
+  groupBy:    'none',        // 'none' | 'type' | 'state'
+  serialMode: 'continuous',  // 'continuous' | 'grouped'
 };
 
 function BulkSettings({ opts, setOpts }) {
@@ -54,7 +59,7 @@ function BulkSettings({ opts, setOpts }) {
   const BtnGroup = ({ k, options }) => (
     <div style={{ display: 'flex', gap: 4 }}>
       {options.map(([val, label]) => (
-        <button key={val} onClick={() => set(k, val)} style={{
+        <button key={String(val)} onClick={() => set(k, val)} style={{
           padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
           borderColor: opts[k] === val ? '#2563eb' : '#e2e8f0',
           background:  opts[k] === val ? '#2563eb' : '#fff',
@@ -77,22 +82,19 @@ function BulkSettings({ opts, setOpts }) {
   const Label = ({ children }) => (
     <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{children}</div>
   );
-  const FieldInput = ({ k, placeholder, wide }) => (
-    <input
-      style={{ padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.78rem', width: wide ? 300 : 200, background: '#fff' }}
-      placeholder={placeholder}
-      value={opts[k]}
-      onChange={e => set(k, e.target.value)}
-    />
-  );
 
   return (
     <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-      {/* Row 1: Layout & columns */}
+      {/* Row 1: Layout, columns, per-page */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', padding: '10px 24px 8px', borderBottom: '1px solid #f1f5f9' }}>
         <div>
           <Label>Report Title</Label>
-          <FieldInput k="reportTitle" placeholder="e.g. Monthly Halal Query Report" wide />
+          <input
+            style={{ padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.78rem', width: 260, background: '#fff' }}
+            placeholder="e.g. Monthly Halal Query Report"
+            value={opts.reportTitle}
+            onChange={e => set('reportTitle', e.target.value)}
+          />
         </div>
         <div>
           <Label>Orientation</Label>
@@ -126,8 +128,7 @@ function BulkSettings({ opts, setOpts }) {
             {COLUMNS.map(col => {
               const active = (opts.cols || ALL_COL_KEYS).includes(col.key);
               return (
-                <button
-                  key={col.key}
+                <button key={col.key}
                   onClick={() => set('cols', active
                     ? (opts.cols || ALL_COL_KEYS).filter(k => k !== col.key)
                     : [...(opts.cols || ALL_COL_KEYS), col.key]
@@ -146,44 +147,31 @@ function BulkSettings({ opts, setOpts }) {
         </div>
       </div>
 
-      {/* Row 2: Header / Footer options */}
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', padding: '8px 24px 10px' }}>
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* Row 2: Grouping + Show/Hide toggles */}
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end', padding: '8px 24px 10px' }}>
+        <div>
+          <Label>Group By</Label>
+          <BtnGroup k="groupBy" options={[['none','None'],['type','Query Type'],['state','Workflow State']]} />
+        </div>
+        <div>
+          <Label>Serial #</Label>
+          <BtnGroup k="serialMode" options={[['continuous','Continuous'],['grouped','Per Group']]} />
+        </div>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', paddingLeft: 12, borderLeft: '1px solid #e2e8f0' }}>
           <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Show:</span>
           <Tog k="showLogo"       label="Logo" />
           <Tog k="showOrgInfo"    label="Company Info" />
+          <Tog k="showClientInfo" label="Client Summary" />
           <Tog k="showSummary"    label="Status Summary" />
           <Tog k="showDisclaimer" label="Disclaimer" />
-          <Tog k="showPageNums"   label="Page Numbers" />
+          <Tog k="showPageNums"   label="Page Nos." />
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', paddingLeft: 8, borderLeft: '1px solid #e2e8f0' }}>
-          <div>
-            <Label>Company Name</Label>
-            <FieldInput k="orgName" placeholder="SANHA HALAL" />
-          </div>
-          <div>
-            <Label>Address</Label>
-            <FieldInput k="orgAddress" placeholder="Street, City" wide />
-          </div>
-          <div>
-            <Label>Contact</Label>
-            <FieldInput k="orgContact" placeholder="Email / Phone" wide />
-          </div>
-          <div>
-            <Label>Footer Left</Label>
-            <FieldInput k="footerLeft" placeholder="e.g. Confidential" />
-          </div>
-          <div>
-            <Label>Footer Right</Label>
-            <FieldInput k="footerRight" placeholder="e.g. Internal Use Only" />
-          </div>
-          <button
-            style={{ padding: '5px 12px', fontSize: '0.72rem', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', color: '#64748b', cursor: 'pointer' }}
-            onClick={() => setOpts(DEFAULT)}
-          >
-            Reset
-          </button>
-        </div>
+        <button
+          style={{ padding: '5px 12px', fontSize: '0.72rem', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', color: '#64748b', cursor: 'pointer', marginLeft: 'auto' }}
+          onClick={() => setOpts(DEFAULT)}
+        >
+          Reset
+        </button>
       </div>
     </div>
   );
@@ -260,15 +248,87 @@ export default function PrintBulk() {
 
   const enabledCols = opts.cols || ALL_COL_KEYS;
   const hasCols = key => enabledCols.includes(key);
-  // 'all' means put everything on one page
+  const isGrouped = opts.groupBy !== 'none';
   const perPage = opts.perPage === 'all' ? Math.max(docs.length, 1) : (opts.perPage || 25);
-  const pages = [];
-  for (let i = 0; i < docs.length; i += perPage) pages.push(docs.slice(i, i + perPage));
-  const totalPages = Math.max(pages.length, 1);
+
+  // Flat pages (used only when not grouped)
+  const flatPages = [];
+  if (!isGrouped) {
+    for (let i = 0; i < docs.length; i += perPage) flatPages.push(docs.slice(i, i + perPage));
+  }
+  const totalFlatPages = Math.max(flatPages.length, 1);
 
   const colWidths = opts.orientation === 'landscape'
     ? { id: 100, rm: 200, type: 80, mfr: 130, sup: 130, client: 80, status: 90, date: 80, docs: 80 }
     : { id: 90, rm: 160, type: 70, mfr: 110, sup: 110, client: 70, status: 80, date: 70, docs: 70 };
+
+  // Client summary: per-client name, code, record count, date range
+  const clientInfoMap = {};
+  docs.forEach(d => {
+    const key = d.client_name || '—';
+    if (!clientInfoMap[key]) {
+      clientInfoMap[key] = { name: key, code: d.client_code || '—', count: 0, minDate: d.creation, maxDate: d.creation };
+    }
+    clientInfoMap[key].count++;
+    if (d.creation < clientInfoMap[key].minDate) clientInfoMap[key].minDate = d.creation;
+    if (d.creation > clientInfoMap[key].maxDate) clientInfoMap[key].maxDate = d.creation;
+  });
+  const clientSummary = Object.values(clientInfoMap).sort((a, b) => a.name.localeCompare(b.name));
+  const overallMinDate = docs.reduce((m, d) => (!m || d.creation < m) ? d.creation : m, null);
+  const overallMaxDate = docs.reduce((m, d) => (!m || d.creation > m) ? d.creation : m, null);
+
+  // Groups (built when groupBy is active)
+  const groups = (() => {
+    if (!isGrouped) return [];
+    const map = new Map();
+    docs.forEach(d => {
+      const key = opts.groupBy === 'type' ? (d.query_types || '— No Type —') : (d.workflow_state || '— Unknown —');
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(d);
+    });
+    return [...map.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]))).map(([key, rows]) => ({ key, label: key, rows }));
+  })();
+  const groupHeadingColor = (label) => (opts.groupBy === 'state' ? STATE_COLOR[label] || '#475569' : '#475569');
+
+  // Shared thead
+  const renderThead = () => (
+    <thead>
+      <tr style={{ background: '#f1f5f9' }}>
+        <th style={{ ...TH, width: 30 }}>#</th>
+        {hasCols('id')     && <th style={{ ...TH, width: colWidths.id }}>Query ID</th>}
+        {hasCols('rm')     && <th style={{ ...TH, width: colWidths.rm }}>Raw Material</th>}
+        {hasCols('type')   && <th style={{ ...TH, width: colWidths.type }}>Type</th>}
+        {hasCols('mfr')    && <th style={{ ...TH, width: colWidths.mfr }}>Manufacturer</th>}
+        {hasCols('sup')    && <th style={{ ...TH, width: colWidths.sup }}>Supplier</th>}
+        {hasCols('client') && <th style={{ ...TH, width: colWidths.client }}>Client</th>}
+        {hasCols('status') && <th style={{ ...TH, width: colWidths.status }}>Status</th>}
+        {hasCols('date')   && <th style={{ ...TH, width: colWidths.date }}>Date</th>}
+        {hasCols('docs') && !opts.compactMode && <th style={{ ...TH, width: colWidths.docs }}>Docs</th>}
+      </tr>
+    </thead>
+  );
+
+  // Shared row renderer
+  const renderRow = (q, serial, rowIdx) => (
+    <tr key={q.name} style={{ borderBottom: '1px solid #e2e8f0', background: rowIdx % 2 === 0 ? '#fff' : '#fafbfc' }}>
+      <td style={{ ...TD, color: '#94a3b8', fontSize: 11 }}>{serial}</td>
+      {hasCols('id')     && <td style={{ ...TD, fontWeight: 700, color: '#2563eb', fontFamily: 'monospace', fontSize: opts.fontSize - 1 }}>{q.name}</td>}
+      {hasCols('rm')     && <td style={{ ...TD, fontWeight: 600 }}>{q.raw_material || '—'}</td>}
+      {hasCols('type')   && <td style={{ ...TD, color: '#64748b' }}>{q.query_types || '—'}</td>}
+      {hasCols('mfr')    && <td style={{ ...TD }}>{q.manufacturer || '—'}</td>}
+      {hasCols('sup')    && <td style={{ ...TD }}>{q.supplier || '—'}</td>}
+      {hasCols('client') && <td style={{ ...TD, color: '#64748b' }}>{q.client_name || '—'}</td>}
+      {hasCols('status') && (
+        <td style={{ ...TD }}>
+          {opts.colorState
+            ? <span style={{ color: STATE_COLOR[q.workflow_state] || '#64748b', fontWeight: 700, fontSize: opts.fontSize - 1 }}>{q.workflow_state}</span>
+            : q.workflow_state}
+        </td>
+      )}
+      {hasCols('date')   && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.creation)}</td>}
+      {hasCols('docs') && !opts.compactMode && <td style={{ ...TD }}><DocCount docs={q.documents} /></td>}
+    </tr>
+  );
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
@@ -315,7 +375,7 @@ export default function PrintBulk() {
       <div className="print-bulk-page" style={{ background: '#fff', margin: '16px auto 60px', maxWidth: opts.orientation === 'landscape' ? 1160 : 860, padding: opts.orientation === 'landscape' ? '32px 40px' : '40px 48px', boxShadow: '0 4px 24px rgba(0,0,0,.09)', fontFamily: 'Arial, sans-serif', fontSize: opts.fontSize }}>
 
         {/* — Logo + Header — */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 20, gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16 }}>
           {/* Left: logo + org info */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             {opts.showLogo && logoUrl && (
@@ -326,9 +386,9 @@ export default function PrintBulk() {
             <div>
               {opts.showOrgInfo && (
                 <>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{opts.orgName || 'SANHA HALAL'}</div>
-                  {opts.orgAddress && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{opts.orgAddress}</div>}
-                  {opts.orgContact && <div style={{ fontSize: 10, color: '#64748b' }}>{opts.orgContact}</div>}
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{ORG_NAME}</div>
+                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{ORG_ADDRESS}</div>
+                  <div style={{ fontSize: 10, color: '#64748b' }}>{ORG_CONTACT}</div>
                 </>
               )}
               <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginTop: opts.showOrgInfo ? 6 : 0 }}>
@@ -337,7 +397,7 @@ export default function PrintBulk() {
               <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Generated: {now}</div>
             </div>
           </div>
-          {/* Right: summary */}
+          {/* Right: status summary */}
           {opts.showSummary && (
             <div style={{ textAlign: 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
               <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
@@ -352,88 +412,131 @@ export default function PrintBulk() {
           )}
         </div>
 
+        {/* — Client Info Summary Table — */}
+        {opts.showClientInfo && clientSummary.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>
+              {clientSummary.length === 1 ? 'Client' : `Clients (${clientSummary.length})`}
+              {overallMinDate && <span style={{ fontWeight: 400, marginLeft: 8 }}>— Period: {fmt(overallMinDate)} → {fmt(overallMaxDate)}</span>}
+            </div>
+            <table style={{ borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
+              <thead>
+                <tr style={{ background: '#f0fdf4' }}>
+                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Client Name</th>
+                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Client Code</th>
+                  <th style={{ ...TH, fontSize: 10, color: '#16a34a', textAlign: 'center' }}>Records</th>
+                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Earliest</th>
+                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Latest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientSummary.map(c => (
+                  <tr key={c.name} style={{ background: '#fff' }}>
+                    <td style={{ ...TD, fontWeight: 600 }}>{c.name}</td>
+                    <td style={{ ...TD, fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{c.code}</td>
+                    <td style={{ ...TD, textAlign: 'center', fontWeight: 700, color: '#16a34a' }}>{c.count}</td>
+                    <td style={{ ...TD, color: '#64748b', fontSize: 10 }}>{fmt(c.minDate)}</td>
+                    <td style={{ ...TD, color: '#64748b', fontSize: 10 }}>{fmt(c.maxDate)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {docs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No queries to display</div>
-        ) : pages.map((pageRows, pageIdx) => {
-          const startIdx = pageIdx * perPage;
-          const isLast = pageIdx === pages.length - 1;
-          return (
-            <div
-              key={pageIdx}
-              style={{ breakAfter: isLast ? 'auto' : 'page', marginBottom: isLast ? 0 : 8 }}
-            >
+        ) : isGrouped ? (
+          /* ── Grouped rendering ── */
+          (() => {
+            let continuousSerial = 0;
+            return (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: opts.fontSize }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <th style={{ ...TH, width: 30 }}>#</th>
-                    {hasCols('id')     && <th style={{ ...TH, width: colWidths.id }}>Query ID</th>}
-                    {hasCols('rm')     && <th style={{ ...TH, width: colWidths.rm }}>Raw Material</th>}
-                    {hasCols('type')   && <th style={{ ...TH, width: colWidths.type }}>Type</th>}
-                    {hasCols('mfr')    && <th style={{ ...TH, width: colWidths.mfr }}>Manufacturer</th>}
-                    {hasCols('sup')    && <th style={{ ...TH, width: colWidths.sup }}>Supplier</th>}
-                    {hasCols('client') && <th style={{ ...TH, width: colWidths.client }}>Client</th>}
-                    {hasCols('status') && <th style={{ ...TH, width: colWidths.status }}>Status</th>}
-                    {hasCols('date')   && <th style={{ ...TH, width: colWidths.date }}>Date</th>}
-                    {hasCols('docs') && !opts.compactMode && <th style={{ ...TH, width: colWidths.docs }}>Docs</th>}
-                  </tr>
-                </thead>
+                {renderThead()}
                 <tbody>
-                  {pageRows.map((q, i) => {
-                    const idx = startIdx + i;
-                    return (
-                      <tr key={q.name} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
-                        <td style={{ ...TD, color: '#94a3b8', fontSize: 11 }}>{idx + 1}</td>
-                        {hasCols('id') && <td style={{ ...TD, fontWeight: 700, color: '#2563eb', fontFamily: 'monospace', fontSize: opts.fontSize - 1 }}>{q.name}</td>}
-                        {hasCols('rm') && <td style={{ ...TD, fontWeight: 600 }}>{q.raw_material || '—'}</td>}
-                        {hasCols('type') && <td style={{ ...TD, color: '#64748b' }}>{q.query_types || '—'}</td>}
-                        {hasCols('mfr') && <td style={{ ...TD }}>{q.manufacturer || '—'}</td>}
-                        {hasCols('sup') && <td style={{ ...TD }}>{q.supplier || '—'}</td>}
-                        {hasCols('client') && <td style={{ ...TD, color: '#64748b' }}>{q.client_name || '—'}</td>}
-                        {hasCols('status') && (
-                          <td style={{ ...TD }}>
-                            {opts.colorState ? (
-                              <span style={{ color: STATE_COLOR[q.workflow_state] || '#64748b', fontWeight: 700, fontSize: opts.fontSize - 1 }}>
-                                {q.workflow_state}
-                              </span>
-                            ) : q.workflow_state}
-                          </td>
-                        )}
-                        {hasCols('date') && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.creation)}</td>}
-                        {hasCols('docs') && !opts.compactMode && <td style={{ ...TD }}><DocCount docs={q.documents} /></td>}
-                      </tr>
-                    );
+                  {groups.flatMap(group => {
+                    const gc = groupHeadingColor(group.label);
+                    return [
+                      /* Group heading row */
+                      <tr key={`gh-${group.key}`}>
+                        <td colSpan={100} style={{
+                          padding: '9px 14px', background: gc + '15',
+                          borderTop: `2px solid ${gc}`, borderBottom: `1px solid ${gc}40`,
+                        }}>
+                          <span style={{ color: gc, fontWeight: 800, fontSize: opts.fontSize + 1 }}>{group.label}</span>
+                          <span style={{ color: '#94a3b8', fontSize: 10, marginLeft: 10 }}>
+                            {group.rows.length} record{group.rows.length !== 1 ? 's' : ''}
+                          </span>
+                        </td>
+                      </tr>,
+                      /* Group data rows */
+                      ...group.rows.map((q, i) => {
+                        continuousSerial++;
+                        return renderRow(q, opts.serialMode === 'grouped' ? i + 1 : continuousSerial, i);
+                      }),
+                      /* Group subtotal row */
+                      <tr key={`gs-${group.key}`} style={{ background: gc + '08', borderTop: `1px solid ${gc}30` }}>
+                        <td colSpan={2} style={{ ...TH, fontSize: 10, color: gc, padding: '5px 10px' }}>Subtotal</td>
+                        <td colSpan={100} style={{ ...TD, fontSize: 10, color: '#64748b', padding: '5px 10px' }}>
+                          {group.rows.length} record{group.rows.length !== 1 ? 's' : ''}
+                          {opts.groupBy === 'state' && docs.length > 0 && (
+                            <span style={{ marginLeft: 8, color: '#94a3b8' }}>
+                              ({Math.round(group.rows.length / docs.length * 100)}%)
+                            </span>
+                          )}
+                        </td>
+                      </tr>,
+                    ];
                   })}
                 </tbody>
-                {isLast && (
-                  <tfoot>
-                    <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                      <td colSpan={2} style={{ ...TH, color: '#374151' }}>Total: {docs.length}</td>
-                      <td colSpan={Math.max(enabledCols.length - 2, 1)} style={{ ...TD }}>
-                        {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
-                          <span key={s} style={{ marginRight: 10, fontSize: 11 }}>
-                            <span style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 700 }}>{s}</span>: {docs.filter(d => d.workflow_state === s).length}
-                          </span>
-                        ))}
-                      </td>
-                      {hasCols('docs') && !opts.compactMode && (
-                        <td style={{ ...TD, fontWeight: 700 }}>
-                          {docs.reduce((a, d) => a + (d.documents?.length || 0), 0)} docs
-                        </td>
-                      )}
-                    </tr>
-                  </tfoot>
-                )}
+                <tfoot>
+                  <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+                    <td colSpan={2} style={{ ...TH, color: '#374151' }}>Grand Total</td>
+                    <td colSpan={100} style={{ ...TD, fontSize: 11 }}>
+                      {docs.length} record{docs.length !== 1 ? 's' : ''} across {groups.length} group{groups.length !== 1 ? 's' : ''}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
-              {/* Page number footer (per page) */}
-              {opts.showPageNums && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 6, paddingBottom: isLast ? 0 : 16, borderBottom: isLast ? 'none' : '1px dashed #e2e8f0' }}>
-                  <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, docs.length)}</span>
-                  <span>Page {pageIdx + 1} / {totalPages}</span>
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })()
+        ) : (
+          /* ── Flat paginated rendering ── */
+          flatPages.map((pageRows, pageIdx) => {
+            const startIdx = pageIdx * perPage;
+            const isLast = pageIdx === flatPages.length - 1;
+            return (
+              <div key={pageIdx} style={{ breakAfter: isLast ? 'auto' : 'page', marginBottom: isLast ? 0 : 8 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: opts.fontSize }}>
+                  {renderThead()}
+                  <tbody>
+                    {pageRows.map((q, i) => renderRow(q, startIdx + i + 1, startIdx + i))}
+                  </tbody>
+                  {isLast && (
+                    <tfoot>
+                      <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+                        <td colSpan={2} style={{ ...TH, color: '#374151' }}>Total: {docs.length}</td>
+                        <td colSpan={100} style={{ ...TD }}>
+                          {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
+                            <span key={s} style={{ marginRight: 10, fontSize: 11 }}>
+                              <span style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 700 }}>{s}</span>: {docs.filter(d => d.workflow_state === s).length}
+                            </span>
+                          ))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+                {opts.showPageNums && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 6, paddingBottom: isLast ? 0 : 16, borderBottom: isLast ? 'none' : '1px dashed #e2e8f0' }}>
+                    <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, docs.length)}</span>
+                    <span>Page {pageIdx + 1} / {totalFlatPages}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
 
         {/* Footer */}
         <div style={{ marginTop: 20, paddingTop: 12, borderTop: '2px solid #e2e8f0' }}>
@@ -445,8 +548,8 @@ export default function PrintBulk() {
           )}
           {/* Footer bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>
-            <span>{opts.footerLeft || (opts.orgName || 'SANHA Halal Pakistan')}</span>
-            <span>Printed: {now}{opts.footerRight ? ` — ${opts.footerRight}` : ''}</span>
+            <span>{FOOTER_TEXT}</span>
+            <span>Printed: {now}</span>
           </div>
         </div>
       </div>
