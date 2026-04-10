@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft, Settings2, Eye, EyeOff, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { getDoc } from '../api/frappe';
 
-const FRAPPE_BASE = import.meta.env.VITE_FRAPPE_URL || 'http://86.38.217.149:86';
+// In production, private/public files are proxied through Vercel (vercel.json rewrites)
+const FRAPPE_BASE = import.meta.env.VITE_FRAPPE_URL || '';
 
 /* ─── Color schemes ─── */
 const SCHEMES = {
@@ -62,100 +63,126 @@ function Toggle({ label, checked, onChange }) {
   );
 }
 
-/* ─── Settings panel ─── */
+/* ─── Settings panel (horizontal toolbar layout) ─── */
 function SettingsPanel({ opts, setOpts }) {
   const [open, setOpen] = useState(true);
   const set = (k, v) => setOpts(o => ({ ...o, [k]: v }));
 
+  /* Small checkbox-style toggle chip */
+  const Chip = ({ label, checked, onChange }) => (
+    <label style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
+      borderRadius: 6, border: `1px solid ${checked ? '#2563eb' : '#e2e8f0'}`,
+      background: checked ? '#eff6ff' : '#fff', cursor: 'pointer',
+      fontSize: '0.73rem', color: checked ? '#1d4ed8' : '#64748b', userSelect: 'none',
+      fontWeight: checked ? 600 : 400,
+    }}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ display: 'none' }} />
+      {checked ? '✓' : '○'} {label}
+    </label>
+  );
+
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', color: '#374151' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Settings2 size={14} />Print Settings</span>
-        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+    <div style={{ background: '#253447', borderTop: '1px solid #334155' }}>
+      {/* Toggle bar */}
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px',
+        background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8',
+        fontSize: '0.78rem', fontWeight: 700,
+      }}>
+        <Settings2 size={13} />
+        <span>Print Settings</span>
+        {open ? <ChevronUp size={13} style={{ marginLeft: 'auto' }} /> : <ChevronDown size={13} style={{ marginLeft: 'auto' }} />}
       </button>
 
       {open && (
-        <div style={{ padding: '14px 16px' }}>
-          {/* Sections */}
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Show / Hide Sections</div>
-          <Toggle label="Logo & Header"        checked={opts.showLogo}          onChange={v => set('showLogo', v)} />
-          <Toggle label="Status Banner"        checked={opts.showStatus}        onChange={v => set('showStatus', v)} />
-          <Toggle label="Client Information"   checked={opts.showClientInfo}    onChange={v => set('showClientInfo', v)} />
-          <Toggle label="Query Details"        checked={opts.showQueryDetails}  onChange={v => set('showQueryDetails', v)} />
-          <Toggle label="Supporting Documents" checked={opts.showDocuments}     onChange={v => set('showDocuments', v)} />
-          <Toggle label="Footer (meta)"        checked={opts.showFooter}        onChange={v => set('showFooter', v)} />
-          <Toggle label="Disclaimer text"      checked={opts.showDisclaimer}    onChange={v => set('showDisclaimer', v)} />
-          <Toggle label="Signature block"      checked={opts.showSignatureLine} onChange={v => set('showSignatureLine', v)} />
-          <Toggle label="'COPY' watermark"     checked={opts.showWatermark}     onChange={v => set('showWatermark', v)} />
+        <div style={{ padding: '0 20px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          {/* Appearance */}
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '14px 0 6px' }}>Appearance</div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Color Scheme</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {Object.entries(SCHEMES).map(([key, s]) => (
-                <button key={key} onClick={() => set('colorScheme', key)} style={{
-                  width: 28, height: 28, borderRadius: 999, background: s.accent, border: opts.colorScheme === key ? '3px solid #1e293b' : '2px solid transparent',
-                  cursor: 'pointer', flexShrink: 0,
-                }} title={key} />
-              ))}
-            </div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Font Size: {opts.fontSize}px</label>
-            <input type="range" min={10} max={16} step={1} value={opts.fontSize} onChange={e => set('fontSize', +e.target.value)} style={{ width: '100%' }} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Orientation</label>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['portrait','landscape'].map(o => (
-                <button key={o} onClick={() => set('orientation', o)} style={{
-                  padding: '4px 12px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', border: '1px solid',
-                  borderColor: opts.orientation === o ? '#2563eb' : '#e2e8f0',
-                  background: opts.orientation === o ? '#2563eb' : '#fff',
-                  color: opts.orientation === o ? '#fff' : '#374151',
-                  fontWeight: opts.orientation === o ? 700 : 400, textTransform: 'capitalize',
-                }}>{o}</button>
-              ))}
+          {/* Row 1: Section toggles */}
+          <div>
+            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Show / Hide Sections</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <Chip label="Logo"        checked={opts.showLogo}          onChange={v => set('showLogo', v)} />
+              <Chip label="Status"      checked={opts.showStatus}        onChange={v => set('showStatus', v)} />
+              <Chip label="Client Info" checked={opts.showClientInfo}    onChange={v => set('showClientInfo', v)} />
+              <Chip label="Details"     checked={opts.showQueryDetails}  onChange={v => set('showQueryDetails', v)} />
+              <Chip label="Documents"   checked={opts.showDocuments}     onChange={v => set('showDocuments', v)} />
+              <Chip label="Footer"      checked={opts.showFooter}        onChange={v => set('showFooter', v)} />
+              <Chip label="Disclaimer"  checked={opts.showDisclaimer}    onChange={v => set('showDisclaimer', v)} />
+              <Chip label="Signature"   checked={opts.showSignatureLine} onChange={v => set('showSignatureLine', v)} />
+              <Chip label="Watermark"   checked={opts.showWatermark}     onChange={v => set('showWatermark', v)} />
             </div>
           </div>
 
-          {/* Custom fields */}
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '14px 0 6px' }}>Custom Content</div>
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Reference No. (printed in header)</label>
-            <input className="form-control" style={{ fontSize: '0.8rem' }} placeholder="e.g. SH-2025-001" value={opts.customRef} onChange={e => set('customRef', e.target.value)} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Custom Note (printed before footer)</label>
-            <textarea className="form-control" style={{ fontSize: '0.8rem', height: 64, resize: 'vertical' }} placeholder="Additional notes or remarks…" value={opts.customNote} onChange={e => set('customNote', e.target.value)} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Organization Name</label>
-            <input className="form-control" style={{ fontSize: '0.8rem' }} value={opts.orgName} onChange={e => set('orgName', e.target.value)} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Organization Address</label>
-            <input className="form-control" style={{ fontSize: '0.8rem' }} value={opts.orgAddress} onChange={e => set('orgAddress', e.target.value)} />
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Contact Info</label>
-            <input className="form-control" style={{ fontSize: '0.8rem' }} value={opts.orgContact} onChange={e => set('orgContact', e.target.value)} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {/* Row 2: Appearance + Custom content */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto 1fr 1fr 1fr 1fr', gap: 20, alignItems: 'start' }}>
+
+            {/* Color scheme */}
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Footer Left</label>
-              <input className="form-control" style={{ fontSize: '0.8rem' }} placeholder="e.g. Confidential" value={opts.footerLeft} onChange={e => set('footerLeft', e.target.value)} />
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Color</div>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {Object.entries(SCHEMES).map(([key, s]) => (
+                  <button key={key} onClick={() => set('colorScheme', key)} style={{
+                    width: 24, height: 24, borderRadius: 999, background: s.accent,
+                    border: opts.colorScheme === key ? '3px solid #e2e8f0' : '2px solid transparent',
+                    cursor: 'pointer', flexShrink: 0,
+                  }} title={key} />
+                ))}
+              </div>
+            </div>
+
+            {/* Font size */}
+            <div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Font ({opts.fontSize}px)</div>
+              <input type="range" min={10} max={16} step={1} value={opts.fontSize} onChange={e => set('fontSize', +e.target.value)} style={{ width: 90 }} />
+            </div>
+
+            {/* Orientation */}
+            <div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Orientation</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {['portrait','landscape'].map(o => (
+                  <button key={o} onClick={() => set('orientation', o)} style={{
+                    padding: '3px 9px', borderRadius: 5, fontSize: '0.7rem', cursor: 'pointer', border: '1px solid',
+                    borderColor: opts.orientation === o ? '#60a5fa' : '#334155',
+                    background: opts.orientation === o ? '#1d4ed8' : 'transparent',
+                    color: opts.orientation === o ? '#fff' : '#94a3b8',
+                    fontWeight: opts.orientation === o ? 700 : 400, textTransform: 'capitalize',
+                  }}>{o}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Reference No */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 4 }}>Ref No.</label>
+              <input style={{ width: '100%', padding: '4px 8px', fontSize: '0.78rem', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#e2e8f0', outline: 'none' }} placeholder="e.g. SH-2025-001" value={opts.customRef} onChange={e => set('customRef', e.target.value)} />
+            </div>
+
+            {/* Custom note */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 4 }}>Custom Note</label>
+              <input style={{ width: '100%', padding: '4px 8px', fontSize: '0.78rem', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#e2e8f0', outline: 'none' }} placeholder="Additional remarks…" value={opts.customNote} onChange={e => set('customNote', e.target.value)} />
+            </div>
+
+            {/* Footer left / right */}
+            <div>
+              <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 4 }}>Footer Left</label>
+              <input style={{ width: '100%', padding: '4px 8px', fontSize: '0.78rem', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#e2e8f0', outline: 'none' }} placeholder="e.g. Confidential" value={opts.footerLeft} onChange={e => set('footerLeft', e.target.value)} />
             </div>
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>Footer Right</label>
-              <input className="form-control" style={{ fontSize: '0.8rem' }} placeholder="e.g. Page 1 of 1" value={opts.footerRight} onChange={e => set('footerRight', e.target.value)} />
+              <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 4 }}>Footer Right</label>
+              <input style={{ width: '100%', padding: '4px 8px', fontSize: '0.78rem', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#e2e8f0', outline: 'none' }} placeholder="e.g. Page 1 of 1" value={opts.footerRight} onChange={e => set('footerRight', e.target.value)} />
             </div>
+
           </div>
 
-          <button className="btn btn-ghost btn-sm" style={{ marginTop: 12, width: '100%', fontSize: '0.75rem' }} onClick={() => setOpts(DEFAULT_OPTS)}>
-            Reset to Defaults
-          </button>
+          {/* Reset */}
+          <div>
+            <button style={{ padding: '4px 14px', fontSize: '0.72rem', background: 'transparent', border: '1px solid #475569', borderRadius: 5, color: '#94a3b8', cursor: 'pointer' }} onClick={() => setOpts(DEFAULT_OPTS)}>
+              Reset to Defaults
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -237,10 +264,8 @@ export default function PrintQuery() {
           </button>
         </div>
 
-        {/* Settings */}
-        <div style={{ maxWidth: 420, padding: '16px 24px' }}>
-          <SettingsPanel opts={opts} setOpts={setOpts} />
-        </div>
+        {/* Settings — full-width horizontal */}
+        <SettingsPanel opts={opts} setOpts={setOpts} />
       </div>
 
       {/* ─── Print page ─── */}

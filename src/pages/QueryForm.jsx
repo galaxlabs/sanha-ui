@@ -61,6 +61,7 @@ export default function QueryForm() {
   const [errors, setErrors] = useState({});
   const [dupWarning, setDupWarning] = useState([]); // similar queries
   const [docWarnings, setDocWarnings] = useState([]); // document validation warnings
+  const [previewFile, setPreviewFile] = useState(null); // inline file preview
   const dupTimer = useRef(null);
 
   const isClient = hasRole('Client') && !isAdmin();
@@ -326,22 +327,16 @@ export default function QueryForm() {
               </select>
               {errors.query_types && <div className="form-error">{errors.query_types}</div>}
             </div>
-            {isAdmin() && (
-              <div className="form-group">
-                <label className="form-label">Client{isNew && <span className="required"> *</span>}</label>
-                <select
-                  className="form-control form-select"
-                  value={doc.client_name || ''}
-                  onChange={e => set('client_name', e.target.value)}
-                  disabled={!canEdit}
-                >
-                  <option value="">— Select Client —</option>
-                  {clients.map(c => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="form-group">
+              <label className="form-label">Client</label>
+              <input
+                className="form-control"
+                value={doc.client_name || '—'}
+                readOnly
+                disabled
+                style={{ background: '#f8fafc', color: '#64748b', cursor: 'default' }}
+              />
+            </div>
           </div>
         </div>
 
@@ -414,9 +409,9 @@ export default function QueryForm() {
                 />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {row.attachment ? (
-                    <a href={row.attachment} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem' }}>
+                    <button type="button" className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem' }} onClick={() => setPreviewFile(row.attachment)}>
                       <Paperclip size={11} /> View
-                    </a>
+                    </button>
                   ) : canEdit ? (
                     <FileUploadCell
                       onUploaded={(url) => setDocRow(idx, 'attachment', url)}
@@ -487,6 +482,45 @@ export default function QueryForm() {
           </div>
         )}
       </form>
+
+      {/* Inline file preview modal */}
+      {previewFile && (
+        <FilePreviewModal fileUrl={previewFile} onClose={() => setPreviewFile(null)} />
+      )}
+    </div>
+  );
+}
+
+/* Inline file preview modal */
+function FilePreviewModal({ fileUrl, onClose }) {
+  const ext = fileUrl.split('?')[0].split('.').pop()?.toLowerCase();
+  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+  const fileName = decodeURIComponent(fileUrl.split('/').pop().split('?')[0]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', flexDirection: 'column' }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      {/* Header bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: '#1e293b', flexShrink: 0 }}>
+        <button onClick={onClose} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <X size={14} /> Close
+        </button>
+        <span style={{ color: '#e2e8f0', fontSize: '0.8rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+        <a href={fileUrl} download={fileName} style={{ color: '#60a5fa', fontSize: '0.8rem', textDecoration: 'none' }}>⬇ Download</a>
+      </div>
+      {/* Preview area */}
+      <div style={{ flex: 1, overflow: 'hidden', background: '#0f172a' }}>
+        {isImage ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 16 }}>
+            <img src={fileUrl} alt={fileName} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />
+          </div>
+        ) : (
+          <iframe
+            src={fileUrl}
+            title={fileName}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        )}
+      </div>
     </div>
   );
 }

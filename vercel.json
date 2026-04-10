@@ -9,6 +9,10 @@
       "destination": "https://evaluation.sanha.org.pk/files/:path*"
     },
     {
+      "source": "/private/:path*",
+      "destination": "https://evaluation.sanha.org.pk/private/:path*"
+    },
+    {
       "source": "/assets/:path*",
       "destination": "https://evaluation.sanha.org.pk/assets/:path*"
     },
