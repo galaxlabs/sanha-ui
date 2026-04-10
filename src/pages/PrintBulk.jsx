@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Printer, ArrowLeft, CheckSquare, List, LayoutGrid } from 'lucide-react';
-import { getQueriesByNames } from '../api/frappe';
+import { Printer, ArrowLeft, CheckSquare } from 'lucide-react';
+import { getQueriesByNames, getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
+
+const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on information provided at the time of evaluation. It is valid only for the records and materials mentioned herein. Any misuse, alteration, or use beyond its intended purpose is strictly prohibited. SANHA Halal Pakistan reserves the right to revoke any evaluation in case of non-compliance or deviation from Halal standards.';
 
 /* ─── State badge colors ─── */
 const STATE_COLOR = {
@@ -27,13 +29,24 @@ const ALL_COL_KEYS = COLUMNS.map(c => c.key);
 
 /* ─── Print settings (persisted per bulk-print mode) ─── */
 const DEFAULT = {
-  orientation: 'landscape',
-  fontSize: 12,
-  colorState: true,
-  reportTitle: '',
-  compactMode: false,
-  perPage: 'all',
-  cols: ALL_COL_KEYS,
+  orientation:  'landscape',
+  fontSize:     12,
+  colorState:   true,
+  reportTitle:  '',
+  compactMode:  false,
+  perPage:      'all',
+  cols:         ALL_COL_KEYS,
+  /* Header / Footer */
+  showLogo:       true,
+  showOrgInfo:    true,
+  showSummary:    true,
+  showDisclaimer: true,
+  showPageNums:   true,
+  orgName:    'SANHA HALAL',
+  orgAddress: 'Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. Phase 5, Karachi',
+  orgContact: 'Email: karachi@sanha.org.pk | Ph: +92 21 35295263',
+  footerLeft:  'SANHA Halal Pakistan — Halal Evaluation Portal',
+  footerRight: '',
 };
 
 function BulkSettings({ opts, setOpts }) {
@@ -61,66 +74,115 @@ function BulkSettings({ opts, setOpts }) {
       {label}
     </label>
   );
+  const Label = ({ children }) => (
+    <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{children}</div>
+  );
+  const FieldInput = ({ k, placeholder, wide }) => (
+    <input
+      style={{ padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.78rem', width: wide ? 300 : 200, background: '#fff' }}
+      placeholder={placeholder}
+      value={opts[k]}
+      onChange={e => set(k, e.target.value)}
+    />
+  );
 
   return (
-    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', padding: '12px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-      <div>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Report Title</div>
-        <input
-          style={{ padding: '5px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.8rem', width: 200 }}
-          placeholder="e.g. Monthly Halal Query Report"
-          value={opts.reportTitle}
-          onChange={e => set('reportTitle', e.target.value)}
-        />
+    <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+      {/* Row 1: Layout & columns */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', padding: '10px 24px 8px', borderBottom: '1px solid #f1f5f9' }}>
+        <div>
+          <Label>Report Title</Label>
+          <FieldInput k="reportTitle" placeholder="e.g. Monthly Halal Query Report" wide />
+        </div>
+        <div>
+          <Label>Orientation</Label>
+          <BtnGroup k="orientation" options={[['portrait','Portrait'],['landscape','Landscape']]} />
+        </div>
+        <div>
+          <Label>Font Size</Label>
+          <BtnGroup k="fontSize" options={[[10,'XS'],[12,'S'],[13,'M'],[14,'L']]} />
+        </div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <Tog k="compactMode" label="Compact rows" />
+          <Tog k="colorState"  label="Color status" />
+        </div>
+        <div>
+          <Label>Per Page</Label>
+          <select
+            value={opts.perPage}
+            onChange={e => set('perPage', e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            style={{ padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.8rem', background: '#fff', cursor: 'pointer', color: '#374151' }}
+          >
+            <option value="all">All Records</option>
+            <option value={100}>100 per page</option>
+            <option value={50}>50 per page</option>
+            <option value={25}>25 per page</option>
+            <option value={10}>10 per page</option>
+          </select>
+        </div>
+        <div>
+          <Label>Columns</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {COLUMNS.map(col => {
+              const active = (opts.cols || ALL_COL_KEYS).includes(col.key);
+              return (
+                <button
+                  key={col.key}
+                  onClick={() => set('cols', active
+                    ? (opts.cols || ALL_COL_KEYS).filter(k => k !== col.key)
+                    : [...(opts.cols || ALL_COL_KEYS), col.key]
+                  )}
+                  style={{
+                    padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
+                    borderColor: active ? '#2563eb' : '#e2e8f0',
+                    background:  active ? '#2563eb' : '#fff',
+                    color:       active ? '#fff' : '#64748b',
+                    fontWeight:  active ? 700 : 400,
+                  }}
+                >{col.label}</button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-      <div>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Orientation</div>
-        <BtnGroup k="orientation" options={[['portrait','Portrait'],['landscape','Landscape']]} />
-      </div>
-      <div>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Font Size</div>
-        <BtnGroup k="fontSize" options={[[10,'XS'],[12,'S'],[13,'M'],[14,'L']]} />
-      </div>
-      <div style={{ display: 'flex', gap: 16 }}>
-        <Tog k="compactMode" label="Compact rows" />
-        <Tog k="colorState"  label="Color status" />
-      </div>
-      <div>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Per Page</div>
-        <select
-          value={opts.perPage}
-          onChange={e => set('perPage', e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          style={{ padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.8rem', background: '#fff', cursor: 'pointer', color: '#374151' }}
-        >
-          <option value="all">All Records</option>
-          <option value={100}>100 per page</option>
-          <option value={50}>50 per page</option>
-          <option value={25}>25 per page</option>
-          <option value={10}>10 per page</option>
-        </select>
-      </div>
-      <div>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Columns</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-          {COLUMNS.map(col => {
-            const active = (opts.cols || ALL_COL_KEYS).includes(col.key);
-            return (
-              <button
-                key={col.key}
-                onClick={() => set('cols', active
-                  ? (opts.cols || ALL_COL_KEYS).filter(k => k !== col.key)
-                  : [...(opts.cols || ALL_COL_KEYS), col.key]
-                )}
-                style={{
-                  padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
-                  borderColor: active ? '#2563eb' : '#e2e8f0',
-                  background:  active ? '#2563eb' : '#fff',
-                  color:       active ? '#fff' : '#64748b',
-                  fontWeight:  active ? 700 : 400,
-                }}
-              >{col.label}</button>
-            );
-          })}
+
+      {/* Row 2: Header / Footer options */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', padding: '8px 24px 10px' }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Show:</span>
+          <Tog k="showLogo"       label="Logo" />
+          <Tog k="showOrgInfo"    label="Company Info" />
+          <Tog k="showSummary"    label="Status Summary" />
+          <Tog k="showDisclaimer" label="Disclaimer" />
+          <Tog k="showPageNums"   label="Page Numbers" />
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', paddingLeft: 8, borderLeft: '1px solid #e2e8f0' }}>
+          <div>
+            <Label>Company Name</Label>
+            <FieldInput k="orgName" placeholder="SANHA HALAL" />
+          </div>
+          <div>
+            <Label>Address</Label>
+            <FieldInput k="orgAddress" placeholder="Street, City" wide />
+          </div>
+          <div>
+            <Label>Contact</Label>
+            <FieldInput k="orgContact" placeholder="Email / Phone" wide />
+          </div>
+          <div>
+            <Label>Footer Left</Label>
+            <FieldInput k="footerLeft" placeholder="e.g. Confidential" />
+          </div>
+          <div>
+            <Label>Footer Right</Label>
+            <FieldInput k="footerRight" placeholder="e.g. Internal Use Only" />
+          </div>
+          <button
+            style={{ padding: '5px 12px', fontSize: '0.72rem', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', color: '#64748b', cursor: 'pointer' }}
+            onClick={() => setOpts(DEFAULT)}
+          >
+            Reset
+          </button>
         </div>
       </div>
     </div>
@@ -146,6 +208,7 @@ export default function PrintBulk() {
   const [docs, setDocs]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors]  = useState([]);
+  const [logoUrl, setLogoUrl] = useState('');
   const [opts, setOpts] = useState(() => {
     try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem('printBulkOpts') || '{}') }; }
     catch { return { ...DEFAULT }; }
@@ -155,6 +218,9 @@ export default function PrintBulk() {
   useEffect(() => {
     try { localStorage.setItem('printBulkOpts', JSON.stringify(opts)); } catch {}
   }, [opts]);
+
+  /* Load logo */
+  useEffect(() => { setLogoUrl(getPortalLogoUrl()); }, []);
 
   /* Fetch all query docs — try sessionStorage first, then batch API call */
   useEffect(() => {
@@ -248,25 +314,42 @@ export default function PrintBulk() {
       {/* ─── Print page ─── */}
       <div className="print-bulk-page" style={{ background: '#fff', margin: '16px auto 60px', maxWidth: opts.orientation === 'landscape' ? 1160 : 860, padding: opts.orientation === 'landscape' ? '32px 40px' : '40px 48px', boxShadow: '0 4px 24px rgba(0,0,0,.09)', fontFamily: 'Arial, sans-serif', fontSize: opts.fontSize }}>
 
-        {/* Report header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>SANHA HALAL</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>
-              {opts.reportTitle || `Query Report — ${docs.length} Items`}
+        {/* — Logo + Header — */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 20, gap: 16 }}>
+          {/* Left: logo + org info */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            {opts.showLogo && logoUrl && (
+              <img src={logoUrl} alt="Logo"
+                onError={e => { e.target.style.display = 'none'; }}
+                style={{ height: 56, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+            )}
+            <div>
+              {opts.showOrgInfo && (
+                <>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{opts.orgName || 'SANHA HALAL'}</div>
+                  {opts.orgAddress && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{opts.orgAddress}</div>}
+                  {opts.orgContact && <div style={{ fontSize: 10, color: '#64748b' }}>{opts.orgContact}</div>}
+                </>
+              )}
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginTop: opts.showOrgInfo ? 6 : 0 }}>
+                {opts.reportTitle || `Query Report — ${docs.length} Items`}
+              </div>
+              <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Generated: {now}</div>
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Generated: {now}</div>
           </div>
-          <div style={{ textAlign: 'right', fontSize: 11, color: '#94a3b8' }}>
-            <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
-            <div style={{ marginTop: 2 }}>
-              {[...new Set(docs.map(d => d.workflow_state))].sort().map((s, i) => (
-                <span key={s} style={{ marginLeft: i > 0 ? 8 : 0, color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 600 }}>
-                  {s}: {docs.filter(d => d.workflow_state === s).length}
-                </span>
-              ))}
+          {/* Right: summary */}
+          {opts.showSummary && (
+            <div style={{ textAlign: 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
+              <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
+              <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end' }}>
+                {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
+                  <span key={s} style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 600 }}>
+                    {s}: {docs.filter(d => d.workflow_state === s).length}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {docs.length === 0 ? (
@@ -341,19 +424,30 @@ export default function PrintBulk() {
                   </tfoot>
                 )}
               </table>
-              {/* Page number footer */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 6, paddingBottom: isLast ? 0 : 16, borderBottom: isLast ? 'none' : '1px dashed #e2e8f0' }}>
-                <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, docs.length)}</span>
-                <span>Page {pageIdx + 1} / {totalPages}</span>
-              </div>
+              {/* Page number footer (per page) */}
+              {opts.showPageNums && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 6, paddingBottom: isLast ? 0 : 16, borderBottom: isLast ? 'none' : '1px dashed #e2e8f0' }}>
+                  <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, docs.length)}</span>
+                  <span>Page {pageIdx + 1} / {totalPages}</span>
+                </div>
+              )}
             </div>
           );
         })}
 
         {/* Footer */}
-        <div style={{ marginTop: 24, paddingTop: 12, borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>
-          <span>SANHA Halal Pakistan — Halal Evaluation Portal</span>
-          <span>Printed: {now}</span>
+        <div style={{ marginTop: 20, paddingTop: 12, borderTop: '2px solid #e2e8f0' }}>
+          {/* Disclaimer */}
+          {opts.showDisclaimer && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 14px', marginBottom: 10, fontSize: 9.5, color: '#64748b', lineHeight: 1.5 }}>
+              <strong style={{ color: '#374151', fontWeight: 700 }}>Disclaimer: </strong>{DISCLAIMER}
+            </div>
+          )}
+          {/* Footer bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>
+            <span>{opts.footerLeft || (opts.orgName || 'SANHA Halal Pakistan')}</span>
+            <span>Printed: {now}{opts.footerRight ? ` — ${opts.footerRight}` : ''}</span>
+          </div>
         </div>
       </div>
 
