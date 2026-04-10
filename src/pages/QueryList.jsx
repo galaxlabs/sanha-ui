@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Search, Plus, RefreshCw, LayoutGrid, List, X, Filter,
   ChevronDown, ChevronUp, Printer, CheckSquare, Square,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getQueries, getClients, getQueryTypes, getQueriesForReport } from '../api/frappe';
+import { getQueries, getQueryTypes, getQueriesForReport } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import QueryCard from '../components/UI/QueryCard';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
@@ -57,7 +57,6 @@ export default function QueryList() {
   const [showAdvanced,   setShowAdvanced]   = useState(!!initClient || !!initType);
   const [page,           setPage]           = useState(0);
   const [hasMore,        setHasMore]        = useState(false);
-  const [clientName,     setClientName]     = useState('');
 
   /* Pagination */
   const [pageSize, setPageSize] = useState(25);
@@ -76,19 +75,20 @@ export default function QueryList() {
   const [printLimit, setPrintLimit] = useState('all');
 
   /* Dropdown options */
-  const [clientOptions, setClientOptions] = useState([]);
-  const [typeOptions,   setTypeOptions]   = useState([]);
+  const [typeOptions, setTypeOptions] = useState([]);
 
   useEffect(() => {
-    if (isAdmin()) getClients().then(setClientOptions).catch(() => {});
     getQueryTypes().then(setTypeOptions).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (!clientFilter) { setClientName(''); return; }
-    const found = clientOptions.find(c => c.name === clientFilter);
-    setClientName(found ? (found.client_name || found.name) : clientFilter);
-  }, [clientFilter, clientOptions]);
+  /* Unique clients derived from loaded queries (no API fetch needed) */
+  const uniqueClients = useMemo(() => {
+    const seen = new Map();
+    queries.forEach(q => {
+      if (q.client_name && !seen.has(q.client_name)) seen.set(q.client_name, q.client_name);
+    });
+    return [...seen.keys()].sort((a, b) => a.localeCompare(b));
+  }, [queries]);
 
   const buildFilters = useCallback(() => {
     const f = [];
@@ -115,8 +115,12 @@ export default function QueryList() {
       if (reset) {
         setQueries(slice); setPage(0); setSelected(new Set());
         setAllMatchingSelected(false);
-        // Get total count for "select all X" banner
-        getQueries(buildFilters(), 9999, 0).then(all => setTotalCount(all.length)).catch(() => {});
+        // When all records were fetched in one shot, total is already known
+        if (pageSize === 'all') {
+          setTotalCount(slice.length);
+        } else {
+          getQueries(buildFilters(), 9999, 0).then(all => setTotalCount(all.length)).catch(() => {});
+        }
       }
       else setQueries(prev => [...prev, ...slice]);
     } finally { setLoading(false); }
@@ -229,11 +233,11 @@ export default function QueryList() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 style={{ margin: 0 }}>
-            {isClient ? 'My Queries' : clientFilter ? `Queries — ${clientName || clientFilter}` : 'Query Management'}
+            {isClient ? 'My Queries' : clientFilter ? `Queries — ${clientFilter}` : 'Query Management'}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
             <p className="text-sm text-gray" style={{ margin: 0 }}>{queries.length}{totalCount > queries.length ? ` / ${totalCount}` : ''} records{pageSize !== 'all' && hasMore ? ` (${pageSize} per page)` : ''}</p>
-            {clientFilter  && <Tag label={`${excludeClient ? '≠ ' : ''}Client: ${clientName || clientFilter}`} onRemove={() => { setClientFilter(''); setExcludeClient(false); pushParams({ client: '' }); }} />}
+            {clientFilter  && <Tag label={`${excludeClient ? '≠ ' : ''}Client: ${clientFilter}`} onRemove={() => { setClientFilter(''); setExcludeClient(false); pushParams({ client: '' }); }} />}
             {stateFilter   && <Tag label={`${excludeState ? '≠ ' : ''}State: ${stateFilter}`}    onRemove={() => { setStateFilter('');  setExcludeState(false);  pushParams({ state: '' }); }} />}
             {typeFilter    && <Tag label={`${excludeType ? '≠ ' : ''}Type: ${typeFilter}`}        onRemove={() => { setTypeFilter('');   setExcludeType(false);   pushParams({ type: '' }); }} />}
             {mfrFilter     && <Tag label={`Mfr: ${mfrFilter}`}        onRemove={() => setMfrFilter('')} />}
@@ -391,24 +395,42 @@ export default function QueryList() {
         {showAdvanced && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
             {isAdmin() && (
-              <div style={{ display: 'flex', gap: 0, flex: '1 1 200px' }}>
-                <select className="form-control form-select" style={{ borderRadius: '6px 0 0 6px', borderRight: 'none' }} value={clientFilter}
-                  onChange={e => { setClientFilter(e.target.value); pushParams({ client: e.target.value }); if (!e.target.value) setExcludeClient(false); }}>
-                  <option value="">All Clients</option>
-                  {clientOptions.map(c => <option key={c.name} value={c.name}>{c.client_name || c.name}</option>)}
-                </select>
-                <button
-                  title={excludeClient ? 'Exclude mode active: showing records NOT from this client' : 'Click to exclude this client instead of filter'}
-                  disabled={!clientFilter}
-                  onClick={() => setExcludeClient(v => !v)}
-                  style={{
-                    padding: '0 10px', border: '1px solid', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: clientFilter ? 'pointer' : 'not-allowed',
-                    fontWeight: 700, fontSize: '0.82rem',
-                    borderColor: excludeClient ? '#dc2626' : '#e2e8f0',
-                    background: excludeClient ? '#fef2f2' : '#f8fafc',
-                    color: excludeClient ? '#dc2626' : '#94a3b8',
-                  }}
-                >≠</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: '1 1 100%' }}>
+                <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>Client:</span>
+                {uniqueClients.length > 0 ? (
+                  uniqueClients.map(name => (
+                    <button
+                      key={name}
+                      onClick={() => {
+                        const next = clientFilter === name ? '' : name;
+                        setClientFilter(next);
+                        pushParams({ client: next });
+                        if (!next) setExcludeClient(false);
+                      }}
+                      style={{
+                        padding: '3px 12px', borderRadius: 999, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid',
+                        borderColor: clientFilter === name ? '#2563eb' : '#e2e8f0',
+                        background:  clientFilter === name ? '#2563eb' : '#fff',
+                        color:       clientFilter === name ? '#fff' : '#374151',
+                        fontWeight:  clientFilter === name ? 700 : 400,
+                      }}
+                    >{name}</button>
+                  ))
+                ) : (
+                  <span style={{ fontSize: '0.73rem', color: '#94a3b8', fontStyle: 'italic' }}>Load records first to see client options</span>
+                )}
+                {clientFilter && (
+                  <button
+                    title={excludeClient ? 'Exclude mode ON — showing records NOT from this client' : 'Click to exclude this client instead of filter by it'}
+                    onClick={() => setExcludeClient(v => !v)}
+                    style={{
+                      padding: '3px 9px', borderRadius: 6, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid', fontWeight: 700,
+                      borderColor: excludeClient ? '#dc2626' : '#e2e8f0',
+                      background:  excludeClient ? '#fef2f2' : '#f8fafc',
+                      color:       excludeClient ? '#dc2626' : '#94a3b8',
+                    }}
+                  >≠</button>
+                )}
               </div>
             )}
             <input className="form-control" style={{ flex: '1 1 160px' }} placeholder="Manufacturer…" value={mfrFilter}

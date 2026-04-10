@@ -50,11 +50,12 @@ const DEFAULT = {
   showDisclaimer: true,
   showPageNums:   true,
   /* Grouping */
-  groupBy:    'none',        // 'none' | 'type' | 'state'
-  serialMode: 'continuous',  // 'continuous' | 'grouped'
+  groupBy:     'none',        // 'none' | 'type' | 'state'
+  serialMode:  'continuous',  // 'continuous' | 'grouped'
+  headerAlign: 'left',        // 'left' | 'center' | 'right'
 };
 
-function BulkSettings({ opts, setOpts }) {
+function BulkSettings({ opts, setOpts, isSingleClient }) {
   const set = (k, v) => setOpts(o => ({ ...o, [k]: v }));
   const BtnGroup = ({ k, options }) => (
     <div style={{ display: 'flex', gap: 4 }}>
@@ -69,14 +70,14 @@ function BulkSettings({ opts, setOpts }) {
       ))}
     </div>
   );
-  const Tog = ({ k, label }) => (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.8rem', color: '#374151' }}>
-      <div onClick={() => set(k, !opts[k])} style={{
-        width: 34, height: 18, borderRadius: 999, background: opts[k] ? '#2563eb' : '#e2e8f0', transition: 'background .2s', position: 'relative', flexShrink: 0, cursor: 'pointer',
+  const Tog = ({ k, label, disabled }) => (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: '#374151', opacity: disabled ? 0.4 : 1 }}>
+      <div onClick={() => !disabled && set(k, !opts[k])} style={{
+        width: 34, height: 18, borderRadius: 999, background: opts[k] ? '#2563eb' : '#e2e8f0', transition: 'background .2s', position: 'relative', flexShrink: 0, cursor: disabled ? 'not-allowed' : 'pointer',
       }}>
         <div style={{ width: 14, height: 14, borderRadius: 999, background: '#fff', position: 'absolute', top: 2, left: opts[k] ? 18 : 2, transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
       </div>
-      {label}
+      {label}{disabled && <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}> (single client only)</span>}
     </label>
   );
   const Label = ({ children }) => (
@@ -99,6 +100,10 @@ function BulkSettings({ opts, setOpts }) {
         <div>
           <Label>Orientation</Label>
           <BtnGroup k="orientation" options={[['portrait','Portrait'],['landscape','Landscape']]} />
+        </div>
+        <div>
+          <Label>Header Align</Label>
+          <BtnGroup k="headerAlign" options={[['left','Left'],['center','Centre'],['right','Right']]} />
         </div>
         <div>
           <Label>Font Size</Label>
@@ -161,7 +166,7 @@ function BulkSettings({ opts, setOpts }) {
           <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Show:</span>
           <Tog k="showLogo"       label="Logo" />
           <Tog k="showOrgInfo"    label="Company Info" />
-          <Tog k="showClientInfo" label="Client Summary" />
+          <Tog k="showClientInfo" label="Client Info" disabled={!isSingleClient} />
           <Tog k="showSummary"    label="Status Summary" />
           <Tog k="showDisclaimer" label="Disclaimer" />
           <Tog k="showPageNums"   label="Page Nos." />
@@ -361,7 +366,7 @@ export default function PrintBulk() {
             <Printer size={14} /> Print / Save PDF
           </button>
         </div>
-        <BulkSettings opts={opts} setOpts={setOpts} />
+        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} />
       </div>
 
       {/* ─── Error notice ─── */}
@@ -375,15 +380,22 @@ export default function PrintBulk() {
       <div className="print-bulk-page" style={{ background: '#fff', margin: '16px auto 60px', maxWidth: opts.orientation === 'landscape' ? 1160 : 860, padding: opts.orientation === 'landscape' ? '32px 40px' : '40px 48px', boxShadow: '0 4px 24px rgba(0,0,0,.09)', fontFamily: 'Arial, sans-serif', fontSize: opts.fontSize }}>
 
         {/* — Logo + Header — */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16 }}>
-          {/* Left: logo + org info */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: opts.headerAlign === 'center' ? 'column' : 'row',
+          justifyContent: opts.headerAlign === 'right' ? 'flex-end' : opts.headerAlign === 'center' ? 'center' : 'space-between',
+          alignItems: opts.headerAlign === 'center' ? 'center' : 'flex-start',
+          textAlign: opts.headerAlign,
+          borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16,
+        }}>
+          {/* Logo + org info block */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, justifyContent: opts.headerAlign === 'center' ? 'center' : undefined }}>
             {opts.showLogo && logoUrl && (
               <img src={logoUrl} alt="Logo"
                 onError={e => { e.target.style.display = 'none'; }}
                 style={{ height: 56, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
             )}
-            <div>
+            <div style={{ textAlign: opts.headerAlign }}>
               {opts.showOrgInfo && (
                 <>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{ORG_NAME}</div>
@@ -397,11 +409,11 @@ export default function PrintBulk() {
               <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Generated: {now}</div>
             </div>
           </div>
-          {/* Right: status summary */}
+          {/* Status summary (right-side or below in center mode) */}
           {opts.showSummary && (
-            <div style={{ textAlign: 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
+            <div style={{ textAlign: opts.headerAlign === 'center' ? 'center' : 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0, marginTop: opts.headerAlign === 'center' ? 8 : 0 }}>
               <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
-              <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end' }}>
+              <div style={{ marginTop: 4, display: 'flex', flexDirection: opts.headerAlign === 'center' ? 'row' : 'column', flexWrap: 'wrap', gap: 4, justifyContent: opts.headerAlign === 'center' ? 'center' : 'flex-end' }}>
                 {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
                   <span key={s} style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 600 }}>
                     {s}: {docs.filter(d => d.workflow_state === s).length}
@@ -412,37 +424,32 @@ export default function PrintBulk() {
           )}
         </div>
 
-        {/* — Client Info Summary Table — */}
-        {opts.showClientInfo && clientSummary.length > 0 && (
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>
-              {clientSummary.length === 1 ? 'Client' : `Clients (${clientSummary.length})`}
-              {overallMinDate && <span style={{ fontWeight: 400, marginLeft: 8 }}>— Period: {fmt(overallMinDate)} → {fmt(overallMaxDate)}</span>}
+        {/* — Client Info (single-client only) — */}
+        {opts.showClientInfo && clientSummary.length === 1 && (() => {
+          const c = clientSummary[0];
+          return (
+            <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Client</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#1e293b' }}>{c.name}</div>
+              </div>
+              {c.code && c.code !== '—' && (
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Client Code</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', fontFamily: 'monospace' }}>{c.code}</div>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Records</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{c.count}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Time Span</div>
+                <div style={{ fontSize: 11, color: '#374151' }}>{fmt(c.minDate)} → {fmt(c.maxDate)}</div>
+              </div>
             </div>
-            <table style={{ borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
-              <thead>
-                <tr style={{ background: '#f0fdf4' }}>
-                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Client Name</th>
-                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Client Code</th>
-                  <th style={{ ...TH, fontSize: 10, color: '#16a34a', textAlign: 'center' }}>Records</th>
-                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Earliest</th>
-                  <th style={{ ...TH, fontSize: 10, color: '#16a34a' }}>Latest</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientSummary.map(c => (
-                  <tr key={c.name} style={{ background: '#fff' }}>
-                    <td style={{ ...TD, fontWeight: 600 }}>{c.name}</td>
-                    <td style={{ ...TD, fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{c.code}</td>
-                    <td style={{ ...TD, textAlign: 'center', fontWeight: 700, color: '#16a34a' }}>{c.count}</td>
-                    <td style={{ ...TD, color: '#64748b', fontSize: 10 }}>{fmt(c.minDate)}</td>
-                    <td style={{ ...TD, color: '#64748b', fontSize: 10 }}>{fmt(c.maxDate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          );
+        })()}
 
         {docs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No queries to display</div>
