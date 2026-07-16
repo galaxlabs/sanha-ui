@@ -327,9 +327,46 @@ tbody tr:hover td { background: var(--surface-hover); }
 tbody tr { transition: background .1s; }
 
 /* ─────────────── Layout ─────────────── */
-.app-layout   { display: flex; height: 100vh; overflow: hidden; }
-.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.app-layout   { display: flex; height: 100vh; overflow: hidden; position: relative; }
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .page-body    { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ─── Sidebar Overlay (mobile only) ─── */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 99;
+  backdrop-filter: blur(4px);
+}
+
+/* ─── Responsive Sidebar ─── */
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed !important;
+    left: -256px !important;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    transition: left .25s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,.2);
+  }
+  .sidebar.sidebar--open {
+    left: 0 !important;
+  }
+  .sidebar-overlay {
+    display: block;
+  }
+  .page-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-body {
+    padding: 12px;
+  }
+}
 
 /* ─────────────── Sidebar ─────────────── */
 .sidebar {
@@ -346,9 +383,10 @@ tbody tr { transition: background .1s; }
 .sidebar-logo-text { font-size: 1.1rem; font-weight: 800; color: var(--text-on-dark); letter-spacing: .03em; }
 .sidebar-logo-sub  { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
 .sidebar-nav       { flex: 1; padding: 10px 10px; }
-.sidebar-section-title {
+.sidebar-role-badge {
   font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
-  color: var(--gray-500); padding: 12px 10px 4px; letter-spacing: .08em;
+  color: var(--brand-400); padding: 6px 10px 4px; letter-spacing: .08em;
+  opacity: .7;
 }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
@@ -657,6 +695,157 @@ tbody tr { transition: background .1s; }
   display: flex;
   gap: 12px;
   justify-content: center;
+}
+
+/* ─────────────── Breadcrumbs ─────────────── */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.breadcrumb-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.breadcrumb-chevron {
+  color: var(--text-muted);
+  opacity: .5;
+  margin: 0 1px;
+}
+.breadcrumb-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 3px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.breadcrumb-link:hover {
+  color: var(--text-primary);
+  background: var(--gray-100);
+}
+.breadcrumb-current {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ─────────────── Command Palette ─────────────── */
+.cmd-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 16px 16px;
+}
+.cmd-palette {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  border: 1px solid var(--border-base);
+  overflow: hidden;
+  animation: modalIn .15s ease;
+}
+.cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-base);
+}
+.cmd-search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.cmd-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  color: var(--text-primary);
+  outline: none;
+}
+.cmd-input::placeholder { color: var(--text-muted); }
+.cmd-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+}
+.cmd-close-btn:hover { background: var(--gray-100); color: var(--text-primary); }
+.cmd-results {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: background .1s;
+}
+.cmd-item:hover,
+.cmd-item.active { background: var(--brand-50); color: var(--brand-800); }
+.cmd-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.cmd-footer {
+  display: flex;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-base);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+.cmd-footer kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--gray-100);
+  border: 1px solid var(--border-base);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-family: inherit;
+  color: var(--text-secondary);
+  margin: 0 2px;
+}
+
+/* ─────────────── Skeleton Loaders ─────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ─────────────── Print styles ─────────────── */

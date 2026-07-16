@@ -9,7 +9,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getQueries, getStateCounts } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
-import ClientHeader from '../components/UI/ClientHeader';
 
 /* ── Status helpers ── */
 function getStatusInfo(expiry) {

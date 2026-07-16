@@ -419,6 +419,32 @@ export async function adminSetPassword(userName, newPwd) {
   return json;
 }
 
+/* ── Theme persistence (uses session cookie — server knows who's logged in) ── */
+function getCurrentUserName() {
+  // Try to get from Frappe session cookie or use a known endpoint
+  const name = decodeURIComponent(document.cookie.match(/user_id=([^;]+)/)?.[1] || '');
+  return name || '';
+}
+
+export async function saveUserTheme(theme) {
+  const user = getCurrentUserName();
+  if (!user) return;
+  try {
+    await request('PUT', `/api/resource/User/${encodeURIComponent(user)}`, { bio: `theme:${theme}` });
+  } catch {}
+}
+
+export async function loadUserTheme() {
+  const user = getCurrentUserName();
+  if (!user) return null;
+  try {
+    const doc = await request('GET', `/api/resource/User/${encodeURIComponent(user)}`, null, { cache: false });
+    const bio = doc?.data?.bio || '';
+    const match = bio.match(/theme:(\w+)/);
+    return match ? match[1] : null;
+  } catch { return null; }
+}
+
 /* ── Logo: upload to Site Settings (Frappe Website Settings) ── */
 export async function uploadLogoFile(file) {
   const fd = new FormData();

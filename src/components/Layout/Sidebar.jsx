@@ -80,7 +80,7 @@ function getRoleLinks(roles = []) {
   return { group: 'Portal', links: NAV_GROUPS.Client };
 }
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,7 +114,7 @@ export default function Sidebar() {
     : 'U';
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? '' : 'sidebar--open'}`}>
       {/* Logo — click to go to Dashboard */}
       <div
         className="sidebar-logo"
@@ -145,7 +145,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {group && <div className="sidebar-section-title">{group} Menu</div>}
+        {group && <div className="sidebar-role-badge">{group}</div>}
         {links.map(link => {
           const hasChildren = link.children?.length > 0;
           const isOpen = expanded.has(link.label);

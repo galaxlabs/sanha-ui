@@ -43,51 +43,52 @@ export function AuthProvider({ children }) {
       console.log('[Auth] Is admin:', isAdminUser);
       
       if (!isAdminUser) {
+        // Try User Permissions first
         try {
           const perms = await getUserPermissions(name);
           console.log('[Auth] User permissions:', perms);
           const cp = perms.find(p => p.allow === 'Client');
           if (cp) {
             clientName = cp.for_value;
-            console.log('[Auth] Found clientName:', clientName);
+            console.log('[Auth] Found clientName from permission:', clientName);
           }
         } catch (e) { 
           console.log('[Auth] Permission fetch failed:', e);
         }
+
+        // If no clientName from permissions, try finding by email
+        if (!clientName && email) {
+          try {
+            const clientsByEmail = await getList('Client', {
+              filters: [['email', '=', email]],
+              fields: ['name', 'client_name', 'client_code', 'email', 'business_name', 
+                       'certified_since', 'certified_expiry', 'ext', 'standards', 
+                       'region', 'city', 'scope', 'category', 'status', 'contact_person', 'contact_no'],
+              limit: 1,
+            });
+            if (clientsByEmail.length > 0) {
+              clientName = clientsByEmail[0].name;
+              clientData = clientsByEmail[0];
+              console.log('[Auth] Found client by email:', clientName);
+            }
+          } catch (e) {
+            console.log('[Auth] Client lookup by email failed:', e);
+          }
+        }
       }
 
-      // If no portal role detected, infer from User Permission
+      // If no portal role detected, infer from User Permission or client found
       const PORTAL_ROLES = ['Client', 'Evaluation', 'SB User', 'Certificate Manager',
                             'Admin', 'System Manager', 'Administrator'];
       if (!roles.some(r => PORTAL_ROLES.includes(r))) {
         if (clientName) {
           roles = [...roles, 'Client'];
-          console.log('[Auth] Inferred Client role from permission');
+          console.log('[Auth] Inferred Client role from permission/client match');
         }
       }
 
-      // If still no clientName but user has Client role, try to find by email
-      if (roles.includes('Client') && !clientName && email) {
-        try {
-          const clientsByEmail = await getList('Client', {
-            filters: [['email', '=', email]],
-            fields: ['name', 'client_name', 'client_code', 'email', 'business_name', 
-                     'certified_since', 'certified_expiry', 'ext', 'standards', 
-                     'region', 'city', 'scope', 'category', 'status', 'contact_person', 'contact_no'],
-            limit: 1,
-          });
-          if (clientsByEmail.length > 0) {
-            clientName = clientsByEmail[0].name;
-            clientData = clientsByEmail[0];
-            console.log('[Auth] Found client by email:', clientName);
-          }
-        } catch (e) {
-          console.log('[Auth] Client lookup by email failed:', e);
-        }
-      }
-
-      // Fetch client data for Client users
-      if (roles.includes('Client') && clientName) {
+      // Fetch client data if we have a clientName (for any user)
+      if (clientName && !clientData) {
         try {
           // Try getDoc first (might have different permissions)
           const clientDoc = await getDoc('Client', clientName);

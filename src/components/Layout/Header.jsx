@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Menu, LogOut, Settings, Palette, Sun, Moon, ChevronDown, FileText, Check } from 'lucide-react';
+import { Bell, Menu, LogOut, Settings, Palette, Sun, Moon, ChevronDown, FileText, Check, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getNotifications } from '../../api/frappe';
+import Breadcrumbs from '../UI/Breadcrumbs';
+import CommandPalette from '../UI/CommandPalette';
 
 /* ── state badge colors for notification list ── */
 const N_COLORS = {
@@ -33,6 +35,7 @@ export default function Header({ onToggleSidebar }) {
   const { theme, setTheme, THEMES } = useTheme();
   const [open, setOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [notifs, setNotifs] = useState([]);
   const [notifsRead, setNotifsRead] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('notifs_read') || '[]')); } catch { return new Set(); }
@@ -77,6 +80,13 @@ export default function Header({ onToggleSidebar }) {
     const ids = new Set(notifs.map(n => n.id));
     setNotifsRead(ids);
     try { localStorage.setItem('notifs_read', JSON.stringify([...ids])); } catch {}
+    // Also persist to server via Frappe Notification Log if available
+    try {
+      import('../../api/frappe').then(m => {
+        const names = notifs.filter(n => !notifsRead.has(n.id)).map(n => n.id);
+        if (names.length) m.request('POST', '/api/method/frappe.desk.notifications.mark_all_as_read', {});
+      });
+    } catch {}
   };
 
   const markOneRead = (id) => {
@@ -98,6 +108,18 @@ export default function Header({ onToggleSidebar }) {
     if (h < 24) return `${h}h ago`;
     return `${Math.floor(h / 24)}d ago`;
   };
+
+  /* Global cmd+k listener */
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(v => !v);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   const handleLogout = async () => {
     setOpen(false);
@@ -125,14 +147,26 @@ export default function Header({ onToggleSidebar }) {
         </button>
       )}
 
-      {/* Page title */}
-      <div style={{ flex: 1 }}>
+      {/* Page title + breadcrumbs */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Breadcrumbs />
         <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{title}</h2>
         <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>{today}</p>
       </div>
 
       {/* Right side */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Quick search (cmd+k) */}
+        <button
+          className="btn btn-ghost btn-icon"
+          onClick={() => setCmdOpen(v => !v)}
+          title="Search (Ctrl+K)"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <Search size={17} />
+        </button>
+        <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+
         {/* Theme quick-toggle */}
         <button
           className="btn btn-ghost btn-icon"
@@ -196,7 +230,7 @@ export default function Header({ onToggleSidebar }) {
                 )}
               </div>
 
-              {/* List */}
+              {/* List with date grouping */}
               <div style={{ maxHeight: 340, overflowY: 'auto' }}>
                 {notifsLoading ? (
                   <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
@@ -207,47 +241,62 @@ export default function Header({ onToggleSidebar }) {
                     <Bell size={28} style={{ margin: '0 auto 8px', display: 'block', opacity: .4 }} />
                     <div style={{ fontSize: '0.8rem' }}>No recent activity</div>
                   </div>
-                ) : notifs.map(n => {
-                  const isRead = notifsRead.has(n.id);
-                  const stateColor = N_COLORS[n.state] || '#64748b';
-                  return (
-                    <div
-                      key={n.id}
-                      onClick={() => { markOneRead(n.id); setBellOpen(false); navigate(`/queries/${n.id}`); }}
-                      style={{
-                        display: 'flex', gap: 10, padding: '10px 14px', cursor: 'pointer',
-                        background: isRead ? 'transparent' : 'var(--brand-50,rgba(22,163,74,.04))',
-                        borderBottom: '1px solid var(--border-base)',
-                        transition: 'background .12s',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50,#f8fafc)'}
-                      onMouseLeave={e => e.currentTarget.style.background = isRead ? 'transparent' : 'var(--brand-50,rgba(22,163,74,.04))'}
-                    >
-                      {/* State dot */}
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: stateColor + '18',
-                        display: 'flex', alignItems:'center', justifyContent:'center', flexShrink: 0, marginTop: 1 }}>
-                        <FileText size={14} color={stateColor} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: isRead ? 500 : 700,
-                          color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {n.title}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', marginTop: 2 }}>
-                          <span style={{ color: stateColor, fontWeight: 600 }}>{n.state}</span>
-                          {n.client && <span style={{ color: 'var(--text-muted)', marginLeft: 5 }}>· {n.client}</span>}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }}>
-                        {relTime(n.time)}
-                      </div>
-                      {!isRead && (
-                        <div style={{ width: 6, height: 6, borderRadius: 999, background: '#2563eb',
-                          flexShrink: 0, alignSelf: 'center', marginLeft: 2 }} />
-                      )}
+                ) : (() => {
+                  const groups = {};
+                  const today = new Date().toDateString();
+                  const yesterday = new Date(Date.now() - 86400000).toDateString();
+                  notifs.forEach(n => {
+                    const d = new Date(n.time).toDateString();
+                    const key = d === today ? 'Today' : d === yesterday ? 'Yesterday' : new Date(n.time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(n);
+                  });
+                  return Object.entries(groups).map(([groupLabel, items]) => (
+                    <div key={groupLabel}>
+                      <div style={{ padding: '6px 14px 2px', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{groupLabel}</div>
+                      {items.map(n => {
+                        const isRead = notifsRead.has(n.id);
+                        const stateColor = N_COLORS[n.state] || '#64748b';
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => { markOneRead(n.id); setBellOpen(false); navigate(`/queries/${n.id}`); }}
+                            style={{
+                              display: 'flex', gap: 10, padding: '10px 14px', cursor: 'pointer',
+                              background: isRead ? 'transparent' : 'var(--brand-50,rgba(22,163,74,.04))',
+                              borderBottom: '1px solid var(--border-base)',
+                              transition: 'background .12s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--gray-50,#f8fafc)'}
+                            onMouseLeave={e => e.currentTarget.style.background = isRead ? 'transparent' : 'var(--brand-50,rgba(22,163,74,.04))'}
+                          >
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: stateColor + '18',
+                              display: 'flex', alignItems:'center', justifyContent:'center', flexShrink: 0, marginTop: 1 }}>
+                              <FileText size={14} color={stateColor} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: isRead ? 500 : 700,
+                                color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {n.title}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', marginTop: 2 }}>
+                                <span style={{ color: stateColor, fontWeight: 600 }}>{n.state}</span>
+                                {n.client && <span style={{ color: 'var(--text-muted)', marginLeft: 5 }}>· {n.client}</span>}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }}>
+                              {relTime(n.time)}
+                            </div>
+                            {!isRead && (
+                              <div style={{ width: 6, height: 6, borderRadius: 999, background: '#2563eb',
+                                flexShrink: 0, alignSelf: 'center', marginLeft: 2 }} />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
 
               {/* Footer */}

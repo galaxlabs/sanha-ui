@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Plus, X, Paperclip, Printer, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Plus, X, Paperclip, Printer, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
@@ -8,6 +8,23 @@ import StatusBadge from '../components/UI/StatusBadge';
 import WorkflowActions from '../components/UI/WorkflowActions';
 import { Spinner } from '../components/UI/Loaders';
 import Modal from '../components/UI/Modal';
+
+const DRAFT_KEY = 'sanha_query_draft';
+
+function saveDraft(doc) {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(doc)); } catch {}
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+}
 
 /* ─── Document types requiring issue_date ─── */
 const DOCS_NEED_ISSUE = new Set([
@@ -220,6 +237,65 @@ export default function QueryForm() {
     }
   };
 
+  /* Real-time collaboration indicator — BroadcastChannel for same-browser tabs */
+  const [otherViewers, setOtherViewers] = useState([]);
+  useEffect(() => {
+    if (!doc.name) return;
+    const channel = new BroadcastChannel('sanha-collab');
+    const msg = { type: 'viewing', doc: doc.name, user: user?.name, ts: Date.now() };
+    channel.postMessage(msg);
+    const handler = (e) => {
+      if (e.data.type === 'viewing' && e.data.doc === doc.name && e.data.user !== user?.name) {
+        setOtherViewers(prev => {
+          const filtered = prev.filter(v => v.user !== e.data.user);
+          return [...filtered, { user: e.data.user, ts: e.data.ts }];
+        });
+      }
+    };
+    channel.addEventListener('message', handler);
+    // Clean stale viewers every 10s
+    const cleanup = setInterval(() => {
+      setOtherViewers(prev => prev.filter(v => Date.now() - v.ts < 10000));
+    }, 10000);
+    return () => {
+      channel.postMessage({ type: 'leave', doc: doc.name, user: user?.name });
+      channel.removeEventListener('message', handler);
+      channel.close();
+      clearInterval(cleanup);
+    };
+  }, [doc.name, user?.name]);
+
+  /* Auto-save draft to localStorage for new queries */
+  const [recoveredDraft, setRecoveredDraft] = useState(null);
+  useEffect(() => {
+    if (!isNew) return;
+    const saved = loadDraft();
+    if (saved) setRecoveredDraft(saved);
+  }, []);
+
+  /* Accept recovered draft */
+  const restoreDraft = () => {
+    if (recoveredDraft) {
+      setDoc(prev => ({ ...prev, ...recoveredDraft }));
+      setRecoveredDraft(null);
+    }
+  };
+  const dismissRecovery = () => { clearDraft(); setRecoveredDraft(null); };
+
+  /* Periodic auto-save (every 5s while form has content) */
+  useEffect(() => {
+    if (!isNew) return;
+    const hasContent = doc.raw_material || doc.manufacturer || (doc.documents?.length > 0);
+    if (!hasContent) return;
+    const timer = setInterval(() => saveDraft({ raw_material: doc.raw_material, manufacturer: doc.manufacturer, query_types: doc.query_types, supplier: doc.supplier, supplier_contact: doc.supplier_contact, manufacturer_contact: doc.manufacturer_contact, documents: doc.documents }), 5000);
+    return () => clearInterval(timer);
+  }, [isNew, doc.raw_material, doc.manufacturer, doc.query_types, doc.supplier, doc.supplier_contact, doc.manufacturer_contact, doc.documents]);
+
+  /* Clear draft on successful save */
+  useEffect(() => {
+    if (!isNew) clearDraft();
+  }, [isNew]);
+
   /* Workflow action — validates docs before non-Draft transitions */
   const handleAction = async (action) => {
     // If submitting (moving out of Draft), run full doc validation
@@ -262,12 +338,28 @@ export default function QueryForm() {
           {!isNew && <p className="text-sm text-gray">Raw Material: {doc.raw_material}</p>}
         </div>
         {!isNew && <StatusBadge state={doc.workflow_state} />}
+        {otherViewers.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#f0f9ff', borderRadius: 999, fontSize: '0.72rem', color: '#0369a1', fontWeight: 500 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 1.5s ease infinite' }} />
+            {otherViewers.map(v => v.user?.split('@')[0]).join(', ')} viewing
+          </div>
+        )}
         {!isNew && (
           <Link to={`/queries/${doc.name}/print`} className="btn btn-outline btn-sm">
             <Printer size={14} /> Print
           </Link>
         )}
       </div>
+
+      {/* Recovered draft banner */}
+      {recoveredDraft && (
+        <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:8, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+          <Info size={15} color="#0284c7" />
+          <span style={{ flex:1, fontSize:'0.85rem', color:'#0369a1' }}>You have an unsaved draft from a previous session.</span>
+          <button className="btn btn-primary btn-sm" onClick={restoreDraft}>Restore Draft</button>
+          <button className="btn btn-ghost btn-sm" onClick={dismissRecovery}>Discard</button>
+        </div>
+      )}
 
       {/* Duplicate warning */}
       {showDupWarning && (

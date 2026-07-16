@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, CheckCircle, XCircle, Clock, AlertTriangle,
-  TrendingUp, Star, ArrowRight, Activity, Layers,
+  TrendingUp, Star, ArrowRight,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -15,7 +15,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getStateCounts, getQueries } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
-import UserInfo from '../components/UI/UserInfo';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, Filler);
 
@@ -312,11 +311,6 @@ export default function Dashboard() {
         >
           View All <ArrowRight size={16} />
         </button>
-      </div>
-
-      {/* ── User Info Card ── */}
-      <div style={{ marginBottom: 28 }}>
-        <UserInfo />
       </div>
 
       {/* ── Stat Cards ── */}

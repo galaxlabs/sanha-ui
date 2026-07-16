@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Search, Plus, RefreshCw, LayoutGrid, List, X, Filter,
-  ChevronDown, ChevronUp, Printer, CheckSquare, Square,
+  ChevronDown, ChevronUp, Printer, CheckSquare, Square, Columns,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getQueries, getQueryTypes, getQueriesForReport } from '../api/frappe';
@@ -10,6 +10,7 @@ import StatusBadge from '../components/UI/StatusBadge';
 import QueryCard from '../components/UI/QueryCard';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import { STATE_META } from '../utils/workflow';
+import { useHotkeys } from '../utils/useHotkeys';
 
 const ALL_STATES = Object.keys(STATE_META);
 const PAGE_SIZES = [25, 50, 100, 200, 300, 400, 500, 'all'];
@@ -48,6 +49,7 @@ export default function QueryList() {
   const [viewMode,       setViewMode]       = useState('table');
   const [searchText,     setSearchText]     = useState(searchParams.get('q') || '');
   const searchTimerRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [stateFilter,    setStateFilter]    = useState(initState);
   const [typeFilter,     setTypeFilter]     = useState(initType);
   const [clientFilter,   setClientFilter]   = useState(initClient);
@@ -59,8 +61,50 @@ export default function QueryList() {
   const [page,           setPage]           = useState(0);
   const [hasMore,        setHasMore]        = useState(false);
 
+  /* Keyboard shortcuts */
+  useHotkeys({
+    '/': () => { searchInputRef.current?.focus(); },
+    'n': () => { if (isClient || isAdmin()) navigate('/queries/new'); },
+    'r': () => load(true),
+  });
+
   /* Pagination */
   const [pageSize, setPageSize] = useState(25);
+
+  /* Column visibility */
+  const COLUMNS = [
+    { key: 'name', label: 'Query ID', default: true },
+    { key: 'raw_material', label: 'Raw Material', default: true },
+    { key: 'query_types', label: 'Type', default: true },
+    { key: 'manufacturer', label: 'Manufacturer', default: true },
+    { key: 'supplier', label: 'Supplier', default: true },
+    { key: 'client_name', label: 'Client', default: true, hideClient: true },
+    { key: 'workflow_state', label: 'Status', default: true },
+    { key: 'creation', label: 'Created', default: true },
+  ];
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try {
+      const saved = localStorage.getItem('queryListColumns');
+      return saved ? JSON.parse(saved) : COLUMNS.map(c => c.key);
+    } catch { return COLUMNS.map(c => c.key); }
+  });
+  const [colMenuOpen, setColMenuOpen] = useState(false);
+  const colMenuRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('queryListColumns', JSON.stringify(visibleCols));
+  }, [visibleCols]);
+
+  /* Close col menu on outside click */
+  useEffect(() => {
+    const handler = (e) => { if (colMenuRef.current && !colMenuRef.current.contains(e.target)) setColMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggleCol = (key) => {
+    setVisibleCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
 
   /* Selection state */
   const [selected, setSelected] = useState(new Set());
@@ -265,6 +309,23 @@ export default function QueryList() {
           >
             {viewMode === 'table' ? <LayoutGrid size={15} /> : <List size={15} />}
           </button>
+          {/* Column visibility picker */}
+          <div ref={colMenuRef} style={{ position: 'relative' }}>
+            <button className="btn btn-outline btn-sm btn-icon" onClick={() => setColMenuOpen(v => !v)} title="Customize columns">
+              <Columns size={15} />
+            </button>
+            {colMenuOpen && (
+              <div className="dropdown-menu" style={{ right: 0, top: 'calc(100% + 4px)', minWidth: 180 }}>
+                <div style={{ padding: '6px 10px 4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>Columns</div>
+                {COLUMNS.filter(c => !c.hideClient || !isClient).map(c => (
+                  <label key={c.key} className="dropdown-item" style={{ gap: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={visibleCols.includes(c.key)} onChange={() => toggleCol(c.key)} style={{ accentColor: '#2563eb' }} />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Print List with count selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
             <button
@@ -337,7 +398,7 @@ export default function QueryList() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
           <div style={{ position: 'relative', flex: '2 1 240px', minWidth: 180 }}>
             <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-            <input className="form-control" style={{ paddingLeft: 32 }} placeholder="Search raw material…" value={searchText}
+            <input ref={searchInputRef} className="form-control" style={{ paddingLeft: 32 }} placeholder='Search raw material… (" / " to focus)' value={searchText}
               onChange={e => {
                 const val = e.target.value;
                 setSearchText(val);
@@ -502,14 +563,9 @@ export default function QueryList() {
                       title={allChecked ? 'Deselect all' : 'Select all'}
                     />
                   </th>
-                  <th>Query ID</th>
-                  <th>Raw Material</th>
-                  <th>Type</th>
-                  <th>Manufacturer</th>
-                  <th>Supplier</th>
-                  {!isClient && <th>Client</th>}
-                  <th>Status</th>
-                  <th>Created</th>
+                  {COLUMNS.filter(c => visibleCols.includes(c.key) && (!c.hideClient || !isClient)).map(c => (
+                    <th key={c.key}>{c.label}</th>
+                  ))}
                   <th style={{ width: 56 }}>Actions</th>
                 </tr>
               </thead>
@@ -530,14 +586,14 @@ export default function QueryList() {
                         style={{ cursor: 'pointer', accentColor: '#2563eb' }}
                       />
                     </td>
-                    <td style={{ fontWeight: 600, color: '#2563eb', fontFamily: 'monospace', fontSize: '0.8125rem' }}>{q.name}</td>
-                    <td style={{ fontWeight: 500, maxWidth: 200 }}><div className="truncate" title={q.raw_material}>{q.raw_material}</div></td>
-                    <td className="text-sm">{q.query_types || '—'}</td>
-                    <td className="text-sm truncate" style={{ maxWidth: 140 }}>{q.manufacturer || '—'}</td>
-                    <td className="text-sm truncate" style={{ maxWidth: 140 }}>{q.supplier || '—'}</td>
-                    {!isClient && <td className="text-sm">{q.client_name || '—'}</td>}
-                    <td><StatusBadge state={q.workflow_state} /></td>
-                    <td className="text-sm text-gray">{fmt(q.creation)}</td>
+                    {visibleCols.includes('name') && <td style={{ fontWeight: 600, color: '#2563eb', fontFamily: 'monospace', fontSize: '0.8125rem' }}>{q.name}</td>}
+                    {visibleCols.includes('raw_material') && <td style={{ fontWeight: 500, maxWidth: 200 }}><div className="truncate" title={q.raw_material}>{q.raw_material}</div></td>}
+                    {visibleCols.includes('query_types') && <td className="text-sm">{q.query_types || '—'}</td>}
+                    {visibleCols.includes('manufacturer') && <td className="text-sm truncate" style={{ maxWidth: 140 }}>{q.manufacturer || '—'}</td>}
+                    {visibleCols.includes('supplier') && <td className="text-sm truncate" style={{ maxWidth: 140 }}>{q.supplier || '—'}</td>}
+                    {visibleCols.includes('client_name') && !isClient && <td className="text-sm">{q.client_name || '—'}</td>}
+                    {visibleCols.includes('workflow_state') && <td><StatusBadge state={q.workflow_state} /></td>}
+                    {visibleCols.includes('creation') && <td className="text-sm text-gray">{fmt(q.creation)}</td>}
                     <td onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
                       <Link to={`/queries/${q.name}/print`} className="btn btn-ghost btn-sm btn-icon" title="Print single">
                         <Printer size={13} />
