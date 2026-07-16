@@ -5,9 +5,48 @@
 // which forward /api/* cookies transparently, keeping per-user session auth.
 const BASE = import.meta.env.VITE_FRAPPE_URL || '';
 
-// NOTE: API token auth is intentionally NOT used here — it would force every
-// request to authenticate as Administrator, breaking role-based access for
-// Client, Evaluator and SB User accounts.
+// API Token Authentication
+const API_KEY = import.meta.env.VITE_API_KEY || '';
+const API_SECRET = import.meta.env.VITE_API_SECRET || '';
+
+// ── Simple Cache Layer ──
+const cache = new Map();
+const CACHE_TTL = 30_000; // 30 seconds
+
+// ── Track if user logged in via form (session auth) ──
+let userLoggedIn = false;
+
+function getCacheKey(method, url, data) {
+  return `${method}:${url}:${data ? JSON.stringify(data) : ''}`;
+}
+
+function getCached(method, url, data) {
+  const key = getCacheKey(method, url, data);
+  const entry = cache.get(key);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) {
+    return entry.data;
+  }
+  cache.delete(key);
+  return null;
+}
+
+function setCache(method, url, data, result) {
+  const key = getCacheKey(method, url, data);
+  cache.set(key, { data: result, ts: Date.now() });
+}
+
+export function clearCache(pattern) {
+  if (!pattern) {
+    cache.clear();
+  } else {
+    for (const key of cache.keys()) {
+      if (key.includes(pattern)) cache.delete(key);
+    }
+  }
+}
+
+// ── Request abort controller ──
+let currentController = null;
 
 function getCsrfToken() {
   return window.csrf_token || getCookie('X-Frappe-CSRF-Token') || '';
@@ -21,16 +60,29 @@ function getCookie(name) {
 }
 
 function authHeaders() {
-  return { 'X-Frappe-CSRF-Token': getCsrfToken() };
+  const headers = { 'X-Frappe-CSRF-Token': getCsrfToken() };
+  
+  // API token auth is disabled - use session-based auth only
+  // This ensures client users see only their own data via Frappe permission rules
+  
+  return headers;
 }
 
-async function request(method, url, data = null) {
+async function request(method, url, data = null, { cache: useCache = true, signal = null } = {}) {
+  // Check cache for GET requests
+  if (method === 'GET' && useCache) {
+    const cached = getCached(method, url, data);
+    if (cached) return cached;
+  }
+  
   const headers = { Accept: 'application/json', ...authHeaders() };
   const opts = {
     method,
     headers,
-    credentials: 'include',   // always send session cookie
+    credentials: 'include',
+    mode: 'cors',
   };
+  if (signal) opts.signal = signal;
   if (data && method !== 'GET') {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(data);
@@ -42,6 +94,12 @@ async function request(method, url, data = null) {
     throw new Error(msg);
   }
   if (json.exc) throw new Error(json._error_message || String(json.exc).split('\n').pop() || 'Server error');
+  
+  // Cache successful GET responses
+  if (method === 'GET' && useCache) {
+    setCache(method, url, data, json);
+  }
+  
   return json;
 }
 
@@ -56,11 +114,19 @@ export async function login(usr, pwd) {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.message || json?._error_message || `HTTP ${res.status}`);
+  // Mark user as logged in via form - use session auth from now on
+  userLoggedIn = true;
+  // Clear cache on login to prevent stale data from other sessions
+  clearCache();
   return json;
 }
 
 export async function logout() {
   await request('GET', '/api/method/frappe.auth.web_logout');
+  // Reset login state
+  userLoggedIn = false;
+  // Clear cache on logout
+  clearCache();
 }
 
 export async function getSession() {
@@ -103,7 +169,7 @@ export async function getUserRoles(user) {
 }
 
 /* ── Generic DocType CRUD ── */
-export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0 } = {}) {
+export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0, signal = null } = {}) {
   const params = new URLSearchParams({
     fields: JSON.stringify(fields),
     filters: JSON.stringify(filters),
@@ -111,7 +177,7 @@ export async function getList(doctype, { filters = [], fields = ['name'], orderB
     limit_page_length: limit,
     limit_start: limitStart,
   });
-  const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}?${params}`);
+  const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}?${params}`, null, { signal });
   return res.data || [];
 }
 
@@ -122,26 +188,29 @@ export async function getDoc(doctype, name) {
 
 export async function createDoc(doctype, values) {
   const res = await request('POST', `/api/resource/${encodeURIComponent(doctype)}`, { ...values, doctype });
+  clearCache(doctype);
   return res.data;
 }
 
 export async function updateDoc(doctype, name, values) {
   const res = await request('PUT', `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, values);
+  clearCache(doctype);
   return res.data;
 }
 
 export async function deleteDoc(doctype, name) {
   await request('DELETE', `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`);
+  clearCache(doctype);
 }
 
 /* ── Workflow action ── */
 export async function applyWorkflow(doctype, docname, action) {
-  // Frappe parse_json(doc) expects a JSON-encoded string for the doc argument
   const doc = await getDoc(doctype, docname);
   const res = await request('POST', '/api/method/frappe.model.workflow.apply_workflow', {
     doc: JSON.stringify({ ...doc, doctype }),
     action,
   });
+  clearCache(doctype);
   return res.message;
 }
 
@@ -176,7 +245,7 @@ export async function runReport(reportName, filters = {}) {
 }
 
 /* ── Queries helpers ── */
-export async function getQueries(filters = [], limit = 50, start = 0) {
+export async function getQueries(filters = [], limit = 50, start = 0, signal = null) {
   return getList('Query', {
     filters,
     fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types',
@@ -184,6 +253,7 @@ export async function getQueries(filters = [], limit = 50, start = 0) {
     orderBy: 'modified desc',
     limit,
     limitStart: start,
+    signal,
   });
 }
 
@@ -325,13 +395,6 @@ export async function getFilterOptions() {
 
 /* ── Password change ── */
 export async function updatePassword(oldPwd, newPwd) {
-  const res = await request('POST', '/api/method/frappe.client.set_value', {
-    doctype: 'User',
-    name: 'Administrator',
-    fieldname: 'new_password',
-    value: newPwd,
-  });
-  // Frappe provides a dedicated endpoint for password change
   const r = await fetch(BASE + '/api/method/frappe.core.doctype.user.user.update_password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeaders() },
@@ -430,4 +493,55 @@ export async function listUsers() {
     orderBy: 'full_name asc',
     limit: 200,
   });
+}
+
+/* ── Company Information (Custom HTML Block) ── */
+export async function getCompanyInfo() {
+  try {
+    const res = await request('GET', "/api/resource/Custom HTML Block/Company Information");
+    return res.data;
+  } catch {
+    // Return default if not found
+    return null;
+  }
+}
+
+export function parseCompanyInfo(htmlBlock) {
+  if (!htmlBlock?.html) return null;
+  
+  // Extract data from the HTML block
+  const html = htmlBlock.html;
+  
+  // Extract logo URL
+  const logoMatch = html.match(/src="([^"]*sanha-logo[^"]*)"/i);
+  const logoUrl = logoMatch ? logoMatch[1] : '/sanha-logo.png';
+  
+  // Extract slogan
+  const sloganMatch = html.match(/<span>([^<]+)<\/span>/i);
+  const slogan = sloganMatch ? sloganMatch[1] : 'Eat Halal, Be Healthy.';
+  
+  // Extract company name
+  const nameMatch = html.match(/<h2[^>]*>([^<]+)<\/h2>/i);
+  const companyName = nameMatch ? nameMatch[1] : 'Sanha Halal Associates Pakistan';
+  
+  // Extract subtitle
+  const subtitleMatch = html.match(/<h3[^>]*>([^<]+)<\/h3>/i);
+  const subtitle = subtitleMatch ? subtitleMatch[1] : 'Halal Raw Material Evaluation Portal';
+  
+  // Extract address
+  const addressMatch = html.match(/<p>([^<]*Suite[^<]*)<\/p>/i);
+  const address = addressMatch ? addressMatch[1] : '';
+  
+  // Extract contact
+  const contactMatch = html.match(/<p><strong>([^<]+)<\/strong><\/p>/i);
+  const contact = contactMatch ? contactMatch[1] : '';
+  
+  return {
+    logoUrl,
+    slogan,
+    companyName,
+    subtitle,
+    address,
+    contact,
+  };
 }

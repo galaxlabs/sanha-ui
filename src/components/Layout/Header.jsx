@@ -67,7 +67,7 @@ export default function Header({ onToggleSidebar }) {
     setNotifsLoading(true);
     getNotifications(user.name, isAdmin?.(), 15)
       .then(setNotifs)
-      .catch(() => {})
+      .catch(e => console.error('Failed to load notifications:', e))
       .finally(() => setNotifsLoading(false));
   }, [bellOpen]);
 

@@ -219,9 +219,17 @@ export default function Reports() {
       setLoading(true);
       try {
         // If non-admin user has a linked client, restrict to their records only
-        const extraFilters = (!isAdmin() && user?.clientName)
-          ? [['client_name', '=', user.clientName]]
-          : [];
+        // Fallback to owner-based filter if clientName is not available
+        let extraFilters = [];
+        if (!isAdmin()) {
+          if (user?.clientName) {
+            extraFilters = [['client_name', '=', user.clientName]];
+          } else if (user?.name) {
+            extraFilters = [['owner', '=', user.name]];
+          } else {
+            extraFilters = [['owner', '=', '__NONE__']];
+          }
+        }
         const data = await frappe.getQueriesForReport(extraFilters);
         setRows(data);
       } catch (e) { showError(e.message); }

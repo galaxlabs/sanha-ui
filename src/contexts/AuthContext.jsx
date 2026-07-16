@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, logout as apiLogout, getSession, getUserRoles, getDoc, getUserPermissions } from '../api/frappe';
+import { login as apiLogin, logout as apiLogout, getSession, getUserRoles, getDoc, getUserPermissions, getList } from '../api/frappe';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);   // { name, full_name, roles[] }
+  const [user, setUser] = useState(null);   // { name, full_name, roles[], clientName, clientData }
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
@@ -15,38 +15,78 @@ export function AuthProvider({ children }) {
         return;
       }
       const name = session.message;
-      // Roles fetch is best-effort — if it fails, user still loads with empty roles
+      console.log('[Auth] Session user:', name);
+      
+      // Roles fetch is best-effort
       let roles = [];
-      try { roles = await getUserRoles(name); } catch { /* ignore, show all menu items */ }
-      // Get display name via getDoc (uses auth headers automatically)
+      try { 
+        roles = await getUserRoles(name); 
+        console.log('[Auth] Detected roles:', roles);
+      } catch (e) { 
+        console.log('[Auth] Role detection failed:', e);
+      }
+      
+      // Get display name
       let full_name = name;
+      let email = name;
       try {
         const doc = await getDoc('User', name);
         full_name = doc?.full_name || name;
+        email = doc?.email || name;
       } catch { /* ignore */ }
+      
       // For non-admin users, find their linked Client via User Permissions
       let clientName = null;
+      let clientData = null;
       const adminRoles = ['Admin', 'System Manager', 'Administrator'];
-      if (!roles.some(r => adminRoles.includes(r))) {
+      const isAdminUser = roles.some(r => adminRoles.includes(r));
+      console.log('[Auth] Is admin:', isAdminUser);
+      
+      if (!isAdminUser) {
         try {
           const perms = await getUserPermissions(name);
+          console.log('[Auth] User permissions:', perms);
           const cp = perms.find(p => p.allow === 'Client');
-          if (cp) clientName = cp.for_value;
-        } catch { /* ignore */ }
+          if (cp) {
+            clientName = cp.for_value;
+            console.log('[Auth] Found clientName:', clientName);
+          }
+        } catch (e) { 
+          console.log('[Auth] Permission fetch failed:', e);
+        }
       }
 
-      // If no portal role detected (getUserRoles failed), infer from User Permission
-      // e.g. Client users often can't read their own User doc via REST
+      // If no portal role detected, infer from User Permission
       const PORTAL_ROLES = ['Client', 'Evaluation', 'SB User', 'Certificate Manager',
                             'Admin', 'System Manager', 'Administrator'];
       if (!roles.some(r => PORTAL_ROLES.includes(r))) {
         if (clientName) {
           roles = [...roles, 'Client'];
+          console.log('[Auth] Inferred Client role from permission');
         }
       }
 
-      setUser({ name, full_name, roles, clientName });
-    } catch {
+      // Fetch client data for Client users
+      if (roles.includes('Client') && clientName) {
+        try {
+          const clients = await getList('Client', {
+            filters: [['name', '=', clientName]],
+            fields: ['name', 'client_name', 'client_code', 'email', 'business_name', 
+                     'certified_since', 'certified_expiry', 'ext', 'standards', 
+                     'region', 'city', 'scope', 'category', 'status', 'contact_person', 'contact_no'],
+            limit: 1,
+          });
+          if (clients.length > 0) clientData = clients[0];
+          console.log('[Auth] Client data loaded:', clientData?.client_name);
+        } catch (e) { 
+          console.log('[Auth] Client data fetch failed:', e);
+        }
+      }
+
+      console.log('[Auth] Final user state:', { name, full_name, roles, clientName });
+      setUser({ name, full_name, email, roles, clientName, clientData });
+    } catch (e) {
+      console.log('[Auth] Fatal error:', e);
       setUser(null);
     }
   }, []);

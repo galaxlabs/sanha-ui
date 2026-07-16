@@ -9,6 +9,7 @@ import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
+import Modal from '../components/UI/Modal';
 
 /* ─── Validation ─── */
 function validateClient(form) {
@@ -91,8 +92,7 @@ function ClientFormModal({ initial, onSave, onClose }) {
 
   const fp = { form, setForm, errors };
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 780, maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+    <Modal onClose={onClose}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0 }}>{initial?.name ? 'Edit Client' : 'New Client'}</h3>
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
@@ -146,17 +146,21 @@ function ClientFormModal({ initial, onSave, onClose }) {
             {initial?.name ? 'Save Changes' : 'Create Client'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
 /* ─── Stat Card ─── */
 function StatCard({ label, value, color = '#2563eb' }) {
   return (
-    <div className="card" style={{ borderLeft: `4px solid ${color}`, padding: '12px 16px' }}>
-      <div style={{ fontWeight: 700, fontSize: '1.4rem', color }}>{value}</div>
-      <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>{label}</div>
+    <div style={{ 
+      background: `${color}10`, 
+      borderRadius: 14, 
+      padding: '16px 20px',
+      border: 'none',
+    }}>
+      <div style={{ fontWeight: 800, fontSize: '1.5rem', color, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, fontWeight: 500 }}>{label}</div>
     </div>
   );
 }
@@ -549,29 +553,46 @@ export default function ClientsPage() {
       {loading ? <Spinner /> : filtered.length === 0 ? (
         <EmptyState icon={Users} title="No clients found" description="No clients match your filter." />
       ) : (
-        <div className="card" style={{ padding: 0 }}>
-          <div className="table-wrap">
-            <table>
+        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,.06)', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
               <thead>
-                <tr><th>Client Name</th><th>Code</th><th>Email</th><th>City</th><th>Expiry</th><th>Status</th><th>Actions</th></tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>#</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Name</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Code</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Region</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Days Left</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expiry</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
+                </tr>
               </thead>
               <tbody>
-                {filtered.map(c => (
-                  <tr key={c.name}>
-                    <td style={{ fontWeight: 600, cursor: 'pointer', color: '#2563eb' }} onClick={() => setSelected(c)}>{c.client_name || c.name}</td>
-                    <td style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{c.client_code || '—'}</td>
-                    <td style={{ fontSize: '0.8rem' }}>{c.email || '—'}</td>
-                    <td style={{ fontSize: '0.8rem' }}>{c.city || '—'}</td>
-                    <td style={{ fontSize: '0.8rem' }}>{c.certified_expiry ? new Date(c.certified_expiry).toLocaleDateString('en-GB') : '—'}</td>
-                    <td><ClientStatusBadge client={c} /></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-outline btn-sm" onClick={() => navigate(`/queries?client=${encodeURIComponent(c.name)}`)}>View Queries</button>
-                        {isAdmin() && <button className="btn btn-ghost btn-sm" onClick={() => setModalClient(c)} title="Edit"><Edit3 size={13} /></button>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map((c, idx) => {
+                  const daysLeft = c.certified_expiry ? Math.ceil((new Date(c.certified_expiry) - new Date()) / 86400000) : null;
+                  return (
+                    <tr key={c.name} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background .1s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '0.78rem' }}>{idx + 1}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, cursor: 'pointer', color: '#2563eb' }} onClick={() => setSelected(c)}>{c.client_name || c.name}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '0.8rem', fontFamily: 'monospace', color: '#64748b' }}>{c.client_code || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{c.email || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{c.region || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '0.85rem', fontWeight: 600, color: daysLeft != null ? (daysLeft < 0 ? '#b91c1c' : daysLeft < 30 ? '#d97706' : daysLeft < 65 ? '#2563eb' : '#059669') : '#94a3b8' }}>
+                        {daysLeft != null ? (daysLeft < 0 ? `${-daysLeft}d overdue` : `${daysLeft}d`) : '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '0.8rem' }}>{c.certified_expiry ? new Date(c.certified_expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                      <td style={{ padding: '12px 16px' }}><ClientStatusBadge client={c} /></td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-outline btn-sm" onClick={() => navigate(`/queries?client=${encodeURIComponent(c.name)}`)}>Queries</button>
+                          {isAdmin() && <button className="btn btn-ghost btn-sm" onClick={() => setModalClient(c)} title="Edit"><Edit3 size={13} /></button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

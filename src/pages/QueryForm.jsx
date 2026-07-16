@@ -7,6 +7,7 @@ import * as frappe from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import WorkflowActions from '../components/UI/WorkflowActions';
 import { Spinner } from '../components/UI/Loaders';
+import Modal from '../components/UI/Modal';
 
 /* ─── Document types requiring issue_date ─── */
 const DOCS_NEED_ISSUE = new Set([
@@ -89,7 +90,19 @@ export default function QueryForm() {
     if (!isNew) {
       setLoading(true);
       frappe.getDoc('Query', name)
-        .then(d => setDoc(d))
+        .then(d => {
+          // Check if current user has permission to view this query
+          if (!isAdmin() && isClient) {
+            const isOwner = d.owner === user?.name;
+            const isClientQuery = d.client_name === user?.clientName;
+            if (!isOwner && !isClientQuery) {
+              showError('You do not have permission to view this query');
+              navigate('/queries');
+              return;
+            }
+          }
+          setDoc(d);
+        })
         .catch(e => { showError(e.message); navigate('/queries'); })
         .finally(() => setLoading(false));
     }
@@ -416,6 +429,7 @@ export default function QueryForm() {
                     <FileUploadCell
                       onUploaded={(url) => setDocRow(idx, 'attachment', url)}
                       docname={doc.name}
+                      onError={showError}
                     />
                   ) : <span className="text-xs text-gray">No file</span>}
                 </div>
@@ -498,7 +512,10 @@ function FilePreviewModal({ fileUrl, onClose }) {
   const fileName = decodeURIComponent(fileUrl.split('/').pop().split('?')[0]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', flexDirection: 'column' }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <Modal
+      onClose={onClose}
+      style={{ background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', flexDirection: 'column' }}
+    >
       {/* Header bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: '#1e293b', flexShrink: 0 }}>
         <button onClick={onClose} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -521,12 +538,12 @@ function FilePreviewModal({ fileUrl, onClose }) {
           />
         )}
       </div>
-    </div>
+    </Modal>
   );
 }
 
 /* Inline file upload button */
-function FileUploadCell({ onUploaded, docname }) {
+function FileUploadCell({ onUploaded, docname, onError }) {
   const [uploading, setUploading] = useState(false);
 
   const handleFile = async (e) => {
@@ -538,7 +555,7 @@ function FileUploadCell({ onUploaded, docname }) {
       onUploaded(result.file_url || result.file_name);
     } catch (ex) {
       console.error(ex);
-      alert('Upload failed: ' + ex.message);
+      onError?.('Upload failed: ' + ex.message);
     } finally {
       setUploading(false);
     }

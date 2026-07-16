@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft, Settings2, Eye, EyeOff, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { getDoc } from '../api/frappe';
+import { useAuth } from '../contexts/AuthContext';
 
 // In production, private/public files are proxied through Vercel (vercel.json rewrites)
 const FRAPPE_BASE = import.meta.env.VITE_FRAPPE_URL || '';
@@ -219,8 +220,25 @@ export default function PrintQuery() {
     try { localStorage.setItem('printOpts', JSON.stringify(opts)); } catch {}
   }, [opts]);
 
+  const { user, hasRole, isAdmin } = useAuth();
+  const isClient = hasRole('Client') && !isAdmin();
+
   useEffect(() => {
-    getDoc('Query', name).then(setDoc).catch(e => setError(e.message)).finally(() => setLoading(false));
+    getDoc('Query', name)
+      .then(d => {
+        // Check if current user has permission to view this query
+        if (isClient) {
+          const isOwner = d.owner === user?.name;
+          const isClientQuery = d.client_name === user?.clientName;
+          if (!isOwner && !isClientQuery) {
+            setError('You do not have permission to view this query');
+            return;
+          }
+        }
+        setDoc(d);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
   }, [name]);
 
   if (loading) return (
@@ -283,6 +301,12 @@ export default function PrintQuery() {
           {opts.showLogo && (
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: `3px solid ${scheme.accent}`, paddingBottom: 20, marginBottom: 24 }}>
               <div>
+                <img 
+                  src={getPortalLogoUrl()} 
+                  alt="Logo" 
+                  style={{ height: 50, marginBottom: 8 }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
                 <div style={{ fontSize: 22, fontWeight: 800, color: scheme.accent, letterSpacing: '0.04em' }}>{opts.orgName}</div>
                 <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Halal Certification Query Portal</div>
                 {opts.orgAddress && <div style={{ color: '#64748b', fontSize: 11, marginTop: 1 }}>{opts.orgAddress}</div>}

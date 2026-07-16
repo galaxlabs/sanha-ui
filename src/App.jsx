@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ErrorBoundary } from './components/UI/ErrorBoundary';
 import AppLayout from './components/Layout/AppLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -21,9 +22,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  // If allowedRoles specified AND user has roles loaded AND none match → redirect
-  // But if user has NO roles yet (still loading/failed), let them through to avoid blank pages
-  if (allowedRoles && user.roles?.length > 0 && !isAdmin() && !allowedRoles.some(r => hasRole(r))) {
+  if (allowedRoles && !isAdmin() && !allowedRoles.some(r => hasRole(r))) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -123,8 +122,10 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <ToastProvider>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            <AppRoutes />
+            <ErrorBoundary>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <AppRoutes />
+            </ErrorBoundary>
           </ToastProvider>
         </AuthProvider>
       </ThemeProvider>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Search, Plus, RefreshCw, LayoutGrid, List, X, Filter,
@@ -47,6 +47,7 @@ export default function QueryList() {
   const [loading,        setLoading]        = useState(true);
   const [viewMode,       setViewMode]       = useState('table');
   const [searchText,     setSearchText]     = useState(searchParams.get('q') || '');
+  const searchTimerRef = useRef(null);
   const [stateFilter,    setStateFilter]    = useState(initState);
   const [typeFilter,     setTypeFilter]     = useState(initType);
   const [clientFilter,   setClientFilter]   = useState(initClient);
@@ -78,7 +79,7 @@ export default function QueryList() {
   const [typeOptions, setTypeOptions] = useState([]);
 
   useEffect(() => {
-    getQueryTypes().then(setTypeOptions).catch(() => {});
+    getQueryTypes().then(setTypeOptions).catch(e => console.error('Failed to load query types:', e));
   }, []);
 
   /* Unique clients derived from loaded queries (no API fetch needed) */
@@ -104,25 +105,31 @@ export default function QueryList() {
     return f;
   }, [isClient, user, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate, excludeState, excludeType, excludeClient]);
 
-  const load = useCallback(async (reset = true, atPage = 0) => {
+  const load = useCallback(async (reset = true, atPage = 0, signal = null) => {
     setLoading(true);
-    const limit = pageSize === 'all' ? 9999 : pageSize;
-    const start = reset ? 0 : atPage * limit;
     try {
-      const rows = await getQueries(buildFilters(), pageSize === 'all' ? limit : limit + 1, start);
-      const slice = pageSize === 'all' ? rows : rows.slice(0, limit);
-      setHasMore(pageSize !== 'all' && rows.length > limit);
-      if (reset) {
-        setQueries(slice); setPage(0); setSelected(new Set());
-        setAllMatchingSelected(false);
-        // When all records were fetched in one shot, total is already known
-        if (pageSize === 'all') {
-          setTotalCount(slice.length);
-        } else {
-          getQueries(buildFilters(), 9999, 0).then(all => setTotalCount(all.length)).catch(() => {});
-        }
+      // Always fetch all matching records (up to 9999) in one call
+      // Then paginate client-side to avoid double-fetch
+      const allRows = await getQueries(buildFilters(), 9999, 0, signal);
+      setTotalCount(allRows.length);
+      
+      if (pageSize === 'all') {
+        setQueries(allRows);
+        setHasMore(false);
+      } else {
+        const start = reset ? 0 : atPage * pageSize;
+        const slice = allRows.slice(start, start + pageSize);
+        setQueries(reset ? slice : prev => [...prev, ...slice]);
+        setHasMore(start + pageSize < allRows.length);
       }
-      else setQueries(prev => [...prev, ...slice]);
+      
+      if (reset) {
+        setPage(0);
+        setSelected(new Set());
+        setAllMatchingSelected(false);
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') throw e;
     } finally { setLoading(false); }
   }, [buildFilters, pageSize]);
 
@@ -137,8 +144,11 @@ export default function QueryList() {
   }, [searchParams]);
 
   // Re-load whenever filters OR page size changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(true); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(true, 0, controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const pushParams = (updates) => {
     const next = new URLSearchParams(searchParams);
@@ -328,7 +338,12 @@ export default function QueryList() {
           <div style={{ position: 'relative', flex: '2 1 240px', minWidth: 180 }}>
             <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input className="form-control" style={{ paddingLeft: 32 }} placeholder="Search raw material…" value={searchText}
-              onChange={e => { setSearchText(e.target.value); pushParams({ q: e.target.value }); }} />
+              onChange={e => {
+                const val = e.target.value;
+                setSearchText(val);
+                clearTimeout(searchTimerRef.current);
+                searchTimerRef.current = setTimeout(() => pushParams({ q: val }), 300);
+              }} />
           </div>
 
           {/* State filter + exclude toggle */}
