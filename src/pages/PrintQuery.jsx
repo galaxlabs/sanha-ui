@@ -315,6 +315,7 @@ export default function PrintQuery() {
   );
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const generatedDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const stateColor = STATE_COLORS[doc.workflow_state] || '#64748b';
   const scheme = SCHEMES[opts.colorScheme] || SCHEMES.green;
 
@@ -354,8 +355,10 @@ export default function PrintQuery() {
 
           {/* ─── Header / Logo ─── */}
           <PrintHeader logoUrl={getPortalLogoUrl()} />
+          <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
+          <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: opts.fontSize, marginBottom: 14 }}>Generated: {generatedDate}</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `3px solid ${scheme.accent}`, paddingBottom: 14, marginBottom: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Query Report</div>
+            <div />
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{ fontSize: 10, color: '#94a3b8' }}>Query ID</div>
               <div style={{ fontWeight: 700, fontSize: 13, fontFamily: 'monospace', color: '#1e293b' }}>{doc.name}</div>

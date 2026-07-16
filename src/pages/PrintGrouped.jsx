@@ -119,6 +119,8 @@ export default function PrintGrouped() {
       >
         {/* ── Report header ── */}
         <PrintHeader logoUrl={logoUrl} />
+        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
+        <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: 12, marginBottom: 14 }}>Generated: {today}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 16, marginBottom: 24 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{reportTitle}</div>
           <div style={{ textAlign: 'right', fontSize: 11, color: '#475569', minWidth: 200 }}>
@@ -148,9 +150,6 @@ export default function PrintGrouped() {
                 Filter: {fromDate || '—'} to {toDate || '—'}
               </div>
             )}
-            <div style={{ marginTop: 4 }}>
-              Generated: <strong>{today}</strong>
-            </div>
             <div style={{ marginTop: 2 }}>
               Total: <strong style={{ color: '#16a34a', fontSize: 13 }}>{rows.length}</strong> queries
             </div>

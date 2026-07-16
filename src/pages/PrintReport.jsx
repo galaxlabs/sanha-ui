@@ -50,6 +50,7 @@ export default function PrintReport() {
   const isLandscape = orientation === 'landscape';
   const alignMap = { left: 'left', center: 'center', right: 'right' };
   const colAlign = alignMap[headerAlign] || 'center';
+  const generatedDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   // Sort rows by group if grouping
   const grouped = groupBy !== 'none'
@@ -93,32 +94,32 @@ export default function PrintReport() {
   const renderClientInfo = () => {
     if (!showClientInfo || !clientInfo) return null;
     return (
-      <div style={{ margin: '16px auto', maxWidth: 550 }}>
+      <div style={{ margin: '18px auto', maxWidth: 680, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+        <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: fs + 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
-              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: fs + 1, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Name</td>
-              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: fs + 1, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Code</td>
-              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: fs + 1, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</td>
+              <td style={clientLabelStyle(fs)}>Client Name</td>
+              <td style={clientLabelStyle(fs)}>Client Code</td>
+              <td style={clientLabelStyle(fs)}>Status</td>
             </tr>
             <tr>
-              <td style={{ padding: '4px 12px', textAlign: 'center', fontSize: fs + 2, color: '#1e293b', border: 'none', fontWeight: 600 }}>{clientInfo.client_name}</td>
-              <td style={{ padding: '4px 12px', textAlign: 'center', fontSize: fs + 2, color: '#1e293b', border: 'none', fontFamily: 'monospace' }}>{clientInfo.client_code || '—'}</td>
-              <td style={{ padding: '4px 12px', textAlign: 'center', fontSize: fs + 2, color: '#1e293b', border: 'none' }}>{clientInfo.status || 'Active'}</td>
+              <td style={clientValueStyle(fs)}>{clientInfo.client_name}</td>
+              <td style={{ ...clientValueStyle(fs), fontFamily: 'monospace' }}>{clientInfo.client_code || '—'}</td>
+              <td style={clientValueStyle(fs)}>{clientInfo.status || 'Active'}</td>
             </tr>
             <tr>
-              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: fs + 1, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Person</td>
-              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: fs + 1, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Email</td>
-              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: fs + 1, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phone</td>
+              <td style={clientLabelStyle(fs)}>Contact Person</td>
+              <td style={clientLabelStyle(fs)}>Contact Email</td>
+              <td style={clientLabelStyle(fs)}>Phone</td>
             </tr>
             <tr>
-              <td style={{ padding: '4px 12px', textAlign: 'center', fontSize: fs + 2, color: '#1e293b', border: 'none' }}>{clientInfo.contact_person || '—'}</td>
-              <td style={{ padding: '4px 12px', textAlign: 'center', fontSize: fs + 2, color: '#1e293b', border: 'none' }}>{clientInfo.email || '—'}</td>
-              <td style={{ padding: '4px 12px', textAlign: 'center', fontSize: fs + 2, color: '#1e293b', border: 'none' }}>{clientInfo.phone || '—'}</td>
+              <td style={clientValueStyle(fs)}>{clientInfo.contact_person || '—'}</td>
+              <td style={clientValueStyle(fs)}>{clientInfo.email || '—'}</td>
+              <td style={clientValueStyle(fs)}>{clientInfo.phone || '—'}</td>
             </tr>
           </tbody>
         </table>
-        <hr style={{ height: 1, borderWidth: 0, color: '#ccc', backgroundColor: '#ccc', margin: '12px 0' }} />
       </div>
     );
   };
@@ -188,6 +189,8 @@ export default function PrintReport() {
         boxShadow: '0 1px 4px rgba(0,0,0,.1)', borderRadius: 8,
       }}>
         {renderCompanyHeader()}
+        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
+        <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: fs + 1, marginBottom: 12 }}>Generated: {generatedDate}</div>
         {renderClientInfo()}
 
         {/* Title */}
@@ -219,4 +222,30 @@ export default function PrintReport() {
       </div>
     </div>
   );
+}
+
+function clientLabelStyle(fs) {
+  return {
+    padding: '8px 12px',
+    textAlign: 'center',
+    fontWeight: 700,
+    fontSize: fs,
+    color: '#317eac',
+    border: '1px solid #dbeafe',
+    background: '#eff6ff',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  };
+}
+
+function clientValueStyle(fs) {
+  return {
+    padding: '8px 12px',
+    textAlign: 'center',
+    fontSize: fs + 1,
+    color: '#1e293b',
+    border: '1px solid #dbeafe',
+    background: '#fff',
+    fontWeight: 600,
+  };
 }

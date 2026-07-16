@@ -7,6 +7,29 @@ import { Spinner } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
 import PrintHeader from './PrintHeader';
 
+const clientReportLabel = {
+  width: '33%',
+  padding: '8px 12px',
+  textAlign: 'center',
+  fontWeight: 700,
+  fontSize: 12,
+  color: '#317eac',
+  border: '1px solid #dbeafe',
+  background: '#eff6ff',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+};
+
+const clientReportValue = {
+  padding: '8px 12px',
+  textAlign: 'center',
+  fontSize: 13,
+  color: '#1e293b',
+  border: '1px solid #dbeafe',
+  background: '#fff',
+  fontWeight: 600,
+};
+
 export default function ClientReport() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -43,6 +66,7 @@ export default function ClientReport() {
   }
 
   const handlePrint = () => window.print();
+  const generatedDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const TH = {
     padding: '6px 10px', textAlign: 'left', fontWeight: 700, fontSize: 10,
@@ -76,76 +100,65 @@ export default function ClientReport() {
       }}>
         {/* ─── COMPANY HEADER ─── */}
         <PrintHeader logoUrl={logoUrl} />
-
-        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
-
-        <div style={{ textAlign: 'center', color: '#555', fontSize: 11, padding: '8px 0' }}>
-          <p style={{ margin: '2px 0' }}>
-            Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. phase 5, Karachi, Pakistan
-          </p>
-          <p style={{ margin: '2px 0', fontWeight: 600 }}>
-            Email: evaluation@sanha.org.pk &nbsp;—&nbsp; Phone: +92 21 35295263
-          </p>
-        </div>
-
-        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
+        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
+        <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: 12, marginBottom: 14 }}>Generated: {generatedDate}</div>
 
         {/* ─── CLIENT INFO TABLE (only if client selected) ─── */}
         {client && (
-          <div style={{ margin: '24px auto', maxWidth: 600 }}>
+          <div style={{ margin: '18px auto', maxWidth: 680, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+            <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: 12, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 {/* Header Row 1 */}
                 <tr>
-                  <td style={{ width: '33%', padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <td style={clientReportLabel}>
                     Client Name
                   </td>
-                  <td style={{ width: '33%', padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <td style={clientReportLabel}>
                     Client Code
                   </td>
-                  <td style={{ width: '34%', padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <td style={clientReportLabel}>
                     Status
                   </td>
                 </tr>
                 {/* Data Row 1 */}
                 <tr>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none', fontWeight: 600 }}>
+                  <td style={clientReportValue}>
                     {client.client_name || client.name}
                   </td>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none', fontFamily: 'monospace' }}>
+                  <td style={{ ...clientReportValue, fontFamily: 'monospace' }}>
                     {client.client_code || '—'}
                   </td>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
+                  <td style={clientReportValue}>
                     {client.status || 'Active'}
                   </td>
                 </tr>
                 {/* Header Row 2 */}
                 <tr>
-                  <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <td style={clientReportLabel}>
                     Contact Person
                   </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <td style={clientReportLabel}>
                     Contact Email
                   </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <td style={clientReportLabel}>
                     Phone
                   </td>
                 </tr>
                 {/* Data Row 2 */}
                 <tr>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
+                  <td style={clientReportValue}>
                     {client.contact_person || '—'}
                   </td>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
+                  <td style={clientReportValue}>
                     {client.email || client.client_email || '—'}
                   </td>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
+                  <td style={clientReportValue}>
                     {client.phone || client.mobile || '—'}
                   </td>
                 </tr>
               </tbody>
             </table>
-            <hr style={{ height: 1, borderWidth: 0, color: '#ccc', backgroundColor: '#ccc', margin: '16px 0' }} />
           </div>
         )}
 

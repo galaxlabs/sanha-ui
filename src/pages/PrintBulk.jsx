@@ -202,6 +202,32 @@ function DocCount({ docs }) {
   );
 }
 
+function bulkClientLabel(fontSize) {
+  return {
+    padding: '8px 12px',
+    textAlign: 'center',
+    fontWeight: 700,
+    fontSize: fontSize - 1,
+    color: '#317eac',
+    border: '1px solid #dbeafe',
+    background: '#eff6ff',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  };
+}
+
+function bulkClientValue(fontSize) {
+  return {
+    padding: '8px 12px',
+    textAlign: 'center',
+    fontSize,
+    color: '#1e293b',
+    border: '1px solid #dbeafe',
+    background: '#fff',
+    fontWeight: 600,
+  };
+}
+
 export default function PrintBulk() {
   const navigate     = useNavigate();
   const [searchParams] = useSearchParams();
@@ -408,13 +434,10 @@ export default function PrintBulk() {
 
         {/* — Logo + Header — */}
         <PrintHeader logoUrl={logoUrl} />
+        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
+        <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: opts.fontSize + 1, marginBottom: 14 }}>Generated: {now}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
-              {opts.reportTitle || `Query Report — ${docs.length} Items`}
-            </div>
-            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Generated: {now}</div>
-          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{opts.reportTitle || ''}</div>
           {opts.showSummary && (
             <div style={{ textAlign: opts.headerAlign === 'center' ? 'center' : 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0, marginTop: opts.headerAlign === 'center' ? 8 : 0 }}>
               <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
@@ -433,25 +456,24 @@ export default function PrintBulk() {
         {opts.showClientInfo && clientSummary.length === 1 && (() => {
           const c = clientSummary[0];
           return (
-            <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Client</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#1e293b' }}>{c.name}</div>
-              </div>
-              {c.code && c.code !== '—' && (
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Client Code</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', fontFamily: 'monospace' }}>{c.code}</div>
-                </div>
-              )}
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Records</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{c.count}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Time Span</div>
-                <div style={{ fontSize: 11, color: '#374151' }}>{fmt(c.minDate)} → {fmt(c.maxDate)}</div>
-              </div>
+            <div style={{ marginBottom: 18, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+              <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: opts.fontSize, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  <tr>
+                    <td style={bulkClientLabel(opts.fontSize)}>Client Name</td>
+                    <td style={bulkClientLabel(opts.fontSize)}>Client Code</td>
+                    <td style={bulkClientLabel(opts.fontSize)}>Records</td>
+                    <td style={bulkClientLabel(opts.fontSize)}>Date Range</td>
+                  </tr>
+                  <tr>
+                    <td style={bulkClientValue(opts.fontSize)}>{c.name}</td>
+                    <td style={{ ...bulkClientValue(opts.fontSize), fontFamily: 'monospace' }}>{c.code || '—'}</td>
+                    <td style={bulkClientValue(opts.fontSize)}>{c.count}</td>
+                    <td style={bulkClientValue(opts.fontSize)}>{fmt(c.minDate)} — {fmt(c.maxDate)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           );
         })()}
