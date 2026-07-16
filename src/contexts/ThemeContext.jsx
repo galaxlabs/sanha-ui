@@ -2,10 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { saveUserTheme, loadUserTheme } from '../api/frappe';
 
 const THEMES = [
-  { id: 'light',  label: 'Light',  swatch: '#ffffff', border: '#e2e8f0' },
-  { id: 'dark',   label: 'Dark',   swatch: '#1e293b', border: '#334155' },
-  { id: 'blue',   label: 'Ocean',  swatch: '#2563eb', border: 'transparent' },
-  { id: 'teal',   label: 'Nature', swatch: '#0d9488', border: 'transparent' },
+  { id: 'light', label: 'Light', icon: 'Sun' },
+  { id: 'dark',  label: 'Dark',  icon: 'Moon' },
 ];
 
 const ThemeContext = createContext(null);

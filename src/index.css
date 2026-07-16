@@ -119,24 +119,6 @@
   --shadow-lg: 0 4px 16px rgba(0,0,0,.4);
 }
 
-/* ── Blue Theme ── */
-[data-theme="blue"] {
-  --surface-bg:      #f0f6ff;
-  --surface-sidebar: #1e3a5f;
-  --surface-active:  var(--accent-600);
-  --color-primary:   var(--accent-600);
-  --color-primary-h: var(--accent-700);
-}
-
-/* ── Teal Theme ── */
-[data-theme="teal"] {
-  --surface-bg:      #f0fdfa;
-  --surface-sidebar: #134e4a;
-  --surface-active:  var(--teal-600);
-  --color-primary:   var(--teal-600);
-  --color-primary-h: #0f766e;
-}
-
 /* ─────────────── Base ─────────────── */
 html, body, #root { height: 100%; }
 
@@ -626,13 +608,7 @@ tbody tr { transition: background .1s; }
 .dropdown-divider { height: 1px; background: var(--border-base); margin: 4px 0; }
 
 /* ─────────────── Theme Swatches ─────────────── */
-.theme-swatch {
-  width: 24px; height: 24px; border-radius: 50%;
-  cursor: pointer; border: 2px solid transparent;
-  transition: transform .15s, border-color .15s;
-}
-.theme-swatch:hover   { transform: scale(1.15); }
-.theme-swatch.active  { border-color: var(--text-primary); box-shadow: 0 0 0 2px var(--surface-card); }
+
 
 /* ─────────────── Gradient backgrounds ─────────────── */
 .bg-gradient-green  { background: linear-gradient(135deg, var(--brand-600), var(--brand-800)); }

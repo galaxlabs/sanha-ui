@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Menu, LogOut, Settings, Palette, Sun, Moon, ChevronDown, FileText, Check, Search } from 'lucide-react';
+import { Bell, Menu, LogOut, Settings, Sun, Moon, ChevronDown, FileText, Check, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getNotifications } from '../../api/frappe';
@@ -26,7 +26,7 @@ const PAGE_TITLES = {
   '/settings':      'Settings',
 };
 
-const THEME_ICONS = { light: Sun, dark: Moon, blue: Palette, teal: Palette };
+const THEME_ICONS = { light: Sun, dark: Moon };
 
 export default function Header({ onToggleSidebar }) {
   const location  = useLocation();
@@ -167,15 +167,11 @@ export default function Header({ onToggleSidebar }) {
         </button>
         <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
-        {/* Theme quick-toggle */}
+        {/* Theme toggle */}
         <button
           className="btn btn-ghost btn-icon"
-          title={`Theme: ${theme}`}
-          onClick={() => {
-            const order = ['light','dark','blue','teal'];
-            const next = order[(order.indexOf(theme) + 1) % order.length];
-            setTheme(next);
-          }}
+          title={`Toggle ${theme === 'light' ? 'Dark' : 'Light'} mode`}
+          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
           style={{ color: 'var(--text-muted)' }}
         >
           <ThemeIcon size={17} />
@@ -373,29 +369,15 @@ export default function Header({ onToggleSidebar }) {
                 <Settings size={15} /> Settings
               </button>
 
-              {/* Theme selector */}
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-base)', marginBottom: 4 }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
-                  Color Theme
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {THEMES.map(t => (
-                    <button
-                      key={t.id}
-                      title={t.label}
-                      onClick={() => setTheme(t.id)}
-                      className={`theme-swatch ${theme === t.id ? 'active' : ''}`}
-                      style={{
-                        background: t.swatch,
-                        borderColor: theme === t.id ? 'var(--text-primary)' : 'var(--border-base)',
-                      }}
-                    />
-                  ))}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
-                  {THEMES.find(t => t.id === theme)?.label || 'Light'} theme
-                </div>
-              </div>
+              {/* Theme toggle */}
+              <button
+                className="dropdown-item"
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+                {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+              </button>
 
               {/* Logout */}
               <button className="dropdown-item danger" onClick={handleLogout}>
