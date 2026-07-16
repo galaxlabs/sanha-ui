@@ -33,8 +33,8 @@ export default function PrintHeader({ logoUrl = '/files/sanha-logo.png' }) {
         </div>
       </div>
 
-      <h2 style={{ textAlign: 'center', color: '#317eac' }}>Sanha Halal Associates Pakistan</h2>
-      <h3 style={{ textAlign: 'center', color: '#317eac' }}>Halal Raw Material Evaluation Portal</h3>
+      <h2 style={{ textAlign: 'center', color: '#317eac', fontSize: 22, margin: '8px 0 4px' }}>Sanha Halal Associates Pakistan</h2>
+      <h3 style={{ textAlign: 'center', color: '#317eac', fontSize: 16, margin: '4px 0 10px', fontWeight: 600 }}>Halal Raw Material Evaluation Portal</h3>
     </>
   );
 }
