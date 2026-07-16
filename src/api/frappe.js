@@ -646,6 +646,12 @@ export async function getAllEntities() {
   };
 }
 
+/* ── Direct Frappe method call ── */
+async function call(method, data = {}) {
+  const res = await request('POST', `/api/method/${method}`, data);
+  return res;
+}
+
 /* ── Chat with AI agent ── */
 export async function askAgent(message, history = []) {
   const res = await call('sanha.api.chat.ask', { message, history });
