@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getQueries, getStateCounts } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
+import ClientHeader from '../components/UI/ClientHeader';
 
 /* ── Status helpers ── */
 function getStatusInfo(expiry) {
@@ -179,31 +180,8 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      {/* ── My Info ── */}
-      {clientData && (
-        <div style={{
-          background: '#fff',
-          borderRadius: 16,
-          padding: '20px 24px',
-          marginBottom: 24,
-          boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-            <InfoItem icon={Building} label="Company" value={clientData.client_name || clientData.business_name} color="#2563eb" />
-            <InfoItem icon={Mail} label="Email" value={clientData.email} color="#06b6d4" />
-            <InfoItem icon={MapPin} label="City" value={clientData.city} color="#f59e0b" />
-            <InfoItem icon={Globe} label="Region" value={clientData.region} color="#16a34a" />
-          </div>
-          <div style={{ height: 1, background: '#f1f5f9', margin: '16px 0' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
-            <InfoItem icon={Calendar} label="Certified Since" value={clientData.certified_since ? new Date(clientData.certified_since).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#059669" />
-            <InfoItem icon={Calendar} label="Expiry" value={clientData.certified_expiry ? new Date(clientData.certified_expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color={statusInfo?.color || '#64748b'} />
-            <InfoItem icon={Clock} label="Days Left" value={statusInfo?.days != null ? (statusInfo.days < 0 ? `${-statusInfo.days} overdue` : `${statusInfo.days} days`) : '—'} color={statusInfo?.color || '#64748b'} />
-            <InfoItem icon={Shield} label="Standards" value={clientData.standards} color="#6366f1" />
-            <InfoItem icon={Award} label="Scope" value={clientData.scope} color="#8b5cf6" />
-          </div>
-        </div>
-      )}
+      {/* ── Company Header + User Info Table ── */}
+      <ClientHeader />
 
       {/* ── My Query Stats ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
