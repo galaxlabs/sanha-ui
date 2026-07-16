@@ -621,3 +621,27 @@ export async function saveAiAgentConfig(data) {
   });
   return res.message;
 }
+
+/* ── Data quality: fetch all distinct suppliers, manufacturers, raw materials ── */
+export async function getAllEntities() {
+  const queries = await getList('Query', {
+    fields: ['supplier', 'manufacturer', 'raw_material', 'manufacturer_contact', 'supplier_contact', 'name'],
+    limit: 10000,
+  });
+  const seen = { suppliers: {}, manufacturers: {}, rawMaterials: {}, contacts: {} };
+  for (const q of queries) {
+    if (q.supplier)      seen.suppliers[q.supplier]      = (seen.suppliers[q.supplier] || 0) + 1;
+    if (q.manufacturer)  seen.manufacturers[q.manufacturer] = (seen.manufacturers[q.manufacturer] || 0) + 1;
+    if (q.raw_material)  seen.rawMaterials[q.raw_material] = (seen.rawMaterials[q.raw_material] || 0) + 1;
+    if (q.manufacturer_contact) {
+      if (!seen.contacts[q.manufacturer_contact]) seen.contacts[q.manufacturer_contact] = [];
+      seen.contacts[q.manufacturer_contact].push(q.manufacturer || q.name);
+    }
+  }
+  return {
+    suppliers: Object.entries(seen.suppliers).sort((a, b) => b[1] - a[1]).map(([k]) => k),
+    manufacturers: Object.entries(seen.manufacturers).sort((a, b) => b[1] - a[1]).map(([k]) => k),
+    rawMaterials: Object.entries(seen.rawMaterials).sort((a, b) => b[1] - a[1]).map(([k]) => k),
+    contacts: seen.contacts,
+  };
+}

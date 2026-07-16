@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText } from 'lucide-react';
+import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText, GitCompare, Check, X } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
+import { similarity } from '../utils/fuzzy';
 
 /* ─── Workflow states ─── */
 const ALL_STATES = ['Draft','Submitted','Submitted to SB','Under Review','Returned',
@@ -116,6 +117,7 @@ const TABS = [
   { id: 'approved', label: 'Approved RM',     icon: null },
   { id: 'expired',  label: 'Expired Docs',    icon: AlertTriangle },
   { id: 'counts',   label: 'RM Counts',       icon: null },
+  { id: 'quality',  label: 'Data Quality',    icon: GitCompare },
 ];
 
 /* ─── Grouped query view (shared by By State + By Type tabs) ─── */
@@ -201,6 +203,8 @@ export default function Reports() {
   const [expiredData, setExpiredData] = useState([]);
   const [countsData, setCountsData] = useState([]);
   const [scriptLoading, setScriptLoading] = useState({});
+  const [qualityData, setQualityData] = useState(null);
+  const [qualityLoading, setQualityLoading] = useState(false);
 
   /* Selection */
   const [selected, setSelected] = useState(new Set()  );
@@ -249,10 +253,87 @@ export default function Reports() {
     finally { setScriptLoading(p => ({ ...p, [key]: false })); }
   }
 
+  /* Load data quality analysis */
+  async function loadQualityData() {
+    setQualityLoading(true);
+    try {
+      const entities = await frappe.getAllEntities();
+      const similarGroups = [];
+      const contactGroups = [];
+
+      // Find fuzzy-similar names within suppliers
+      const suppliers = entities.suppliers;
+      const checked = new Set();
+      for (let i = 0; i < suppliers.length; i++) {
+        if (checked.has(i)) continue;
+        const group = [{ name: suppliers[i], index: i }];
+        checked.add(i);
+        for (let j = i + 1; j < suppliers.length; j++) {
+          if (checked.has(j)) continue;
+          if (similarity(suppliers[i], suppliers[j]) >= 0.6) {
+            group.push({ name: suppliers[j], index: j });
+            checked.add(j);
+          }
+        }
+        if (group.length > 1) similarGroups.push({ type: 'supplier', names: group.map(g => g.name) });
+      }
+
+      // Manufacturers
+      const mfrs = entities.manufacturers;
+      const mfChecked = new Set();
+      for (let i = 0; i < mfrs.length; i++) {
+        if (mfChecked.has(i)) continue;
+        const group = [{ name: mfrs[i], index: i }];
+        mfChecked.add(i);
+        for (let j = i + 1; j < mfrs.length; j++) {
+          if (mfChecked.has(j)) continue;
+          if (similarity(mfrs[i], mfrs[j]) >= 0.6) {
+            group.push({ name: mfrs[j], index: j });
+            mfChecked.add(j);
+          }
+        }
+        if (group.length > 1) similarGroups.push({ type: 'manufacturer', names: group.map(g => g.name) });
+      }
+
+      // Raw materials
+      const rms = entities.rawMaterials;
+      const rmChecked = new Set();
+      for (let i = 0; i < rms.length; i++) {
+        if (rmChecked.has(i)) continue;
+        const group = [{ name: rms[i], index: i }];
+        rmChecked.add(i);
+        for (let j = i + 1; j < rms.length; j++) {
+          if (rmChecked.has(j)) continue;
+          if (similarity(rms[i], rms[j]) >= 0.65) {
+            group.push({ name: rms[j], index: j });
+            rmChecked.add(j);
+          }
+        }
+        if (group.length > 1) similarGroups.push({ type: 'raw_material', names: group.map(g => g.name) });
+      }
+
+      // Contact-based groups: same contact → different manufacturer name
+      const contacts = entities.contacts;
+      Object.entries(contacts).forEach(([contact, names]) => {
+        const unique = [...new Set(names)];
+        if (unique.length > 1) {
+          contactGroups.push({ contact, names: unique });
+        }
+      });
+
+      setQualityData({ similarGroups, contactGroups });
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      setQualityLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (tab === 'approved' && !approvedData.length) loadScript('Approved Raw Materials', setApprovedData, 'approved');
     if (tab === 'expired' && !expiredData.length) loadScript('Expired Documents', setExpiredData, 'expired');
     if (tab === 'counts' && !countsData.length) loadScript('Raw Material Counts', setCountsData, 'counts');
+    if (tab === 'quality' && !qualityData) loadQualityData();
   }, [tab]);
 
   /* Filtered rows */
@@ -644,6 +725,90 @@ export default function Reports() {
                   <BarChart
                     data={countsData.slice(0,12).map(r => ({ label: r.raw_material || r[0] || '?', value: Number(r.creation_count ?? r[3]) }))}
                   />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── Data Quality Tab ─── */}
+          {tab === 'quality' && (
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                <h3 style={{ margin:0, display:'flex', alignItems:'center', gap:8 }}>
+                  <GitCompare size={18} /> Data Quality Report
+                </h3>
+                <button className="btn btn-outline btn-sm" onClick={loadQualityData} disabled={qualityLoading}>
+                  <RefreshCw size={13} className={qualityLoading ? 'spin' : ''} /> Refresh
+                </button>
+              </div>
+
+              {qualityLoading ? <Spinner /> : !qualityData ? (
+                <div style={{ padding:40, textAlign:'center', color:'#94a3b8' }}>Click Refresh to analyze</div>
+              ) : (
+                <div style={{ display:'grid', gap:20 }}>
+                  {/* Fuzzy name matches */}
+                  {qualityData.similarGroups.length === 0 && qualityData.contactGroups.length === 0 && (
+                    <div className="card" style={{ padding:'20px', textAlign:'center', color:'#16a34a', fontWeight:500 }}>
+                      <Check size={24} style={{ display:'block', margin:'0 auto 8px' }} />
+                      No data quality issues found. All names appear consistent.
+                    </div>
+                  )}
+
+                  {qualityData.similarGroups.length > 0 && (
+                    <div className="card" style={{ padding:0 }}>
+                      <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', fontWeight:600, fontSize:'0.875rem', background:'#fffbeb' }}>
+                        <AlertTriangle size={14} style={{ marginRight:6, color:'#d97706' }} />
+                        Similar Name Groups ({qualityData.similarGroups.length})
+                      </div>
+                      <div style={{ padding:16, display:'grid', gap:12 }}>
+                        {qualityData.similarGroups.map((g, i) => (
+                          <div key={i} style={{ border:'1px solid #fde68a', borderRadius:8, padding:'10px 14px', background:'#fffbeb' }}>
+                            <div style={{ fontSize:'0.72rem', color:'#92400e', marginBottom:6, textTransform:'uppercase', fontWeight:600 }}>
+                              {g.type === 'supplier' ? '🏢 Supplier' : g.type === 'manufacturer' ? '🏭 Manufacturer' : '🧪 Raw Material'}
+                            </div>
+                            {g.names.map((name, j) => (
+                              <div key={j} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:'0.82rem' }}>
+                                {j > 0 && <span style={{ color:'#d97706', fontWeight:600 }}>≈</span>}
+                                <span style={{ fontWeight: j === 0 ? 700 : 400 }}>{name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contact-based merge suggestions */}
+                  {qualityData.contactGroups.length > 0 && (
+                    <div className="card" style={{ padding:0 }}>
+                      <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', fontWeight:600, fontSize:'0.875rem', background:'#eff6ff' }}>
+                        <GitCompare size={14} style={{ marginRight:6, color:'#2563eb' }} />
+                        Same Contact — Different Names ({qualityData.contactGroups.length})
+                      </div>
+                      <div style={{ padding:16, display:'grid', gap:12 }}>
+                        {qualityData.contactGroups.map((g, i) => (
+                          <div key={i} style={{ border:'1px solid #bfdbfe', borderRadius:8, padding:'10px 14px', background:'#eff6ff' }}>
+                            <div style={{ fontSize:'0.72rem', color:'#1e40af', marginBottom:6 }}>
+                              Contact: <b>{g.contact}</b>
+                            </div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                              {g.names.map((name, j) => (
+                                <span key={j} style={{
+                                  padding:'3px 10px', borderRadius:999, fontSize:'0.78rem',
+                                  background:'var(--surface-card)', border:'1px solid var(--border-base)',
+                                }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                            <div style={{ fontSize:'0.72rem', color:'#1e40af', marginTop:6 }}>
+                              These names share the same contact. Consider standardizing to one.
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

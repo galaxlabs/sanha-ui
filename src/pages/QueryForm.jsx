@@ -8,6 +8,7 @@ import StatusBadge from '../components/UI/StatusBadge';
 import WorkflowActions from '../components/UI/WorkflowActions';
 import { Spinner } from '../components/UI/Loaders';
 import Modal from '../components/UI/Modal';
+import SuggestionDropdown from '../components/UI/SuggestionDropdown';
 
 const DRAFT_KEY = 'sanha_query_draft';
 
@@ -83,6 +84,7 @@ export default function QueryForm() {
   const [materialStatus, setMaterialStatus] = useState(null); // E-NUMBERS result
   const [materialLookupLoading, setMaterialLookupLoading] = useState(false);
   const [similarBanner, setSimilarBanner] = useState(null); // previous final-state query
+  const [entityCandidates, setEntityCandidates] = useState({ suppliers: [], manufacturers: [], rawMaterials: [] });
   const dupTimer = useRef(null);
 
   const isClient = hasRole('Client') && !isAdmin();
@@ -97,14 +99,16 @@ export default function QueryForm() {
 
   useEffect(() => {
     async function loadMeta() {
-      const [qt, dt, cl] = await Promise.all([
+      const [qt, dt, cl, entities] = await Promise.all([
         frappe.getQueryTypes(),
         frappe.getDocumentTypes(),
         isAdmin() ? frappe.getClients() : Promise.resolve([]),
+        frappe.getAllEntities().catch(() => ({ suppliers: [], manufacturers: [], rawMaterials: [] })),
       ]);
       setQueryTypes(qt);
       setDocTypes(dt);
       setClients(cl);
+      setEntityCandidates(entities);
     }
     loadMeta().catch(console.error);
   }, []);
@@ -548,7 +552,14 @@ export default function QueryForm() {
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Supplier Name</label>
-              <input className="form-control" value={doc.supplier || ''} onChange={e => set('supplier', e.target.value)} placeholder="Supplier company name" disabled={!canEdit} />
+              <SuggestionDropdown
+                value={doc.supplier}
+                onChange={v => set('supplier', v)}
+                candidates={entityCandidates.suppliers}
+                entityType="supplier"
+                placeholder="Supplier company name"
+                disabled={!canEdit}
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Supplier Email</label>
@@ -563,7 +574,14 @@ export default function QueryForm() {
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Manufacturer Name</label>
-              <input className="form-control" value={doc.manufacturer || ''} onChange={e => set('manufacturer', e.target.value)} placeholder="Manufacturer company name" disabled={!canEdit} />
+              <SuggestionDropdown
+                value={doc.manufacturer}
+                onChange={v => set('manufacturer', v)}
+                candidates={entityCandidates.manufacturers}
+                entityType="manufacturer"
+                placeholder="Manufacturer company name"
+                disabled={!canEdit}
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Manufacturer Email</label>
