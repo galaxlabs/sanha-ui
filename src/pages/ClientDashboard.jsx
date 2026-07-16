@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Mail, Building, MapPin, Calendar, Shield, Clock,
   FileText, CheckCircle, AlertTriangle, ArrowRight, Phone,
-  Globe, Award, Hash, RefreshCw, Plus, Send, Eye,
+  Globe, Award, Hash, RefreshCw, Plus, Eye, User,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -88,6 +88,8 @@ export default function ClientDashboard() {
   if (loading) return <Spinner />;
 
   const totalQueries = Object.values(counts).reduce((a, b) => a + b, 0);
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
+  const certificationWindow = [fmtDate(clientData?.certified_since), fmtDate(clientData?.certified_expiry)].filter(Boolean).join(' - ');
 
   return (
     <div style={{ minHeight: '100%' }}>
@@ -176,6 +178,51 @@ export default function ClientDashboard() {
               <Plus size={14} /> New Query
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* ── Client Information ── */}
+      <div style={{
+        background: '#fff',
+        borderRadius: 18,
+        padding: '18px 20px',
+        marginBottom: 24,
+        boxShadow: '0 1px 3px rgba(0,0,0,.06)',
+        border: '1px solid #e2e8f0',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a', fontWeight: 800 }}>Client Information</h3>
+            <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: '#64748b' }}>Account and certification details linked to this portal user.</p>
+          </div>
+          {statusInfo && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '7px 12px', borderRadius: 999,
+              background: statusInfo.bg, color: statusInfo.color,
+              fontSize: '0.76rem', fontWeight: 700,
+            }}>
+              <StatusIcon size={14} />
+              {statusInfo.days != null
+                ? statusInfo.days < 0 ? `${-statusInfo.days} days overdue` : `${statusInfo.days} days remaining`
+                : 'Certification date unavailable'}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px 18px' }}>
+          <InfoItem icon={User} label="Portal User" value={user.full_name || user.name} color="#2563eb" />
+          <InfoItem icon={Mail} label="Email" value={user.email || clientData?.email} color="#06b6d4" />
+          <InfoItem icon={Building} label="Company" value={clientData?.client_name || clientData?.business_name || user.clientName} color="#16a34a" />
+          <InfoItem icon={Hash} label="Client Code" value={clientData?.client_code} color="#7c3aed" />
+          <InfoItem icon={Award} label="Category" value={clientData?.category} color="#8b5cf6" />
+          <InfoItem icon={Globe} label="Scope" value={clientData?.scope} color="#f59e0b" />
+          <InfoItem icon={Shield} label="Standards" value={clientData?.standards} color="#6366f1" />
+          <InfoItem icon={Calendar} label="Certification" value={certificationWindow || null} color={statusInfo?.color || '#059669'} />
+          <InfoItem icon={Calendar} label="Extension" value={fmtDate(clientData?.ext)} color="#8b5cf6" />
+          <InfoItem icon={MapPin} label="Location" value={[clientData?.city, clientData?.region].filter(Boolean).join(', ')} color="#16a34a" />
+          <InfoItem icon={User} label="Contact Person" value={clientData?.contact_person} color="#0f766e" />
+          <InfoItem icon={Phone} label="Contact No." value={clientData?.contact_no} color="#dc2626" />
         </div>
       </div>
 

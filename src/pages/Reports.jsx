@@ -855,11 +855,7 @@ export default function Reports() {
         isClient={isClientUser}
         onGenerate={(config) => {
           setShowPrintConfig(false);
-          const statusSet = new Set(config?.statuses || []);
-          const rowsToPrint = statusSet.size
-            ? filtered.filter(r => statusSet.has(r.workflow_state || 'Draft'))
-            : [];
-          sessionStorage.setItem('printReportRows', JSON.stringify(rowsToPrint));
+          sessionStorage.setItem('printReportRows', JSON.stringify(filtered));
           const client = allClients.find(c => c === clientFilter);
           if (client) {
             sessionStorage.setItem('printReportClient', JSON.stringify({ client_name: client }));

@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,10 +8,12 @@ const ClientHeader = lazy(() => import('../UI/ClientHeader'));
 
 export default function AppLayout({ children }) {
   const { user, hasRole, isAdmin } = useAuth();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isClient = hasRole('Client') && !isAdmin();
   const hasClientData = user?.clientData || user?.clientName;
+  const showClientHeader = (isClient || hasClientData) && location.pathname !== '/dashboard';
 
   const toggleSidebar = () => setSidebarOpen(v => !v);
   const closeSidebar = () => setSidebarOpen(false);
@@ -22,7 +25,7 @@ export default function AppLayout({ children }) {
       <div className="main-content">
         <Header onToggleSidebar={toggleSidebar} />
         <main className="page-body" onClick={closeSidebar}>
-          {(isClient || hasClientData) && <Suspense fallback={null}><ClientHeader /></Suspense>}
+          {showClientHeader && <Suspense fallback={null}><ClientHeader /></Suspense>}
           {children}
         </main>
       </div>

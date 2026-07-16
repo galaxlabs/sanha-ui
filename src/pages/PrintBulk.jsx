@@ -58,13 +58,8 @@ const DEFAULT = {
   headerAlign: 'left',        // 'left' | 'center' | 'right'
 };
 
-function BulkSettings({ opts, setOpts, isSingleClient, isClientUser, availableStatuses }) {
+function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
   const set = (k, v) => setOpts(o => ({ ...o, [k]: v }));
-  const selectedStatuses = opts.statuses || availableStatuses;
-  const toggleStatus = (status) => set('statuses', selectedStatuses.includes(status)
-    ? selectedStatuses.filter(s => s !== status)
-    : [...selectedStatuses, status]
-  );
   const BtnGroup = ({ k, options }) => (
     <div style={{ display: 'flex', gap: 4 }}>
       {options.map(([val, label]) => (
@@ -191,31 +186,6 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser, availableSt
           Reset
         </button>
       </div>
-
-      {availableStatuses.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '0 24px 10px' }}>
-          <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Statuses:</span>
-          {availableStatuses.map(status => {
-            const active = selectedStatuses.includes(status);
-            return (
-              <button
-                key={status}
-                type="button"
-                onClick={() => toggleStatus(status)}
-                style={{
-                  padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', cursor: 'pointer', border: '1px solid',
-                  borderColor: active ? '#16a34a' : '#475569',
-                  background: active ? '#16a34a' : 'transparent',
-                  color: active ? '#fff' : '#94a3b8',
-                  fontWeight: active ? 700 : 500,
-                }}
-              >
-                {active ? '✓ ' : ''}{status}
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -334,11 +304,7 @@ export default function PrintBulk() {
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const availableStatuses = [...new Set(docs.map(d => d.workflow_state).filter(Boolean))].sort();
-  const selectedStatusSet = new Set(opts.statuses || availableStatuses);
-  const printDocs = availableStatuses.length
-    ? docs.filter(d => selectedStatusSet.has(d.workflow_state))
-    : docs;
+  const printDocs = docs;
 
   const enabledCols = isClientUser ? CLIENT_COL_KEYS : (opts.cols || ALL_COL_KEYS);
   const hasCols = key => {
@@ -460,7 +426,7 @@ export default function PrintBulk() {
             <Printer size={14} /> Print / Save PDF
           </button>
         </div>
-        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} isClientUser={isClientUser} availableStatuses={availableStatuses} />
+        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} isClientUser={isClientUser} />
       </div>
 
       {/* ─── Error notice ─── */}

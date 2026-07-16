@@ -45,6 +45,7 @@ export default function QueryList() {
   const initType   = searchParams.get('type')   || '';
 
   const [queries,        setQueries]        = useState([]);
+  const [allRows,        setAllRows]        = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [viewMode,       setViewMode]       = useState('table');
   const [searchText,     setSearchText]     = useState(searchParams.get('q') || '');
@@ -118,6 +119,7 @@ export default function QueryList() {
 
   /* How many records to fetch when "Print List" is clicked */
   const [printLimit, setPrintLimit] = useState('all');
+  const [includedStatuses, setIncludedStatuses] = useState([]);
 
   /* Dropdown options */
   const [typeOptions, setTypeOptions] = useState([]);
@@ -155,16 +157,20 @@ export default function QueryList() {
       // Always fetch all matching records (up to 9999) in one call
       // Then paginate client-side to avoid double-fetch
       const allRows = await getQueries(buildFilters(), 9999, 0, signal);
-      setTotalCount(allRows.length);
+      setAllRows(allRows);
+      const filteredRows = includedStatuses.length
+        ? allRows.filter(r => includedStatuses.includes(r.workflow_state || 'Draft'))
+        : allRows;
+      setTotalCount(filteredRows.length);
       
       if (pageSize === 'all') {
-        setQueries(allRows);
+        setQueries(filteredRows);
         setHasMore(false);
       } else {
         const start = reset ? 0 : atPage * pageSize;
-        const slice = allRows.slice(start, start + pageSize);
+        const slice = filteredRows.slice(start, start + pageSize);
         setQueries(reset ? slice : prev => [...prev, ...slice]);
-        setHasMore(start + pageSize < allRows.length);
+        setHasMore(start + pageSize < filteredRows.length);
       }
       
       if (reset) {
@@ -175,7 +181,7 @@ export default function QueryList() {
     } catch (e) {
       if (e.name !== 'AbortError') throw e;
     } finally { setLoading(false); }
-  }, [buildFilters, pageSize]);
+  }, [buildFilters, pageSize, includedStatuses]);
 
   /* Sync URL → state on navigation */
   useEffect(() => {
@@ -203,11 +209,14 @@ export default function QueryList() {
   const clearAll = () => {
     setStateFilter(''); setTypeFilter(''); setClientFilter(''); setMfrFilter('');
     setSupplierFilter(''); setFromDate(''); setToDate(''); setSearchText('');
+    setIncludedStatuses([]);
     setExcludeState(false); setExcludeType(false); setExcludeClient(false);
     setSearchParams({}, { replace: true });
   };
 
-  const hasFilters = !!(stateFilter || typeFilter || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate);
+  const hasFilters = !!(stateFilter || typeFilter || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate || includedStatuses.length);
+  const presentStatuses = useMemo(() => [...new Set(allRows.map(r => r.workflow_state || 'Draft'))].sort(), [allRows]);
+  const toggleIncludedStatus = (status) => setIncludedStatuses(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -231,7 +240,8 @@ export default function QueryList() {
     setLoading(true);
     try {
       const all = await getQueries(buildFilters(), 9999, 0);
-      setSelected(new Set(all.map(q => q.name)));
+      const filteredRows = includedStatuses.length ? all.filter(q => includedStatuses.includes(q.workflow_state || 'Draft')) : all;
+      setSelected(new Set(filteredRows.map(q => q.name)));
       setAllMatchingSelected(true);
     } finally { setLoading(false); }
   };
@@ -258,9 +268,10 @@ export default function QueryList() {
       if (printLimit === 'loaded') {
         ids = queries.map(q => q.name);
       } else {
-        const count = printLimit === 'all' ? 9999 : Number(printLimit);
-        const rows = await getQueries(buildFilters(), count, 0);
-        ids = rows.map(q => q.name);
+        const rows = await getQueries(buildFilters(), 9999, 0);
+        const filteredRows = includedStatuses.length ? rows.filter(q => includedStatuses.includes(q.workflow_state || 'Draft')) : rows;
+        const limitedRows = printLimit === 'all' ? filteredRows : filteredRows.slice(0, Number(printLimit));
+        ids = limitedRows.map(q => q.name);
       }
       await goBulkPrint(ids);
     } finally { setLoading(false); }
@@ -298,6 +309,7 @@ export default function QueryList() {
             {supplierFilter && <Tag label={`Supplier: ${supplierFilter}`} onRemove={() => setSupplierFilter('')} />}
             {fromDate      && <Tag label={`From: ${fromDate}`}        onRemove={() => setFromDate('')} />}
             {toDate        && <Tag label={`To: ${toDate}`}            onRemove={() => setToDate('')} />}
+            {includedStatuses.map(status => <Tag key={status} label={`Include: ${status}`} onRemove={() => toggleIncludedStatus(status)} />)}
           </div>
         </div>
         <div className="flex gap-2">
@@ -519,6 +531,31 @@ export default function QueryList() {
               <label style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>to:</label>
               <input className="form-control" type="date" style={{ flex: '1 1 130px' }} value={toDate} onChange={e => setToDate(e.target.value)} />
             </div>
+            {presentStatuses.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: '1 1 100%' }}>
+                <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>Include statuses:</span>
+                {presentStatuses.map(status => {
+                  const active = includedStatuses.includes(status);
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => toggleIncludedStatus(status)}
+                      style={{
+                        padding: '3px 12px', borderRadius: 999, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid',
+                        borderColor: active ? '#16a34a' : '#e2e8f0',
+                        background: active ? '#16a34a' : '#fff',
+                        color: active ? '#fff' : '#374151',
+                        fontWeight: active ? 700 : 400,
+                      }}
+                    >{active ? '✓ ' : ''}{status}</button>
+                  );
+                })}
+                {includedStatuses.length > 0 && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIncludedStatuses([])}>All statuses</button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
