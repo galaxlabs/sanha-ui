@@ -188,42 +188,44 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
             </div>
           </div>
 
-          {/* Show toggles */}
-          <div>
-            <label style={labelStyle}>Show</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
-              {[
-                { key: 'showLogo', label: 'Logo', hideForClient: false, alwaysOn: false },
-                { key: 'showCompanyInfo', label: 'Company Info', hideForClient: false, alwaysOn: true },
-                { key: 'showClientInfo', label: 'Client Info', hideForClient: false, alwaysOn: isClient },
-                { key: 'showDisclaimer', label: 'Disclaimer', hideForClient: false, alwaysOn: false },
-                { key: 'showPageNos', label: 'Page Nos.', hideForClient: false, alwaysOn: false },
-              ].filter(item => !item.hideForClient || !isClient).map(item => {
-                const checked = item.alwaysOn
-                  ? true
-                  : item.key === 'showClientInfo' ? showClientInfo
-                  : item.key === 'showLogo' ? showLogo
-                  : item.key === 'showDisclaimer' ? showDisclaimer
-                  : showPageNos;
-                const onChange = item.alwaysOn ? () => {}
-                  : item.key === 'showLogo' ? () => setShowLogo(!showLogo)
-                  : item.key === 'showClientInfo' ? () => setShowClientInfo(!showClientInfo)
-                  : item.key === 'showDisclaimer' ? () => setShowDisclaimer(!showDisclaimer)
-                  : () => setShowPageNos(!showPageNos);
-                return (
-                  <label key={item.key} style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-                    borderRadius: 6, border: `1.5px solid ${checked ? '#16a34a' : '#e2e8f0'}`,
-                    background: checked ? '#f0fdf4' : '#fff', cursor: item.alwaysOn ? 'not-allowed' : 'pointer',
-                    fontSize: '0.8rem', color: checked ? '#166534' : '#64748b', opacity: item.alwaysOn ? 0.5 : 1,
-                  }}>
-                    <input type="checkbox" checked={checked} onChange={onChange} disabled={item.alwaysOn} style={{ accentColor: '#16a34a' }} />
-                    {item.label}
-                  </label>
-                );
-              })}
+          {/* Show toggles (hidden for clients — all forced on) */}
+          {!isClient && (
+            <div>
+              <label style={labelStyle}>Show</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
+                {[
+                  { key: 'showLogo', label: 'Logo', alwaysOn: false },
+                  { key: 'showCompanyInfo', label: 'Company Info', alwaysOn: true },
+                  { key: 'showClientInfo', label: 'Client Info', alwaysOn: false },
+                  { key: 'showDisclaimer', label: 'Disclaimer', alwaysOn: false },
+                  { key: 'showPageNos', label: 'Page Nos.', alwaysOn: false },
+                ].map(item => {
+                  const checked = item.alwaysOn
+                    ? true
+                    : item.key === 'showClientInfo' ? showClientInfo
+                    : item.key === 'showLogo' ? showLogo
+                    : item.key === 'showDisclaimer' ? showDisclaimer
+                    : showPageNos;
+                  const onChange = item.alwaysOn ? () => {}
+                    : item.key === 'showLogo' ? () => setShowLogo(!showLogo)
+                    : item.key === 'showClientInfo' ? () => setShowClientInfo(!showClientInfo)
+                    : item.key === 'showDisclaimer' ? () => setShowDisclaimer(!showDisclaimer)
+                    : () => setShowPageNos(!showPageNos);
+                  return (
+                    <label key={item.key} style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                      borderRadius: 6, border: `1.5px solid ${checked ? '#16a34a' : '#e2e8f0'}`,
+                      background: checked ? '#f0fdf4' : '#fff', cursor: item.alwaysOn ? 'not-allowed' : 'pointer',
+                      fontSize: '0.8rem', color: checked ? '#166534' : '#64748b', opacity: item.alwaysOn ? 0.5 : 1,
+                    }}>
+                      <input type="checkbox" checked={checked} onChange={onChange} disabled={item.alwaysOn} style={{ accentColor: '#16a34a' }} />
+                      {item.label}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
