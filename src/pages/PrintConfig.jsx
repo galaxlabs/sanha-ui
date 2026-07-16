@@ -106,7 +106,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                 </select>
               </div>
             )}
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: isClient ? 1 : 1 }}>
               <label style={labelStyle}>Font Size</label>
               <div style={{ display: 'flex', gap: 4 }}>
                 {['xs','s','m','l'].map(s => (
@@ -120,7 +120,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                 ))}
               </div>
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: isClient ? 1 : 1 }}>
               <label style={labelStyle}>&nbsp;</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem', paddingTop: 4 }}>
                 <input type="checkbox" checked={compact} onChange={e => setCompact(e.target.checked)} style={{ accentColor: '#16a34a' }} />

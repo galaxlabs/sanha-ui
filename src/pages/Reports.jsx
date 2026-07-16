@@ -188,7 +188,8 @@ export default function Reports() {
   const { error: showError } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const showAdvanced = !hasRole('Client');
+  const isClientUser = hasRole('Client') || !!user?.clientName || !!user?.clientData;
+  const showAdvanced = !isClientUser;
   const [showPrintConfig, setShowPrintConfig] = useState(false);
 
   // Allow sidebar to deep-link to a specific tab via ?tab=byState etc.
@@ -851,7 +852,7 @@ export default function Reports() {
       <PrintConfig
         open={showPrintConfig}
         onClose={() => setShowPrintConfig(false)}
-        isClient={!showAdvanced}
+        isClient={isClientUser}
         onGenerate={() => {
           setShowPrintConfig(false);
           sessionStorage.setItem('printReportRows', JSON.stringify(filtered));

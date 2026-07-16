@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Printer, ArrowLeft, CheckSquare } from 'lucide-react';
 import { getQueriesByNames, getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
+import { useAuth } from '../contexts/AuthContext';
 
 const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on information provided at the time of evaluation. It is valid only for the records and materials mentioned herein. Any misuse, alteration, or use beyond its intended purpose is strictly prohibited. SANHA Halal Pakistan reserves the right to revoke any evaluation in case of non-compliance or deviation from Halal standards.';
 
@@ -26,6 +27,7 @@ const COLUMNS = [
   { key: 'docs',   label: 'Documents' },
 ];
 const ALL_COL_KEYS = COLUMNS.map(c => c.key);
+const CLIENT_COL_KEYS = ['rm', 'type', 'mfr', 'sup', 'status'];
 
 /* ─── Fixed company info (not user-editable) ─── */
 const ORG_NAME    = 'SANHA HALAL';
@@ -55,7 +57,7 @@ const DEFAULT = {
   headerAlign: 'left',        // 'left' | 'center' | 'right'
 };
 
-function BulkSettings({ opts, setOpts, isSingleClient }) {
+function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
   const set = (k, v) => setOpts(o => ({ ...o, [k]: v }));
   const BtnGroup = ({ k, options }) => (
     <div style={{ display: 'flex', gap: 4 }}>
@@ -101,17 +103,19 @@ function BulkSettings({ opts, setOpts, isSingleClient }) {
           <Label>Orientation</Label>
           <BtnGroup k="orientation" options={[['portrait','Portrait'],['landscape','Landscape']]} />
         </div>
-        <div>
-          <Label>Header Align</Label>
-          <BtnGroup k="headerAlign" options={[['left','Left'],['center','Centre'],['right','Right']]} />
-        </div>
+        {!isClientUser && (
+          <div>
+            <Label>Header Align</Label>
+            <BtnGroup k="headerAlign" options={[['left','Left'],['center','Centre'],['right','Right']]} />
+          </div>
+        )}
         <div>
           <Label>Font Size</Label>
           <BtnGroup k="fontSize" options={[[10,'XS'],[12,'S'],[13,'M'],[14,'L']]} />
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
           <Tog k="compactMode" label="Compact rows" />
-          <Tog k="colorState"  label="Color status" />
+          {!isClientUser && <Tog k="colorState"  label="Color status" />}
         </div>
         <div>
           <Label>Per Page</Label>
@@ -127,50 +131,53 @@ function BulkSettings({ opts, setOpts, isSingleClient }) {
             <option value={10}>10 per page</option>
           </select>
         </div>
-        <div>
-          <Label>Columns</Label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {COLUMNS.map(col => {
-              const active = (opts.cols || ALL_COL_KEYS).includes(col.key);
-              return (
-                <button key={col.key}
-                  onClick={() => set('cols', active
-                    ? (opts.cols || ALL_COL_KEYS).filter(k => k !== col.key)
-                    : [...(opts.cols || ALL_COL_KEYS), col.key]
-                  )}
-                  style={{
-                    padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
-                    borderColor: active ? '#2563eb' : '#e2e8f0',
-                    background:  active ? '#2563eb' : '#fff',
-                    color:       active ? '#fff' : '#64748b',
-                    fontWeight:  active ? 700 : 400,
-                  }}
-                >{col.label}</button>
-              );
-            })}
+        {!isClientUser && (
+          <div>
+            <Label>Columns</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {COLUMNS.map(col => {
+                const active = (opts.cols || ALL_COL_KEYS).includes(col.key);
+                return (
+                  <button key={col.key}
+                    onClick={() => set('cols', active
+                      ? (opts.cols || ALL_COL_KEYS).filter(k => k !== col.key)
+                      : [...(opts.cols || ALL_COL_KEYS), col.key]
+                    )}
+                    style={{
+                      padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
+                      borderColor: active ? '#2563eb' : '#e2e8f0',
+                      background:  active ? '#2563eb' : '#fff',
+                      color:       active ? '#fff' : '#64748b',
+                      fontWeight:  active ? 700 : 400,
+                    }}
+                  >{col.label}</button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Row 2: Grouping + Show/Hide toggles */}
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end', padding: '8px 24px 10px' }}>
         <div>
           <Label>Group By</Label>
-          <BtnGroup k="groupBy" options={[['none','None'],['type','Query Type'],['state','Workflow State']]} />
+          <BtnGroup k="groupBy" options={[['none','None'],['type','Query Type'],['state','Status']]} />
         </div>
         <div>
           <Label>Serial #</Label>
           <BtnGroup k="serialMode" options={[['continuous','Continuous'],['grouped','Per Group']]} />
         </div>
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', paddingLeft: 12, borderLeft: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Show:</span>
-          <Tog k="showLogo"       label="Logo" />
-          <Tog k="showOrgInfo"    label="Company Info" />
-          <Tog k="showClientInfo" label="Client Info" disabled={!isSingleClient} />
-          <Tog k="showSummary"    label="Status Summary" />
-          <Tog k="showDisclaimer" label="Disclaimer" />
-          <Tog k="showPageNums"   label="Page Nos." />
-        </div>
+        {!isClientUser && (
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', paddingLeft: 12, borderLeft: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Show:</span>
+            <Tog k="showLogo"       label="Logo" />
+            <Tog k="showOrgInfo"    label="Company Info" />
+            <Tog k="showClientInfo" label="Client Info" disabled={!isSingleClient} />
+            <Tog k="showDisclaimer" label="Disclaimer" />
+            <Tog k="showPageNums"   label="Page Nos." />
+          </div>
+        )}
         <button
           style={{ padding: '5px 12px', fontSize: '0.72rem', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', color: '#64748b', cursor: 'pointer', marginLeft: 'auto' }}
           onClick={() => setOpts(DEFAULT)}
@@ -197,6 +204,8 @@ function DocCount({ docs }) {
 export default function PrintBulk() {
   const navigate     = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, hasRole } = useAuth();
+  const isClientUser = hasRole('Client') || !!user?.clientName || !!user?.clientData;
 
   const [docs, setDocs]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,6 +220,23 @@ export default function PrintBulk() {
   useEffect(() => {
     try { localStorage.setItem('printBulkOpts', JSON.stringify(opts)); } catch {}
   }, [opts]);
+
+  /* Enforce locked/safe print options for Client users */
+  useEffect(() => {
+    if (!isClientUser) return;
+    setOpts(o => ({
+      ...o,
+      headerAlign: 'center',
+      colorState: false,
+      cols: CLIENT_COL_KEYS,
+      showLogo: true,
+      showOrgInfo: true,
+      showClientInfo: true,
+      showSummary: false,
+      showDisclaimer: true,
+      showPageNums: true,
+    }));
+  }, [isClientUser]);
 
   /* Load logo */
   useEffect(() => { setLogoUrl(getPortalLogoUrl()); }, []);
@@ -251,7 +277,7 @@ export default function PrintBulk() {
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  const enabledCols = opts.cols || ALL_COL_KEYS;
+  const enabledCols = isClientUser ? CLIENT_COL_KEYS : (opts.cols || ALL_COL_KEYS);
   const hasCols = key => enabledCols.includes(key);
   const isGrouped = opts.groupBy !== 'none';
   const perPage = opts.perPage === 'all' ? Math.max(docs.length, 1) : (opts.perPage || 25);
@@ -366,7 +392,7 @@ export default function PrintBulk() {
             <Printer size={14} /> Print / Save PDF
           </button>
         </div>
-        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} />
+        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} isClientUser={isClientUser} />
       </div>
 
       {/* ─── Error notice ─── */}

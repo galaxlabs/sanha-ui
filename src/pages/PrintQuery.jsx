@@ -74,7 +74,7 @@ function Toggle({ label, checked, onChange }) {
 }
 
 /* ─── Settings panel (horizontal toolbar layout) ─── */
-function SettingsPanel({ opts, setOpts }) {
+function SettingsPanel({ opts, setOpts, isClientUser }) {
   const [open, setOpen] = useState(true);
   const set = (k, v) => setOpts(o => ({ ...o, [k]: v }));
 
@@ -109,23 +109,25 @@ function SettingsPanel({ opts, setOpts }) {
         <div style={{ padding: '0 20px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
           {/* Row 1: Section toggles */}
-          <div>
-            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Show / Hide Sections</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <Chip label="Logo"        checked={opts.showLogo}          onChange={v => set('showLogo', v)} />
-              <Chip label="Status"      checked={opts.showStatus}        onChange={v => set('showStatus', v)} />
-              <Chip label="Client Info" checked={opts.showClientInfo}    onChange={v => set('showClientInfo', v)} />
-              <Chip label="Details"     checked={opts.showQueryDetails}  onChange={v => set('showQueryDetails', v)} />
-              <Chip label="Documents"   checked={opts.showDocuments}     onChange={v => set('showDocuments', v)} />
-              <Chip label="Footer"      checked={opts.showFooter}        onChange={v => set('showFooter', v)} />
-              <Chip label="Disclaimer"  checked={opts.showDisclaimer}    onChange={v => set('showDisclaimer', v)} />
-              <Chip label="Signature"   checked={opts.showSignatureLine} onChange={v => set('showSignatureLine', v)} />
-              <Chip label="Watermark"   checked={opts.showWatermark}     onChange={v => set('showWatermark', v)} />
+          {!isClientUser && (
+            <div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Show / Hide Sections</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <Chip label="Logo"        checked={opts.showLogo}          onChange={v => set('showLogo', v)} />
+                <Chip label="Status"      checked={opts.showStatus}        onChange={v => set('showStatus', v)} />
+                <Chip label="Client Info" checked={opts.showClientInfo}    onChange={v => set('showClientInfo', v)} />
+                <Chip label="Details"     checked={opts.showQueryDetails}  onChange={v => set('showQueryDetails', v)} />
+                <Chip label="Documents"   checked={opts.showDocuments}     onChange={v => set('showDocuments', v)} />
+                <Chip label="Footer"      checked={opts.showFooter}        onChange={v => set('showFooter', v)} />
+                <Chip label="Disclaimer"  checked={opts.showDisclaimer}    onChange={v => set('showDisclaimer', v)} />
+                <Chip label="Signature"   checked={opts.showSignatureLine} onChange={v => set('showSignatureLine', v)} />
+                <Chip label="Watermark"   checked={opts.showWatermark}     onChange={v => set('showWatermark', v)} />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Row 1.5: Document columns */}
-          {opts.showDocuments && (
+          {opts.showDocuments && !isClientUser && (
             <div>
               <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Document Columns</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -150,18 +152,20 @@ function SettingsPanel({ opts, setOpts }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto 1fr 1fr 1fr 1fr', gap: 20, alignItems: 'start' }}>
 
             {/* Color scheme */}
-            <div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Color</div>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {Object.entries(SCHEMES).map(([key, s]) => (
-                  <button key={key} onClick={() => set('colorScheme', key)} style={{
-                    width: 24, height: 24, borderRadius: 999, background: s.accent,
-                    border: opts.colorScheme === key ? '3px solid #e2e8f0' : '2px solid transparent',
-                    cursor: 'pointer', flexShrink: 0,
-                  }} title={key} />
-                ))}
+            {!isClientUser && (
+              <div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Color</div>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {Object.entries(SCHEMES).map(([key, s]) => (
+                    <button key={key} onClick={() => set('colorScheme', key)} style={{
+                      width: 24, height: 24, borderRadius: 999, background: s.accent,
+                      border: opts.colorScheme === key ? '3px solid #e2e8f0' : '2px solid transparent',
+                      cursor: 'pointer', flexShrink: 0,
+                    }} title={key} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Font size */}
             <div>
@@ -252,7 +256,25 @@ export default function PrintQuery() {
   }, [opts]);
 
   const { user, hasRole, isAdmin } = useAuth();
-  const isClient = hasRole('Client') && !isAdmin();
+  const isClient = (hasRole('Client') || !!user?.clientName || !!user?.clientData) && !isAdmin();
+
+  useEffect(() => {
+    if (!isClient) return;
+    setOpts(o => ({
+      ...o,
+      showClientInfo: true,
+      showQueryDetails: true,
+      showDocuments: false,
+      showStatus: true,
+      showFooter: true,
+      showDisclaimer: true,
+      showLogo: true,
+      showWatermark: false,
+      showSignatureLine: true,
+      colorScheme: 'green',
+      visibleColumns: [],
+    }));
+  }, [isClient]);
 
   useEffect(() => {
     getDoc('Query', name)
@@ -314,7 +336,7 @@ export default function PrintQuery() {
         </div>
 
         {/* Settings — full-width horizontal */}
-        <SettingsPanel opts={opts} setOpts={setOpts} />
+        <SettingsPanel opts={opts} setOpts={setOpts} isClientUser={isClient} />
       </div>
 
       {/* ─── Print page ─── */}
