@@ -114,12 +114,26 @@ export default function ClientDashboard() {
               {clientData?.client_name?.charAt(0) || user.full_name?.charAt(0) || '?'}
             </div>
             <div>
+              <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.72)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+                Company
+              </div>
               <h1 style={{ margin: 0, fontSize: '1.375rem', fontWeight: 800, color: '#fff' }}>
                 {clientData?.client_name || user.full_name}
               </h1>
               <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,.8)', marginTop: 2 }}>
                 {clientData?.client_code && <span style={{ fontFamily: 'monospace' }}>{clientData.client_code}</span>}
                 {clientData?.region && <span> · {clientData.region}</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10, fontSize: '0.76rem', color: 'rgba(255,255,255,.9)' }}>
+                {(clientData?.contact_person) && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><User size={12} /> {clientData.contact_person}</span>
+                )}
+                {(clientData?.contact_no) && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Phone size={12} /> {clientData.contact_no}</span>
+                )}
+                {(user.email || clientData?.email) && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Mail size={12} /> {user.email || clientData.email}</span>
+                )}
               </div>
               {statusInfo && (
                 <div style={{
@@ -212,17 +226,12 @@ export default function ClientDashboard() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px 18px' }}>
           <InfoItem icon={User} label="Portal User" value={user.full_name || user.name} color="#2563eb" />
-          <InfoItem icon={Mail} label="Email" value={user.email || clientData?.email} color="#06b6d4" />
-          <InfoItem icon={Building} label="Company" value={clientData?.client_name || clientData?.business_name || user.clientName} color="#16a34a" />
-          <InfoItem icon={Hash} label="Client Code" value={clientData?.client_code} color="#7c3aed" />
           <InfoItem icon={Award} label="Category" value={clientData?.category} color="#8b5cf6" />
           <InfoItem icon={Globe} label="Scope" value={clientData?.scope} color="#f59e0b" />
           <InfoItem icon={Shield} label="Standards" value={clientData?.standards} color="#6366f1" />
           <InfoItem icon={Calendar} label="Certification" value={certificationWindow || null} color={statusInfo?.color || '#059669'} />
           <InfoItem icon={Calendar} label="Extension" value={fmtDate(clientData?.ext)} color="#8b5cf6" />
           <InfoItem icon={MapPin} label="Location" value={[clientData?.city, clientData?.region].filter(Boolean).join(', ')} color="#16a34a" />
-          <InfoItem icon={User} label="Contact Person" value={clientData?.contact_person} color="#0f766e" />
-          <InfoItem icon={Phone} label="Contact No." value={clientData?.contact_no} color="#dc2626" />
         </div>
       </div>
 
