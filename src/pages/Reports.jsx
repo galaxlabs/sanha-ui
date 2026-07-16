@@ -121,7 +121,7 @@ const TABS = [
 ];
 
 /* ─── Grouped query view (shared by By State + By Type tabs) ─── */
-function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, fmt }) {
+function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, showAdvanced, fmt }) {
   const nonEmpty = groups.filter(g => rows.some(r => (r[groupBy] || 'Unknown') === g));
   if (!nonEmpty.length) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>No data matching filters</div>
@@ -152,20 +152,24 @@ function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, fmt 
                 <thead>
                   <tr>
                     <th style={{ width: 36 }}>#</th>
+                    {showAdvanced && <th>Query ID</th>}
                     <th>Raw Material</th><th>Type</th>
                     <th>Manufacturer</th><th>Supplier</th>
                     {showClient && <th>Client</th>}
+                    {showAdvanced && <th>Date</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {gRows.map((r, i) => (
                     <tr key={r.name}>
                       <td style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{i + 1}</td>
+                      {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>}
                       <td style={{ fontWeight:500 }}>{r.raw_material || '—'}</td>
                       <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
                       {showClient && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
+                      {showAdvanced && <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -183,14 +187,24 @@ export default function Reports() {
   const { error: showError } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const showAdvanced = !hasRole('Client');
 
   // Allow sidebar to deep-link to a specific tab via ?tab=byState etc.
-  const [tab, setTab] = useState(() => searchParams.get('tab') || 'all');
+  const [tab, setTab] = useState(() => {
+    const t = searchParams.get('tab') || 'all';
+    // Client users can only access basic tabs
+    if (!showAdvanced && !['all', 'byState', 'byType', 'pivot', 'charts'].includes(t)) return 'all';
+    return t;
+  });
 
   // When URL ?tab= changes (e.g. sidebar navigation), sync to tab state
   useEffect(() => {
     const t = searchParams.get('tab');
-    if (t) setTab(t);
+    if (t) {
+      // Redirect client users away from restricted tabs
+      if (!showAdvanced && !['all', 'byState', 'byType', 'pivot', 'charts'].includes(t)) return;
+      setTab(t);
+    }
   }, [searchParams]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -409,14 +423,24 @@ export default function Reports() {
     navigate('/reports/print-grouped');
   };
 
-  const COLS = [
-    { fieldname:'raw_material', label:'Raw Material' },
-    { fieldname:'supplier', label:'Supplier' },
-    { fieldname:'manufacturer', label:'Manufacturer' },
-    { fieldname:'query_types', label:'Type' },
-    { fieldname:'workflow_state', label:'Status' },
-    { fieldname:'client_name', label:'Client' },
-  ];
+  const COLS = showAdvanced
+    ? [
+        { fieldname:'name', label:'ID' },
+        { fieldname:'raw_material', label:'Raw Material' },
+        { fieldname:'supplier', label:'Supplier' },
+        { fieldname:'manufacturer', label:'Manufacturer' },
+        { fieldname:'query_types', label:'Type' },
+        { fieldname:'workflow_state', label:'Status' },
+        { fieldname:'client_name', label:'Client' },
+        { fieldname:'creation', label:'Date' },
+      ]
+    : [
+        { fieldname:'raw_material', label:'Raw Material' },
+        { fieldname:'supplier', label:'Supplier' },
+        { fieldname:'manufacturer', label:'Manufacturer' },
+        { fieldname:'query_types', label:'Type' },
+        { fieldname:'workflow_state', label:'Status' },
+      ];
 
   return (
     <div>
@@ -436,7 +460,7 @@ export default function Reports() {
           </button>
           {clientFilter && (
             <button className="btn btn-outline btn-sm" onClick={() => navigate(`/reports/client-report?client=${encodeURIComponent(clientFilter)}`)} style={{ display:'flex', alignItems:'center', gap:5 }}>
-              <FileText size={14} /> Client Report
+              <FileText size={14} /> Client Report ({clientFilter})
             </button>
           )}
           {tab === 'all' && (
@@ -486,7 +510,7 @@ export default function Reports() {
             <option value="">All Types</option>
             {allTypes.map(t=><option key={t} value={t}>{t}</option>)}
           </select>
-          {isAdmin() && (
+          {showAdvanced && (
             <select className="form-control" style={{ flex: '1 1 150px', fontSize: '0.8rem' }} value={clientFilter} onChange={e=>setClientFilter(e.target.value)}>
               <option value="">All Clients</option>
               {allClients.map(c=><option key={c} value={c}>{c}</option>)}
@@ -523,23 +547,25 @@ export default function Reports() {
                       <th style={{ width: 40, textAlign: 'center', padding: '8px 12px' }}>
                         <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'#2563eb' }} title={allChecked ? 'Deselect all' : 'Select all'} />
                       </th>
-                      <th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
-                      <th>Type</th><th>Status</th>{isAdmin() && <th>Client</th>}
+                      {showAdvanced && <th>ID</th>}<th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
+                      <th>Type</th><th>Status</th>{showAdvanced && <th>Client</th>}{showAdvanced && <th>Date</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No results</td></tr>}
+                    {filtered.length === 0 && <tr><td colSpan={showAdvanced ? 9 : 7} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No results</td></tr>}
                     {filtered.map(r => (
                       <tr key={r.name} style={{ background: selected.has(r.name) ? '#eff6ff' : undefined }}>
                         <td style={{ width: 40, textAlign: 'center' }}>
                           <input type="checkbox" checked={selected.has(r.name)} onChange={() => toggleRow(r.name)} style={{ cursor:'pointer', accentColor:'#2563eb' }} />
                         </td>
+                        {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>}
                         <td style={{ fontWeight:500 }}>{r.raw_material}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
                         <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
                         <td><StatusBadge state={r.workflow_state} /></td>
-                        {isAdmin() && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
+                        {showAdvanced && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
+                        {showAdvanced && <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>}
                       </tr>
                     ))}
                   </tbody>
@@ -555,7 +581,8 @@ export default function Reports() {
               groupBy="workflow_state"
               groups={ALL_STATES}
               groupColors={STATE_COLORS}
-              showClient={isAdmin()}
+              showClient={showAdvanced}
+              showAdvanced={showAdvanced}
               fmt={fmt}
             />
           )}
@@ -567,7 +594,8 @@ export default function Reports() {
               groupBy="query_types"
               groups={[...new Set(rows.map(r => r.query_types).filter(Boolean))].sort()}
               groupColors={null}
-              showClient={isAdmin()}
+              showClient={showAdvanced}
+              showAdvanced={showAdvanced}
               fmt={fmt}
             />
           )}
@@ -576,7 +604,7 @@ export default function Reports() {
           {tab === 'pivot' && (
             <div>
               <PivotTable rows={filtered} rowKey="query_types" colKey="workflow_state" title="Query Type × Status" />
-              {isAdmin() && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Status" />}
+              {showAdvanced && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Status" />}
               <PivotTable rows={filtered} rowKey="query_types" colKey="manufacturer" title="Query Type × Manufacturer (top)" />
             </div>
           )}
@@ -596,7 +624,7 @@ export default function Reports() {
                 <div style={{ fontWeight:600, fontSize:'0.875rem', marginBottom:16 }}>Top Manufacturers</div>
                 <BarChart data={mfData} />
               </div>
-              {isAdmin() && (
+              {showAdvanced && (
                 <div className="card">
                   <div style={{ fontWeight:600, fontSize:'0.875rem', marginBottom:16 }}>Top Clients</div>
                   <BarChart data={clientData} />
@@ -606,6 +634,7 @@ export default function Reports() {
           )}
 
           {/* ─── Approved RM Tab ─── */}
+          {/* ─── Approved Raw Materials Tab ─── */}
           {tab === 'approved' && (
             <div className="card" style={{ padding:0 }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
