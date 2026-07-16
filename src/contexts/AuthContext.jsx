@@ -66,20 +66,51 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // Fetch client data for Client users
-      if (roles.includes('Client') && clientName) {
+      // If still no clientName but user has Client role, try to find by email
+      if (roles.includes('Client') && !clientName && email) {
         try {
-          const clients = await getList('Client', {
-            filters: [['name', '=', clientName]],
+          const clientsByEmail = await getList('Client', {
+            filters: [['email', '=', email]],
             fields: ['name', 'client_name', 'client_code', 'email', 'business_name', 
                      'certified_since', 'certified_expiry', 'ext', 'standards', 
                      'region', 'city', 'scope', 'category', 'status', 'contact_person', 'contact_no'],
             limit: 1,
           });
-          if (clients.length > 0) clientData = clients[0];
-          console.log('[Auth] Client data loaded:', clientData?.client_name);
+          if (clientsByEmail.length > 0) {
+            clientName = clientsByEmail[0].name;
+            clientData = clientsByEmail[0];
+            console.log('[Auth] Found client by email:', clientName);
+          }
+        } catch (e) {
+          console.log('[Auth] Client lookup by email failed:', e);
+        }
+      }
+
+      // Fetch client data for Client users
+      if (roles.includes('Client') && clientName) {
+        try {
+          // Try getDoc first (might have different permissions)
+          const clientDoc = await getDoc('Client', clientName);
+          if (clientDoc) {
+            clientData = clientDoc;
+            console.log('[Auth] Client data loaded via getDoc:', clientData?.client_name);
+          }
         } catch (e) { 
-          console.log('[Auth] Client data fetch failed:', e);
+          console.log('[Auth] Client data fetch via getDoc failed, trying getList:', e);
+          // Fallback to getList
+          try {
+            const clients = await getList('Client', {
+              filters: [['name', '=', clientName]],
+              fields: ['name', 'client_name', 'client_code', 'email', 'business_name', 
+                       'certified_since', 'certified_expiry', 'ext', 'standards', 
+                       'region', 'city', 'scope', 'category', 'status', 'contact_person', 'contact_no'],
+              limit: 1,
+            });
+            if (clients.length > 0) clientData = clients[0];
+            console.log('[Auth] Client data loaded via getList:', clientData?.client_name);
+          } catch (e2) {
+            console.log('[Auth] Client data fetch via getList also failed:', e2);
+          }
         }
       }
 
