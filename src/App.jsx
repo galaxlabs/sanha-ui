@@ -14,6 +14,7 @@ import QueryTypes from './pages/QueryTypes';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Messages from './pages/Messages';
+import Chat from './pages/Chat';
 import ChatAgentConfig from './pages/ChatAgentConfig';
 import EmailTemplates from './pages/EmailTemplates';
 import PrintQuery from './pages/PrintQuery';
@@ -138,6 +139,12 @@ function AppRoutes() {
       <Route path="/chat-agent" element={
         <ProtectedRoute>
           <AppLayout><ChatAgentConfig /></AppLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/chat" element={
+        <ProtectedRoute>
+          <AppLayout><Chat /></AppLayout>
         </ProtectedRoute>
       } />
 

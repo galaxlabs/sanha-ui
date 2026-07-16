@@ -30,6 +30,7 @@ const NAV_GROUPS = {
     { label: 'Raw Materials',  icon: Package,          to: '/raw-materials' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
     { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
+    { label: 'AI Chat',        icon: Bot,              to: '/chat' },
     { label: 'Email Templates',icon: FileText,         to: '/email-templates' },
     { label: 'Chat Agent',     icon: Bot,              to: '/chat-agent' },
     { label: 'Settings',       icon: Settings,         to: '/settings' },
@@ -41,6 +42,7 @@ const NAV_GROUPS = {
     { label: 'Returned to Me', icon: AlertTriangle,    to: '/queries?state=Returned+To+Evaluation' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
     { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
+    { label: 'AI Chat',        icon: Bot,              to: '/chat' },
     { label: 'Chat Agent',     icon: Bot,              to: '/chat-agent' },
   ],
   'SB User': [
@@ -51,6 +53,7 @@ const NAV_GROUPS = {
     { label: 'On Hold',        icon: Clock,            to: '/queries?state=Hold' },
     { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'AI Chat',        icon: Bot,              to: '/chat' },
   ],
   Client: [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
@@ -62,6 +65,7 @@ const NAV_GROUPS = {
       { label: 'By Type',      to: '/reports#byType' },
     ]},
     { label: 'Messages',     icon: MessageSquare, to: '/messages' },
+    { label: 'AI Chat',      icon: Bot,           to: '/chat' },
   ],
   'Certificate Manager': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
@@ -69,6 +73,7 @@ const NAV_GROUPS = {
     { label: 'Halal',          icon: Star,             to: '/queries?state=Halal' },
     { label: 'Haram',          icon: XCircle,          to: '/queries?state=Haram' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'AI Chat',        icon: Bot,              to: '/chat' },
   ],
 };
 
