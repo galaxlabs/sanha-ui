@@ -37,23 +37,24 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
   const toggleCol = (key) => setColumns(p => ({ ...p, [key]: !p[key] }));
 
   const handleGenerate = () => {
+    const clientColumns = ['raw_material', 'query_types', 'manufacturer', 'supplier', 'workflow_state'];
     const config = {
       title,
       orientation,
-      headerAlign,
+      headerAlign: isClient ? 'center' : headerAlign,
       fontSize,
       compact,
       perPage: allRecords ? 99999 : perPage,
       allRecords,
-      columns: Object.entries(columns).filter(([, v]) => v).map(([k]) => k),
+      columns: isClient ? clientColumns : Object.entries(columns).filter(([, v]) => v).map(([k]) => k),
       groupBy,
       serialMode,
-      showLogo,
+      showLogo: isClient ? true : showLogo,
       showCompanyInfo: true,
-      showClientInfo,
+      showClientInfo: isClient ? true : showClientInfo,
       showStatusSummary: false,
-      showDisclaimer,
-      showPageNos,
+      showDisclaimer: isClient ? true : showDisclaimer,
+      showPageNos: isClient ? true : showPageNos,
     };
     sessionStorage.setItem('printReportConfig', JSON.stringify(config));
     onGenerate();
@@ -95,14 +96,16 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
 
           {/* Row 2: Header Align + Font Size + Compact */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Header Align</label>
-              <select className="form-control" value={headerAlign} onChange={e => setHeaderAlign(e.target.value)} style={{ fontSize: '0.85rem' }}>
-                <option value="left">Left</option>
-                <option value="center">Centre</option>
-                <option value="right">Right</option>
-              </select>
-            </div>
+            {!isClient && (
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Header Align</label>
+                <select className="form-control" value={headerAlign} onChange={e => setHeaderAlign(e.target.value)} style={{ fontSize: '0.85rem' }}>
+                  <option value="left">Left</option>
+                  <option value="center">Centre</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+            )}
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Font Size</label>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -147,27 +150,24 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
           </div>
 
           {/* Columns */}
-          <div>
-            <label style={labelStyle}>Columns</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-              {COLUMNS.filter(c => !isClient || c.defaultClient).map(c => (
-                <label key={c.key} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-                  borderRadius: 6, border: `1.5px solid ${columns[c.key] ? '#16a34a' : '#e2e8f0'}`,
-                  background: columns[c.key] ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '0.8rem',
-                  color: columns[c.key] ? '#166534' : '#64748b',
-                }}>
-                  <input type="checkbox" checked={columns[c.key]} onChange={() => toggleCol(c.key)} style={{ accentColor: '#16a34a' }} />
-                  {c.label}
-                </label>
-              ))}
-              {isClient && (
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', padding: '5px 0' }}>
-                  (Query ID, Client, Date not available)
-                </span>
-              )}
+          {!isClient && (
+            <div>
+              <label style={labelStyle}>Columns</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                {COLUMNS.map(c => (
+                  <label key={c.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                    borderRadius: 6, border: `1.5px solid ${columns[c.key] ? '#16a34a' : '#e2e8f0'}`,
+                    background: columns[c.key] ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '0.8rem',
+                    color: columns[c.key] ? '#166534' : '#64748b',
+                  }}>
+                    <input type="checkbox" checked={columns[c.key]} onChange={() => toggleCol(c.key)} style={{ accentColor: '#16a34a' }} />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Row 4: Group By + Serial # */}
           <div style={{ display: 'flex', gap: 16 }}>
