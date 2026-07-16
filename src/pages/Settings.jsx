@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Shield, Users, Settings as SettingsIcon, Database,
   Upload, Image, Key, Lock, Eye, EyeOff, Check, X,
-  RefreshCw, Save, Trash2, ChevronDown, ChevronUp,
+  RefreshCw, Save, Trash2, ChevronDown, ChevronUp, Printer,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { TRANSITIONS } from '../utils/workflow';
 import {
   uploadLogoFile, savePortalLogoUrl, getPortalLogoUrl,
-  adminSetPassword, updatePassword, listUsers,
+  adminSetPassword, updatePassword, listUsers, uploadFile, updateClient,
 } from '../api/frappe';
 import { useToast } from '../contexts/ToastContext';
 
@@ -32,16 +32,38 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, children, defaultOp
 }
 
 export default function SettingsPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, hasRole } = useAuth();
   const { addToast } = useToast();
+  const isClient = hasRole('Client') && !isAdmin();
 
-  if (!isAdmin()) {
+  if (!isAdmin() && !isClient) {
     return (
       <div>
         <div className="mb-4">
           <h2>Settings</h2>
           <p className="text-sm text-gray mt-1">Your account settings</p>
         </div>
+        <SectionCard icon={Key} iconBg="#e0e7ff" iconColor="#4338ca" title="Change Password">
+          <ChangePasswordForm selfUser={user?.name} addToast={addToast} adminMode={false} />
+        </SectionCard>
+      </div>
+    );
+  }
+
+  if (isClient) {
+    const clientName = user?.clientName || user?.clientData?.name;
+    return (
+      <div>
+        <div className="mb-4">
+          <h2>Settings</h2>
+          <p className="text-sm text-gray mt-1">Your company settings</p>
+        </div>
+        <SectionCard icon={Image} iconBg="#fce7f3" iconColor="#be185d" title="Company Logo">
+          <ClientLogoPanel clientName={clientName} addToast={addToast} />
+        </SectionCard>
+        <SectionCard icon={Printer} iconBg="#e0e7ff" iconColor="#4338ca" title="Print Settings">
+          <ClientPrintSettings clientName={clientName} addToast={addToast} />
+        </SectionCard>
         <SectionCard icon={Key} iconBg="#e0e7ff" iconColor="#4338ca" title="Change Password">
           <ChangePasswordForm selfUser={user?.name} addToast={addToast} adminMode={false} />
         </SectionCard>
@@ -79,6 +101,140 @@ export default function SettingsPage() {
       <SectionCard icon={SettingsIcon} iconBg="#f3f4f6" iconColor="#6b7280" title="Workflow Reference" defaultOpen={false}>
         <WorkflowReference />
       </SectionCard>
+    </div>
+  );
+}
+
+/* ── Client Logo Panel ── */
+function ClientLogoPanel({ clientName, addToast }) {
+  const [preview, setPreview] = useState(null);
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef(null);
+
+  const handlePick = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) { addToast("Please select an image file", "error"); return; }
+    if (f.size > 2 * 1024 * 1024) { addToast("Image must be under 2 MB", "error"); return; }
+    setFile(f);
+    const reader = new FileReader();
+    reader.onload = ev => setPreview(ev.target.result);
+    reader.readAsDataURL(f);
+  };
+
+  const handleSave = async () => {
+    if (!file || !clientName) return;
+    setSaving(true);
+    try {
+      const uploaded = await uploadFile(file, 'Client', clientName, 'custom_company_logo');
+      const url = uploaded?.file_url || uploaded;
+      await updateClient(clientName, { custom_company_logo: url });
+      window.dispatchEvent(new CustomEvent("portal-logo-updated", { detail: { url } }));
+      addToast("Company logo updated", "success");
+    } catch (err) {
+      addToast(err.message || "Upload failed", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div
+        style={{
+          width: 160, height: 100, border: "2px dashed var(--border-base)", borderRadius: 12,
+          display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+          background: "var(--surface-bg)", cursor: "pointer", flexShrink: 0,
+        }}
+        onClick={() => inputRef.current?.click()}
+      >
+        {preview ? (
+          <img src={preview} alt="Preview" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", padding: 8 }} />
+        ) : (
+          <div style={{ textAlign: "center", color: "var(--text-muted)" }}>
+            <Upload size={22} style={{ margin: "0 auto 4px", display: "block" }} />
+            <div style={{ fontSize: "0.7rem" }}>Upload logo</div>
+          </div>
+        )}
+        <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePick} />
+      </div>
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 12, lineHeight: 1.5 }}>
+          Upload your company logo. It will appear on printed query forms. PNG/SVG recommended, max 2 MB.
+        </p>
+        <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontStyle: "italic", marginBottom: 12 }}>
+          The SANHA logo and company details remain fixed on all printouts.
+        </p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-outline btn-sm" onClick={() => inputRef.current?.click()}>
+            <Upload size={13} /> Choose File
+          </button>
+          {file && (
+            <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+              {saving ? <><RefreshCw size={12} className="spin" /> Uploading…</> : <><Save size={12} /> Save</>}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Client Print Settings ── */
+function ClientPrintSettings({ clientName, addToast }) {
+  const [settings, setSettings] = useState({
+    showWatermark: false,
+    showHeader: true,
+    showFooter: true,
+  });
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!clientName || loaded) return;
+    try {
+      const saved = localStorage.getItem(`print_settings_${clientName}`);
+      if (saved) setSettings(JSON.parse(saved));
+    } catch {}
+    setLoaded(true);
+  }, [clientName, loaded]);
+
+  const toggle = (key) => setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      localStorage.setItem(`print_settings_${clientName}`, JSON.stringify(settings));
+      if (clientName) await updateClient(clientName, { custom_print_settings: JSON.stringify(settings) });
+      addToast("Print settings saved", "success");
+    } catch (err) {
+      addToast(err.message || "Save failed", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 16, lineHeight: 1.5 }}>
+        Configure how your queries appear when printed. The SANHA header, address, and certification info always remain visible.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+        {[
+          { key: 'showWatermark', label: 'Show watermark on print' },
+          { key: 'showHeader', label: 'Show company header on print' },
+          { key: 'showFooter', label: 'Show footer on print' },
+        ].map(opt => (
+          <label key={opt.key} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: "0.85rem" }}>
+            <input type="checkbox" checked={settings[opt.key]} onChange={() => toggle(opt.key)} style={{ width: 16, height: 16 }} />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+      <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+        {saving ? <><RefreshCw size={13} className="spin" /> Saving…</> : <><Save size={13} /> Save Settings</>}
+      </button>
     </div>
   );
 }
