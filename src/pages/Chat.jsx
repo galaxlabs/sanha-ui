@@ -5,15 +5,25 @@ import { useAuth } from '../contexts/AuthContext';
 
 const SUGGESTIONS = [
   'Show my recent queries',
-  'Find similar suppliers',
+  'Find similar suppliers or manufacturers',
   'Check data quality issues',
   'How many queries are pending?',
+  'List all raw materials with E-NUMBERS',
+  'Find duplicate supplier contacts',
 ];
 
 export default function Chat() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Assalam-o-Alaikum! I am the SANHA AI Assistant. Ask me about queries, suppliers, manufacturers, or data quality.' },
+    { role: 'assistant', content: `Assalam-o-Alaikum! 👋 I'm the SANHA AI Assistant.
+
+I can help you with:
+• **Queries** — check status, find recent submissions, count by state
+• **Data Quality** — find similar supplier/manufacturer names, detect duplicate contacts
+• **Raw Materials** — list E-NUMBERS, find variants
+• **General Info** — answer questions about your certification data
+
+Try clicking one of the suggestions below or type your own question!` },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
