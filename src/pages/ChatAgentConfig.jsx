@@ -1,9 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Bot, Save, RefreshCw, MessageSquare, Sliders, Globe,
   Eye, EyeOff, ChevronDown, ChevronUp, User, Settings,
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import * as frappe from '../api/frappe';
+
+const FIELD_MAP = {
+  agentName: 'agent_name',
+  welcomeMessage: 'welcome_message',
+  systemPrompt: 'system_prompt',
+  model: 'model',
+  temperature: 'temperature',
+  maxTokens: 'max_tokens',
+  showSources: 'show_sources',
+  enableFileUpload: 'enable_file_upload',
+  enableQueryLookup: 'enable_query_lookup',
+};
+
+const REVERSE_MAP = Object.fromEntries(
+  Object.entries(FIELD_MAP).map(([k, v]) => [v, k])
+);
+
+const DEFAULTS = {
+  agentName: 'SANHA Assistant',
+  welcomeMessage: 'Assalam-o-Alaikum! I am the SANHA Halal Query Assistant. How can I help you today?',
+  systemPrompt: 'You are a helpful assistant for SANHA (Sanha Halal Associates Pakistan). You help users with halal certification queries, status checks, and general information about the halal certification process. Be professional, courteous, and precise.',
+  model: 'gpt-4o-mini',
+  temperature: 0.7,
+  maxTokens: 1024,
+  showSources: true,
+  enableFileUpload: false,
+  enableQueryLookup: true,
+};
 
 function SectionCard({ icon: Icon, iconBg, iconColor, title, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -25,33 +54,59 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, children, defaultOp
 
 export default function ChatAgentConfig() {
   const { addToast } = useToast();
-  const [config, setConfig] = useState({
-    agentName: 'SANHA Assistant',
-    welcomeMessage: 'Assalam-o-Alaikum! I am the SANHA Halal Query Assistant. How can I help you today?',
-    systemPrompt: 'You are a helpful assistant for SANHA (Sanha Halal Associates Pakistan). You help users with halal certification queries, status checks, and general information about the halal certification process. Be professional, courteous, and precise.',
-    model: 'gpt-4o-mini',
-    temperature: 0.7,
-    maxTokens: 1024,
-    showSources: true,
-    enableFileUpload: false,
-    enableQueryLookup: true,
-  });
+  const [config, setConfig] = useState({ ...DEFAULTS });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    frappe.getAiAgentConfig()
+      .then(data => {
+        if (data && Object.keys(data).length > 1) {
+          const mapped = {};
+          Object.keys(data).forEach(key => {
+            const uiKey = REVERSE_MAP[key];
+            if (uiKey !== undefined) mapped[uiKey] = data[key];
+          });
+          setConfig(prev => ({ ...prev, ...mapped }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const update = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      localStorage.setItem('chat_agent_config', JSON.stringify(config));
-      await new Promise(r => setTimeout(r, 500));
+      const payload = {};
+      Object.entries(FIELD_MAP).forEach(([uiKey, backendKey]) => {
+        payload[backendKey] = config[uiKey];
+      });
+      await frappe.saveAiAgentConfig(payload);
       addToast('Agent configuration saved', 'success');
     } catch (err) {
       addToast(err.message || 'Save failed', 'error');
     } finally {
       setSaving(false);
     }
+  }; 
+  
+  const handleReset = async () => {
+    setConfig({ ...DEFAULTS });
+    try {
+      await frappe.saveAiAgentConfig(DEFAULTS);
+      addToast('Reset to defaults', 'info');
+    } catch {}
   };
+
+  if (loading) {
+    return (
+      <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+        Loading configuration…
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -127,10 +182,7 @@ export default function ChatAgentConfig() {
       </SectionCard>
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-        <button className="btn btn-outline btn-sm" onClick={() => {
-          localStorage.removeItem('chat_agent_config');
-          addToast('Reset to defaults', 'info');
-        }}>
+        <button className="btn btn-outline btn-sm" onClick={handleReset}>
           <RefreshCw size={13} /> Reset
         </button>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>

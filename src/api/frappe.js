@@ -571,3 +571,53 @@ export function parseCompanyInfo(htmlBlock) {
     contact,
   };
 }
+
+/* ── E-NUMBERS lookup ── */
+export async function eNumbersLookup(materialName) {
+  const name = (materialName || '').toLowerCase().trim();
+  if (!name) return [];
+  const exact = await getList('E-NUMBERS', {
+    filters: { name1: name },
+    fields: ['name1', 'alternative_name', 'status', 'source'],
+    limit_page_length: 1,
+  });
+  if (exact.length) return exact.map(r => ({ ...r, match_type: 'Exact' }));
+  const all = await getList('E-NUMBERS', {
+    fields: ['name1', 'alternative_name', 'status', 'source'],
+    limit_page_length: 500,
+  });
+  for (const row of all) {
+    const alt = (row.alternative_name || '').toLowerCase();
+    const altNames = alt.split(/[,;]+/).map(a => a.trim());
+    if (altNames.includes(name)) {
+      return [{ ...row, match_type: 'Alternative Exact' }];
+    }
+  }
+  for (const row of all) {
+    const n1 = (row.name1 || '').toLowerCase();
+    if (name.includes(n1) && n1.length > 3) {
+      return [{ ...row, match_type: 'Partial Match' }];
+    }
+  }
+  return [];
+}
+
+/* ── AI Agent Config ── */
+export async function getAiAgentConfig() {
+  try {
+    const res = await call('frappe.client.get', {
+      doctype: 'AI Agent Config',
+      name: 'AI Agent Config',
+    });
+    return res.message || {};
+  } catch { return {}; }
+}
+
+export async function saveAiAgentConfig(data) {
+  const res = await call('frappe.client.set_value', {
+    doctype: 'AI Agent Config',
+    name: 'AI Agent Config',
+    fieldname: data,
+  });
+  return res.message;
+}

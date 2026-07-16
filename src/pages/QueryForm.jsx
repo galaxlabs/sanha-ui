@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Plus, X, Paperclip, Printer, AlertTriangle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Plus, X, Paperclip, Printer, AlertTriangle, AlertCircle, Info, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
@@ -80,9 +80,15 @@ export default function QueryForm() {
   const [dupWarning, setDupWarning] = useState([]); // similar queries
   const [docWarnings, setDocWarnings] = useState([]); // document validation warnings
   const [previewFile, setPreviewFile] = useState(null); // inline file preview
+  const [materialStatus, setMaterialStatus] = useState(null); // E-NUMBERS result
+  const [materialLookupLoading, setMaterialLookupLoading] = useState(false);
+  const [similarBanner, setSimilarBanner] = useState(null); // previous final-state query
   const dupTimer = useRef(null);
 
   const isClient = hasRole('Client') && !isAdmin();
+  const isEvaluation = hasRole('Evaluation');
+  const isSBUser = hasRole('SB User');
+  const canSeeSimilar = isEvaluation || isSBUser;
   const isDraft = doc.workflow_state === 'Draft' || doc.workflow_state === 'Returned';
   const canEdit = isNew || isAdmin() ||
     (isClient && isDraft) ||
@@ -136,6 +142,43 @@ export default function QueryForm() {
       } catch { setDupWarning([]); }
     }, 600);
   }, []);
+
+  const FINAL_STATES = ['Approved', 'Halal', 'Haram', 'Rejected'];
+
+  /* E-NUMBERS + similar query lookups (debounced) */
+  const lookupTimer = useRef(null);
+  useEffect(() => {
+    const rm = (doc.raw_material || '').trim().toLowerCase();
+    if (!rm) { setMaterialStatus(null); setSimilarBanner(null); return; }
+    const mf = (doc.manufacturer || '').trim();
+
+    clearTimeout(lookupTimer.current);
+    lookupTimer.current = setTimeout(async () => {
+      setMaterialLookupLoading(true);
+      try {
+        const [enumbers, similar] = await Promise.all([
+          frappe.eNumbersLookup(rm),
+          canSeeSimilar && rm && mf
+            ? frappe.findSimilarQuery(rm, mf, doc.name || '')
+            : Promise.resolve([]),
+        ]);
+        setMaterialStatus(enumbers[0] || null);
+        if (canSeeSimilar && similar.length) {
+          const topFinal = similar.find(s =>
+            FINAL_STATES.includes(s.workflow_state)
+          );
+          setSimilarBanner(topFinal || null);
+        } else {
+          setSimilarBanner(null);
+        }
+      } catch {
+        setMaterialStatus(null);
+        setSimilarBanner(null);
+      } finally {
+        setMaterialLookupLoading(false);
+      }
+    }, 400);
+  }, [doc.raw_material, doc.manufacturer]);
 
   /* Field update helpers */
   const set = (field, val) => {
@@ -408,14 +451,68 @@ export default function QueryForm() {
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Raw Material <span className="required">*</span></label>
-              <input
-                className={`form-control ${errors.raw_material ? 'error' : ''}`}
-                value={doc.raw_material}
-                onChange={e => set('raw_material', e.target.value)}
-                placeholder="e.g. Soy Lecithin"
-                disabled={!canEdit}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  className={`form-control ${errors.raw_material ? 'error' : ''}`}
+                  value={doc.raw_material}
+                  onChange={e => set('raw_material', e.target.value)}
+                  placeholder="e.g. Soy Lecithin"
+                  disabled={!canEdit}
+                  style={materialStatus ? {
+                    backgroundColor: materialStatus.status === 'Halal' ? '#d4edda' :
+                      materialStatus.status === 'Haram' ? '#f8d7da' :
+                      materialStatus.status === 'Doubtful' ? '#fff3cd' : '#ffeeba',
+                    borderColor: materialStatus.status === 'Halal' ? '#c3e6cb' :
+                      materialStatus.status === 'Haram' ? '#f5c6cb' :
+                      materialStatus.status === 'Doubtful' ? '#ffeeba' : '#ffeeba',
+                    fontWeight: 600,
+                  } : {}}
+                />
+                {materialLookupLoading && (
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', color: '#94a3b8' }}>...</span>
+                )}
+                {materialStatus && (
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>
+                    {materialStatus.status === 'Halal' ? <CheckCircle size={16} color="#16a34a" /> :
+                     materialStatus.status === 'Haram' ? <XCircle size={16} color="#dc2626" /> :
+                     <AlertTriangle size={16} color="#d97706" />}
+                  </span>
+                )}
+              </div>
               {errors.raw_material && <div className="form-error">{errors.raw_material}</div>}
+
+              {/* E-NUMBERS status banner */}
+              {materialStatus && (
+                <div style={{
+                  marginTop: 6, padding: '6px 10px', borderRadius: 6, fontSize: '0.75rem',
+                  backgroundColor: materialStatus.status === 'Halal' ? '#d4edda' :
+                    materialStatus.status === 'Haram' ? '#f8d7da' :
+                    materialStatus.status === 'Doubtful' ? '#fff3cd' : '#ffeeba',
+                  color: materialStatus.status === 'Halal' ? '#155724' :
+                    materialStatus.status === 'Haram' ? '#721c24' :
+                    materialStatus.status === 'Doubtful' ? '#856404' : '#856404',
+                }}>
+                  <b>{materialStatus.status || 'Unknown'}</b> —
+                  matched via <b>{materialStatus.match_type}</b>
+                  {materialStatus.source ? ` | Source: ${materialStatus.source}` : ''}
+                </div>
+              )}
+
+              {/* Similar previous query banner (Evaluation/SB User only) */}
+              {canSeeSimilar && similarBanner && (
+                <div style={{
+                  marginTop: 6, padding: '6px 10px', borderRadius: 6, fontSize: '0.75rem',
+                  backgroundColor: '#d4edda', color: '#155724',
+                  border: '1px solid #c3e6cb',
+                }}>
+                  <CheckCircle size={12} style={{ marginRight: 4 }} />
+                  Previously submitted by <b>{similarBanner.client_name || similarBanner.owner || 'Unknown'}</b> as
+                  {' '}<a href={`/queries/${similarBanner.name}`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: '#155724' }}>
+                    {similarBanner.name}
+                  </a>
+                  {' — '}<b>{similarBanner.workflow_state}</b>
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">Query Type <span className="required">*</span></label>
