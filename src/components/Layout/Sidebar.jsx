@@ -32,7 +32,7 @@ const NAV_GROUPS = {
     { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
     { label: 'AI Chat',        icon: Bot,              to: '/chat' },
     { label: 'Email Templates',icon: FileText,         to: '/email-templates' },
-    { label: 'Chat Agent',     icon: Bot,              to: '/chat-agent' },
+    { label: 'Settings',       icon: Settings,         to: '/settings' },
     { label: 'Settings',       icon: Settings,         to: '/settings' },
   ],
   Evaluation: [
@@ -43,7 +43,6 @@ const NAV_GROUPS = {
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
     { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
     { label: 'AI Chat',        icon: Bot,              to: '/chat' },
-    { label: 'Chat Agent',     icon: Bot,              to: '/chat-agent' },
   ],
   'SB User': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
