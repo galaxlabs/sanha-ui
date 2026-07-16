@@ -645,3 +645,15 @@ export async function getAllEntities() {
     contacts: seen.contacts,
   };
 }
+
+/* ── Chat with AI agent ── */
+export async function askAgent(message, history = []) {
+  const res = await call('sanha.api.chat.ask', { message, history });
+  return res.message;
+}
+
+/* ── Data quality analysis (server-side, role-filtered) ── */
+export async function getDataQuality(scope = 'all') {
+  const res = await call('sanha.api.data_quality.analyze', { scope });
+  return res.message;
+}

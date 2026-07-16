@@ -16,6 +16,8 @@ const FIELD_MAP = {
   showSources: 'show_sources',
   enableFileUpload: 'enable_file_upload',
   enableQueryLookup: 'enable_query_lookup',
+  provider: 'provider',
+  apiKey: 'api_key',
 };
 
 const REVERSE_MAP = Object.fromEntries(
@@ -27,6 +29,8 @@ const DEFAULTS = {
   welcomeMessage: 'Assalam-o-Alaikum! I am the SANHA Halal Query Assistant. How can I help you today?',
   systemPrompt: 'You are a helpful assistant for SANHA (Sanha Halal Associates Pakistan). You help users with halal certification queries, status checks, and general information about the halal certification process. Be professional, courteous, and precise.',
   model: 'gpt-4o-mini',
+  provider: 'Open AI',
+  apiKey: '',
   temperature: 0.7,
   maxTokens: 1024,
   showSources: true,
