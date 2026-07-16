@@ -26,7 +26,7 @@ const PAGE_TITLES = {
   '/settings':      'Settings',
 };
 
-const THEME_ICONS = { light: Sun, dark: Moon };
+const THEME_ICONS = { light: Moon, dark: Sun };
 
 export default function Header({ onToggleSidebar }) {
   const location  = useLocation();
@@ -376,7 +376,7 @@ export default function Header({ onToggleSidebar }) {
                 style={{ display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
-                {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                {theme === 'light' ? 'Dark mode' : 'Light mode'}
               </button>
 
               {/* Logout */}
