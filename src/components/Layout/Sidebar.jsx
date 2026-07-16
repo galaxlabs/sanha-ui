@@ -40,6 +40,8 @@ const NAV_GROUPS = {
     { label: 'Submitted',      icon: CheckCircle,      to: '/queries?state=Submitted' },
     { label: 'Returned to Me', icon: AlertTriangle,    to: '/queries?state=Returned+To+Evaluation' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
+    { label: 'Chat Agent',     icon: Bot,              to: '/chat-agent' },
   ],
   'SB User': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
@@ -49,6 +51,7 @@ const NAV_GROUPS = {
     { label: 'On Hold',        icon: Clock,            to: '/queries?state=Hold' },
     { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
   Client: [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
@@ -59,6 +62,7 @@ const NAV_GROUPS = {
       { label: 'By State',     to: '/reports#byState' },
       { label: 'By Type',      to: '/reports#byType' },
     ]},
+    { label: 'Messages',     icon: MessageSquare, to: '/messages' },
   ],
   'Certificate Manager': [
     { label: 'Dashboard',      icon: LayoutDashboard,  to: '/dashboard' },
@@ -66,6 +70,7 @@ const NAV_GROUPS = {
     { label: 'Halal',          icon: Star,             to: '/queries?state=Halal' },
     { label: 'Haram',          icon: XCircle,          to: '/queries?state=Haram' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
 };
 
