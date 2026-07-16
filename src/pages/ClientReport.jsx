@@ -4,6 +4,7 @@ import { Printer, ArrowLeft, Download, FileText } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import * as frappe from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
+import StatusBadge from '../components/UI/StatusBadge';
 
 export default function ClientReport() {
   const navigate = useNavigate();
@@ -29,10 +30,13 @@ export default function ClientReport() {
         });
         setClient(clientDoc);
 
-        const q = await frappe.call('sanha.api.chat._get_query_context', {
-          search_term: null, limit: 100,
+        const q = await frappe.getList('Query', {
+          filters: [['client_name', '=', clientName]],
+          fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types', 'creation'],
+          order_by: 'creation desc',
+          limit: 200,
         });
-        setQueries(q.filter(r => r.client_name === clientName));
+        setQueries(q);
       }
     } catch (e) {
       console.error(e);
@@ -77,7 +81,7 @@ export default function ClientReport() {
           padding: '0 0 20px', marginBottom: 20,
           borderBottom: '1px solid #ccc', display: 'table', width: '100%',
         }}>
-          <div className="logo-container" style={{ display: 'table-cell', textAlign: 'left', width: '50%', verticalAlign: 'middle' }}>
+          <div className="logo-container" style={{ display: 'table-cell', textAlign: 'left', width: '55%', verticalAlign: 'middle' }}>
             <img
               src={logoUrl || '/sanha-logo.png'}
               alt="SANHA Logo"
@@ -86,7 +90,7 @@ export default function ClientReport() {
             />
           </div>
           <div className="slogan-container" style={{
-            display: 'table-cell', textAlign: 'right', verticalAlign: 'middle', width: '50%',
+            display: 'table-cell', textAlign: 'right', verticalAlign: 'middle', width: '45%',
             fontSize: 14, fontStyle: 'italic', color: '#666',
           }}>
             "Eat Halal, Be Healthy."
@@ -116,45 +120,59 @@ export default function ClientReport() {
         {/* ─── CLIENT INFO TABLE (only if client selected) ─── */}
         {client && (
           <div style={{ margin: '24px auto', maxWidth: 600 }}>
-            <table style={{
-              width: '100%', borderCollapse: 'collapse', border: 'none',
-            }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
+                {/* Header Row 1 */}
                 <tr>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                  <td style={{ width: '33%', padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Client Name
                   </td>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                  <td style={{ width: '33%', padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Client Code
                   </td>
+                  <td style={{ width: '34%', padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Status
+                  </td>
                 </tr>
+                {/* Data Row 1 */}
                 <tr>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none', fontWeight: 600 }}>
                     {client.client_name || client.name}
                   </td>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none', fontFamily: 'monospace' }}>
                     {client.client_code || '—'}
                   </td>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
+                    {client.status || 'Active'}
+                  </td>
                 </tr>
+                {/* Header Row 2 */}
                 <tr>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                  <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Contact Person
                   </td>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                  <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Contact Email
                   </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Phone
+                  </td>
                 </tr>
+                {/* Data Row 2 */}
                 <tr>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
                     {client.contact_person || '—'}
                   </td>
-                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
                     {client.email || client.client_email || '—'}
+                  </td>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontSize: 13, color: '#1e293b', border: 'none' }}>
+                    {client.phone || client.mobile || '—'}
                   </td>
                 </tr>
               </tbody>
             </table>
-            <hr style={{ height: 1, borderWidth: 0, color: '#ccc', backgroundColor: '#ccc', margin: '12px 0' }} />
+            <hr style={{ height: 1, borderWidth: 0, color: '#ccc', backgroundColor: '#ccc', margin: '16px 0' }} />
           </div>
         )}
 
@@ -164,30 +182,28 @@ export default function ClientReport() {
         ) : queries.length > 0 ? (
           <div style={{ marginTop: 20 }}>
             <h4 style={{ textAlign: 'center', color: '#475569', marginBottom: 12, fontSize: 13, fontWeight: 600 }}>
-              {client ? `Certification Queries — ${client.client_name || client.name}` : 'All Queries Report'}
+              {client ? `Certification Queries — ${client.client_name || client.name}` : 'Queries Report'}
             </h4>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
               <thead>
                 <tr>
                   <th style={TH}>#</th>
-                  <th style={TH}>Query ID</th>
                   <th style={TH}>Raw Material</th>
                   <th style={TH}>Supplier</th>
                   <th style={TH}>Manufacturer</th>
+                  <th style={TH}>Type</th>
                   <th style={TH}>Status</th>
-                  <th style={TH}>Date</th>
                 </tr>
               </thead>
               <tbody>
                 {queries.map((q, i) => (
                   <tr key={q.name}>
-                    <td style={TD}>{i + 1}</td>
-                    <td style={TD}>{q.name}</td>
-                    <td style={TD}>{q.raw_material}</td>
-                    <td style={TD}>{q.supplier}</td>
-                    <td style={TD}>{q.manufacturer}</td>
-                    <td style={TD}>{q.workflow_state}</td>
-                    <td style={TD}>{q.creation?.split(' ')[0]}</td>
+                    <td style={{ ...TD, textAlign: 'center', color: '#94a3b8' }}>{i + 1}</td>
+                    <td style={{ ...TD, fontWeight: 500 }}>{q.raw_material}</td>
+                    <td style={TD}>{q.supplier || '—'}</td>
+                    <td style={TD}>{q.manufacturer || '—'}</td>
+                    <td style={TD}>{q.query_types || '—'}</td>
+                    <td style={TD}><StatusBadge state={q.workflow_state} /></td>
                   </tr>
                 ))}
               </tbody>

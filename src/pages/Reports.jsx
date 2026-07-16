@@ -152,23 +152,20 @@ function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, fmt 
                 <thead>
                   <tr>
                     <th style={{ width: 36 }}>#</th>
-                    <th>Query ID</th><th>Raw Material</th><th>Type</th>
+                    <th>Raw Material</th><th>Type</th>
                     <th>Manufacturer</th><th>Supplier</th>
                     {showClient && <th>Client</th>}
-                    <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {gRows.map((r, i) => (
                     <tr key={r.name}>
                       <td style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{i + 1}</td>
-                      <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>
                       <td style={{ fontWeight:500 }}>{r.raw_material || '—'}</td>
                       <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
                       {showClient && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
-                      <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -413,14 +410,12 @@ export default function Reports() {
   };
 
   const COLS = [
-    { fieldname:'name', label:'ID' },
     { fieldname:'raw_material', label:'Raw Material' },
     { fieldname:'supplier', label:'Supplier' },
     { fieldname:'manufacturer', label:'Manufacturer' },
     { fieldname:'query_types', label:'Type' },
     { fieldname:'workflow_state', label:'Status' },
     { fieldname:'client_name', label:'Client' },
-    { fieldname:'creation', label:'Date' },
   ];
 
   return (
@@ -439,8 +434,8 @@ export default function Reports() {
           <button className="btn btn-outline btn-sm" onClick={() => exportCSV(filtered, COLS, 'queries-report.csv')} style={{ display:'flex', alignItems:'center', gap:5 }}>
             <Download size={14} /> Export CSV
           </button>
-          {isAdmin() && (
-            <button className="btn btn-outline btn-sm" onClick={() => navigate(`/reports/client-report${clientFilter ? '?client=' + encodeURIComponent(clientFilter) : ''}`)} style={{ display:'flex', alignItems:'center', gap:5 }}>
+          {clientFilter && (
+            <button className="btn btn-outline btn-sm" onClick={() => navigate(`/reports/client-report?client=${encodeURIComponent(clientFilter)}`)} style={{ display:'flex', alignItems:'center', gap:5 }}>
               <FileText size={14} /> Client Report
             </button>
           )}
@@ -528,25 +523,23 @@ export default function Reports() {
                       <th style={{ width: 40, textAlign: 'center', padding: '8px 12px' }}>
                         <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'#2563eb' }} title={allChecked ? 'Deselect all' : 'Select all'} />
                       </th>
-                      <th>ID</th><th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
-                      <th>Type</th><th>Status</th>{isAdmin() && <th>Client</th>}<th>Date</th>
+                      <th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
+                      <th>Type</th><th>Status</th>{isAdmin() && <th>Client</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 && <tr><td colSpan={9} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No results</td></tr>}
+                    {filtered.length === 0 && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No results</td></tr>}
                     {filtered.map(r => (
                       <tr key={r.name} style={{ background: selected.has(r.name) ? '#eff6ff' : undefined }}>
                         <td style={{ width: 40, textAlign: 'center' }}>
                           <input type="checkbox" checked={selected.has(r.name)} onChange={() => toggleRow(r.name)} style={{ cursor:'pointer', accentColor:'#2563eb' }} />
                         </td>
-                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>
                         <td style={{ fontWeight:500 }}>{r.raw_material}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
                         <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
                         <td><StatusBadge state={r.workflow_state} /></td>
                         {isAdmin() && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
-                        <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -582,8 +575,8 @@ export default function Reports() {
           {/* ─── Pivot Analysis Tab ─── */}
           {tab === 'pivot' && (
             <div>
-              <PivotTable rows={filtered} rowKey="query_types" colKey="workflow_state" title="Query Type × Workflow State" />
-              {isAdmin() && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Workflow State" />}
+              <PivotTable rows={filtered} rowKey="query_types" colKey="workflow_state" title="Query Type × Status" />
+              {isAdmin() && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Status" />}
               <PivotTable rows={filtered} rowKey="query_types" colKey="manufacturer" title="Query Type × Manufacturer (top)" />
             </div>
           )}
@@ -592,7 +585,7 @@ export default function Reports() {
           {tab === 'charts' && (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
               <div className="card">
-                <div style={{ fontWeight:600, fontSize:'0.875rem', marginBottom:16 }}>By Workflow State</div>
+                <div style={{ fontWeight:600, fontSize:'0.875rem', marginBottom:16 }}>By Status</div>
                 <BarChart data={stateData} colorKey={STATE_COLORS} />
               </div>
               <div className="card">
