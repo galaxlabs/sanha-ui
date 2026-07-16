@@ -11,12 +11,14 @@ import QueryList from './pages/QueryList';
 import QueryForm from './pages/QueryForm';
 import ClientsPage from './pages/ClientsPage';
 import QueryTypes from './pages/QueryTypes';
+import RawMaterials from './pages/RawMaterials';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Messages from './pages/Messages';
 import PrintQuery from './pages/PrintQuery';
 import PrintBulk from './pages/PrintBulk';
 import PrintGrouped from './pages/PrintGrouped';
+import ClientReport from './pages/ClientReport';
 import { Spinner } from './components/UI/Loaders';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -97,6 +99,12 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/raw-materials" element={
+        <ProtectedRoute>
+          <AppLayout><RawMaterials /></AppLayout>
+        </ProtectedRoute>
+      } />
+
       <Route path="/reports" element={
         <ProtectedRoute>
           <AppLayout><Reports /></AppLayout>
@@ -106,6 +114,12 @@ function AppRoutes() {
       <Route path="/reports/print-grouped" element={
         <ProtectedRoute>
           <PrintGrouped />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/client-report" element={
+        <ProtectedRoute>
+          <ClientReport />
         </ProtectedRoute>
       } />
 

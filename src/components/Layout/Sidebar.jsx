@@ -5,7 +5,7 @@ import {
   Settings, LogOut, Shield, Star, Package, BarChart2,
   CheckCircle, XCircle, AlertTriangle, Clock, Search,
   ChevronDown, ChevronRight, Layers, PieChart, List,
-  MessageSquare,
+  MessageSquare, PanelLeftClose, PanelLeft,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl } from '../../api/frappe';
@@ -90,6 +90,7 @@ export default function Sidebar({ collapsed, onClose }) {
   const location = useLocation();
   const { group, links } = getRoleLinks(user?.roles || []);
   const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Track which expandable items are open (default: Reports open if on /reports)
   const [expanded, setExpanded] = useState(() => {
     return location.pathname.startsWith('/reports') ? new Set(['Reports']) : new Set();
@@ -118,7 +119,7 @@ export default function Sidebar({ collapsed, onClose }) {
     : 'U';
 
   return (
-    <aside className={`sidebar ${collapsed ? '' : 'sidebar--open'}`}>
+    <aside className={`sidebar ${collapsed ? '' : 'sidebar--open'} ${sidebarCollapsed ? 'sidebar--collapsed' : ''}`}>
       {/* Logo — click to go to Dashboard */}
       <div
         className="sidebar-logo"
@@ -131,7 +132,7 @@ export default function Sidebar({ collapsed, onClose }) {
             <img
               src={logoUrl}
               alt="Portal Logo"
-              style={{ maxHeight: 40, maxWidth: 160, objectFit: 'contain' }}
+              style={{ maxHeight: 40, maxWidth: sidebarCollapsed ? 40 : 160, objectFit: 'contain' }}
             />
           </div>
         ) : (
@@ -139,17 +140,19 @@ export default function Sidebar({ collapsed, onClose }) {
             <div style={{ width: 38, height: 38, background: '#16a34a', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Shield size={22} color="#fff" />
             </div>
-            <div>
-              <div className="sidebar-logo-text">SANHA</div>
-              <div className="sidebar-logo-sub">Halal Query Portal</div>
-            </div>
+            {!sidebarCollapsed && (
+              <div>
+                <div className="sidebar-logo-text">SANHA</div>
+                <div className="sidebar-logo-sub">Halal Query Portal</div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {group && <div className="sidebar-role-badge">{group}</div>}
+        {group && !sidebarCollapsed && <div className="sidebar-role-badge">{group}</div>}
         {links.map(link => {
           const hasChildren = link.children?.length > 0;
           const isOpen = expanded.has(link.label);
@@ -157,22 +160,22 @@ export default function Sidebar({ collapsed, onClose }) {
 
           if (hasChildren) {
             return (
-              <div key={link.to}>
-                {/* Parent row — clicking navigates AND toggles */}
+              <div key={link.to} style={{ position: 'relative' }}>
                 <button
-                  onClick={() => { navigate(link.to); toggleExpand(link.label); }}
+                  onClick={() => { navigate(link.to); if (!sidebarCollapsed) toggleExpand(link.label); }}
                   className={`nav-item${isReportsActive ? ' active' : ''}`}
-                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+                  title={sidebarCollapsed ? link.label : undefined}
+                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
                 >
                   <link.icon size={18} style={{ flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{link.label}</span>
-                  {isOpen
+                  {!sidebarCollapsed && <span style={{ flex: 1 }}>{link.label}</span>}
+                  {!sidebarCollapsed && (isOpen
                     ? <ChevronDown size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />
                     : <ChevronRight size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                  }
+                  )}
                 </button>
                 {/* Children */}
-                {isOpen && (
+                {!sidebarCollapsed && isOpen && (
                   <div style={{ paddingLeft: 16, borderLeft: '2px solid #e2e8f0', marginLeft: 20, marginBottom: 4 }}>
                     {link.children.map(child => {
                       const tab = child.to.split('#')[1] || '';
@@ -201,28 +204,48 @@ export default function Sidebar({ collapsed, onClose }) {
             <NavLink
               key={link.to}
               to={link.to}
+              title={sidebarCollapsed ? link.label : undefined}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
             >
               <link.icon size={18} />
-              {link.label}
+              {!sidebarCollapsed && link.label}
             </NavLink>
           );
         })}
+
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setSidebarCollapsed(v => !v)}
+          className="nav-item sidebar-collapse-btn"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{
+            width: '100%', textAlign: 'left', background: 'none', border: 'none',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            marginTop: 'auto',
+          }}
+        >
+          {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+          {!sidebarCollapsed && <span>Collapse</span>}
+        </button>
       </nav>
 
       {/* Footer */}
-      <div className="sidebar-footer">
-        <div className="user-info">
-          <div className="user-avatar">{initials}</div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div className="user-name truncate">{user?.full_name || user?.name || 'User'}</div>
-            <div className="user-role">{user?.clientName || group || ''}</div>
+      {!sidebarCollapsed && (
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="user-avatar">{initials}</div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div className="user-name truncate">{user?.full_name || user?.name || 'User'}</div>
+              <div className="user-role">{user?.clientName || group || ''}</div>
+            </div>
+            <button onClick={handleLogout} className="btn btn-ghost btn-icon" title="Logout" style={{ color: '#94a3b8' }}>
+              <LogOut size={17} />
+            </button>
           </div>
-          <button onClick={handleLogout} className="btn btn-ghost btn-icon" title="Logout" style={{ color: '#94a3b8' }}>
-            <LogOut size={17} />
-          </button>
         </div>
-      </div>
+      )}
     </aside>
   );
 }

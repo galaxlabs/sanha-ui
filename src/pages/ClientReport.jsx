@@ -1,0 +1,204 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Printer, ArrowLeft, Download, FileText } from 'lucide-react';
+import { getPortalLogoUrl } from '../api/frappe';
+import * as frappe from '../api/frappe';
+import { Spinner } from '../components/UI/Loaders';
+
+export default function ClientReport() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const clientName = searchParams.get('client') || '';
+  const [logoUrl, setLogoUrl] = useState('/sanha-logo.png');
+  const [client, setClient] = useState(null);
+  const [queries, setQueries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLogoUrl(getPortalLogoUrl());
+    loadData();
+  }, [clientName]);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      if (clientName) {
+        const clientDoc = await frappe.call('frappe.client.get', {
+          doctype: 'Client',
+          name: clientName,
+        });
+        setClient(clientDoc);
+
+        const q = await frappe.call('sanha.api.chat._get_query_context', {
+          search_term: null, limit: 100,
+        });
+        setQueries(q.filter(r => r.client_name === clientName));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  }
+
+  const handlePrint = () => window.print();
+
+  const TH = {
+    padding: '6px 10px', textAlign: 'left', fontWeight: 700, fontSize: 10,
+    color: '#475569', border: '1px solid #e2e8f0', background: '#f8fafc', whiteSpace: 'nowrap',
+  };
+  const TD = {
+    padding: '5px 10px', fontSize: 10, color: '#1e293b',
+    border: '1px solid #f1f5f9', verticalAlign: 'top',
+  };
+
+  return (
+    <div>
+      {/* Action bar (hidden when printing) */}
+      <div className="no-print" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+        <button className="btn btn-ghost btn-sm" onClick={() => navigate(-1)}>
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button className="btn btn-primary btn-sm" onClick={handlePrint}>
+          <Printer size={16} /> Print
+        </button>
+        <span style={{ marginLeft: 'auto', fontSize: '0.85rem', color: '#64748b' }}>
+          <FileText size={14} style={{ marginRight: 4 }} />
+          {clientName || 'General Report'}
+        </span>
+      </div>
+
+      {/* Report content */}
+      <div id="report-content" style={{
+        maxWidth: 800, margin: '0 auto', background: '#fff', padding: '30px 40px',
+        boxShadow: '0 1px 4px rgba(0,0,0,.1)', borderRadius: 8,
+      }}>
+        {/* ─── COMPANY HEADER ─── */}
+        <div className="header-section" style={{
+          padding: '0 0 20px', marginBottom: 20,
+          borderBottom: '1px solid #ccc', display: 'table', width: '100%',
+        }}>
+          <div className="logo-container" style={{ display: 'table-cell', textAlign: 'left', width: '50%', verticalAlign: 'middle' }}>
+            <img
+              src={logoUrl || '/sanha-logo.png'}
+              alt="SANHA Logo"
+              style={{ width: 150, height: 'auto' }}
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+          </div>
+          <div className="slogan-container" style={{
+            display: 'table-cell', textAlign: 'right', verticalAlign: 'middle', width: '50%',
+            fontSize: 14, fontStyle: 'italic', color: '#666',
+          }}>
+            "Eat Halal, Be Healthy."
+          </div>
+        </div>
+
+        <h2 style={{ textAlign: 'center', color: '#317eac', margin: '4px 0', fontSize: 20 }}>
+          Sanha Halal Associates Pakistan
+        </h2>
+        <h3 style={{ textAlign: 'center', color: '#317eac', margin: '4px 0 16px', fontSize: 15, fontWeight: 500 }}>
+          Halal Raw Material Evaluation Portal
+        </h3>
+
+        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
+
+        <div style={{ textAlign: 'center', color: '#555', fontSize: 11, padding: '8px 0' }}>
+          <p style={{ margin: '2px 0' }}>
+            Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. phase 5, Karachi, Pakistan
+          </p>
+          <p style={{ margin: '2px 0', fontWeight: 600 }}>
+            Email: evaluation@sanha.org.pk &nbsp;—&nbsp; Phone: +92 21 35295263
+          </p>
+        </div>
+
+        <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
+
+        {/* ─── CLIENT INFO TABLE (only if client selected) ─── */}
+        {client && (
+          <div style={{ margin: '24px auto', maxWidth: 600 }}>
+            <table style={{
+              width: '100%', borderCollapse: 'collapse', border: 'none',
+            }}>
+              <tbody>
+                <tr>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                    Client Name
+                  </td>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                    Client Code
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                    {client.client_name || client.name}
+                  </td>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                    {client.client_code || '—'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                    Contact Person
+                  </td>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#317eac', border: 'none' }}>
+                    Contact Email
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                    {client.contact_person || '—'}
+                  </td>
+                  <td style={{ width: '50%', padding: '6px 12px', textAlign: 'center', fontSize: 12, color: '#1e293b', border: 'none' }}>
+                    {client.email || client.client_email || '—'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <hr style={{ height: 1, borderWidth: 0, color: '#ccc', backgroundColor: '#ccc', margin: '12px 0' }} />
+          </div>
+        )}
+
+        {/* ─── Queries Table ─── */}
+        {loading ? (
+          <Spinner />
+        ) : queries.length > 0 ? (
+          <div style={{ marginTop: 20 }}>
+            <h4 style={{ textAlign: 'center', color: '#475569', marginBottom: 12, fontSize: 13, fontWeight: 600 }}>
+              {client ? `Certification Queries — ${client.client_name || client.name}` : 'All Queries Report'}
+            </h4>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+              <thead>
+                <tr>
+                  <th style={TH}>#</th>
+                  <th style={TH}>Query ID</th>
+                  <th style={TH}>Raw Material</th>
+                  <th style={TH}>Supplier</th>
+                  <th style={TH}>Manufacturer</th>
+                  <th style={TH}>Status</th>
+                  <th style={TH}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {queries.map((q, i) => (
+                  <tr key={q.name}>
+                    <td style={TD}>{i + 1}</td>
+                    <td style={TD}>{q.name}</td>
+                    <td style={TD}>{q.raw_material}</td>
+                    <td style={TD}>{q.supplier}</td>
+                    <td style={TD}>{q.manufacturer}</td>
+                    <td style={TD}>{q.workflow_state}</td>
+                    <td style={TD}>{q.creation?.split(' ')[0]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>
+            {clientName ? 'No queries found for this client.' : 'Select a client from the Reports page to generate a client-specific report.'}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -439,6 +439,11 @@ export default function Reports() {
           <button className="btn btn-outline btn-sm" onClick={() => exportCSV(filtered, COLS, 'queries-report.csv')} style={{ display:'flex', alignItems:'center', gap:5 }}>
             <Download size={14} /> Export CSV
           </button>
+          {isAdmin() && (
+            <button className="btn btn-outline btn-sm" onClick={() => navigate(`/reports/client-report${clientFilter ? '?client=' + encodeURIComponent(clientFilter) : ''}`)} style={{ display:'flex', alignItems:'center', gap:5 }}>
+              <FileText size={14} /> Client Report
+            </button>
+          )}
           {tab === 'all' && (
             <>
               <button

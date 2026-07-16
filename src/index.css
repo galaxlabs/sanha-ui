@@ -350,7 +350,6 @@ tbody tr { transition: background .1s; }
   }
 }
 
-/* ─────────────── Sidebar ─────────────── */
 .sidebar {
   width: var(--sidebar-w);
   background: var(--surface-sidebar);
