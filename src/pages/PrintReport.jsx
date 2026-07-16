@@ -126,6 +126,12 @@ export default function PrintReport() {
 
   const renderTable = (groupRows, groupName, startSerial) => {
     let serial = startSerial;
+    const showColumn = (key) => {
+      if (!columns.includes(key)) return false;
+      if (groupBy === 'query_types' && key === 'query_types') return false;
+      if (groupBy === 'workflow_state' && key === 'workflow_state') return false;
+      return true;
+    };
     return (
       <div key={groupName} style={{ marginBottom: groupName ? 16 : 0 }}>
         {groupName && (
@@ -138,28 +144,28 @@ export default function PrintReport() {
           <thead>
             <tr>
               <th style={{ ...TH, width: 30 }}>#</th>
-              {columns.includes('name') && <th style={TH}>Query ID</th>}
-              {columns.includes('raw_material') && <th style={TH}>Raw Material</th>}
-              {columns.includes('query_types') && <th style={TH}>Type</th>}
-              {columns.includes('manufacturer') && <th style={TH}>Manufacturer</th>}
-              {columns.includes('supplier') && <th style={TH}>Supplier</th>}
-              {columns.includes('client_name') && <th style={TH}>Client</th>}
-              {columns.includes('workflow_state') && <th style={TH}>Status</th>}
-              {columns.includes('creation') && <th style={TH}>Date</th>}
+              {showColumn('name') && <th style={TH}>Query ID</th>}
+              {showColumn('raw_material') && <th style={TH}>Raw Material</th>}
+              {showColumn('query_types') && <th style={TH}>Type</th>}
+              {showColumn('manufacturer') && <th style={TH}>Manufacturer</th>}
+              {showColumn('supplier') && <th style={TH}>Supplier</th>}
+              {showColumn('client_name') && <th style={TH}>Client</th>}
+              {showColumn('workflow_state') && <th style={TH}>Status</th>}
+              {showColumn('creation') && <th style={TH}>Date</th>}
             </tr>
           </thead>
           <tbody>
             {groupRows.map((r, i) => (
               <tr key={r.name}>
                 <td style={{ ...TD, textAlign: 'center', color: '#94a3b8', fontSize: fs - 1 }}>{serial++}</td>
-                {columns.includes('name') && <td style={{ ...TD, fontFamily: 'monospace', fontWeight: 600, color: '#2563eb', fontSize: fs }}>{r.name}</td>}
-                {columns.includes('raw_material') && <td style={{ ...TD, fontWeight: 500 }}>{r.raw_material || '—'}</td>}
-                {columns.includes('query_types') && <td style={TD}>{r.query_types || '—'}</td>}
-                {columns.includes('manufacturer') && <td style={TD}>{r.manufacturer || '—'}</td>}
-                {columns.includes('supplier') && <td style={TD}>{r.supplier || '—'}</td>}
-                {columns.includes('client_name') && <td style={TD}>{r.client_name || '—'}</td>}
-                {columns.includes('workflow_state') && <td style={TD}><StatusBadge state={r.workflow_state} /></td>}
-                {columns.includes('creation') && <td style={{ ...TD, fontSize: fs - 1, color: '#94a3b8' }}>{fmt(r.creation)}</td>}
+                {showColumn('name') && <td style={{ ...TD, fontFamily: 'monospace', fontWeight: 600, color: '#2563eb', fontSize: fs }}>{r.name}</td>}
+                {showColumn('raw_material') && <td style={{ ...TD, fontWeight: 500 }}>{r.raw_material || '—'}</td>}
+                {showColumn('query_types') && <td style={TD}>{r.query_types || '—'}</td>}
+                {showColumn('manufacturer') && <td style={TD}>{r.manufacturer || '—'}</td>}
+                {showColumn('supplier') && <td style={TD}>{r.supplier || '—'}</td>}
+                {showColumn('client_name') && <td style={TD}>{r.client_name || '—'}</td>}
+                {showColumn('workflow_state') && <td style={TD}><StatusBadge state={r.workflow_state} /></td>}
+                {showColumn('creation') && <td style={{ ...TD, fontSize: fs - 1, color: '#94a3b8' }}>{fmt(r.creation)}</td>}
               </tr>
             ))}
           </tbody>

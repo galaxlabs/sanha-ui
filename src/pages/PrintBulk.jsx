@@ -305,7 +305,12 @@ export default function PrintBulk() {
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const enabledCols = isClientUser ? CLIENT_COL_KEYS : (opts.cols || ALL_COL_KEYS);
-  const hasCols = key => enabledCols.includes(key);
+  const hasCols = key => {
+    if (!enabledCols.includes(key)) return false;
+    if (opts.groupBy === 'type' && key === 'type') return false;
+    if (opts.groupBy === 'state' && key === 'status') return false;
+    return true;
+  };
   const isGrouped = opts.groupBy !== 'none';
   const perPage = opts.perPage === 'all' ? Math.max(docs.length, 1) : (opts.perPage || 25);
 
