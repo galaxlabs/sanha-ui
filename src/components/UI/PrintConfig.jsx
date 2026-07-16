@@ -150,7 +150,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
           <div>
             <label style={labelStyle}>Columns</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-              {COLUMNS.map(c => (
+              {COLUMNS.filter(c => !isClient || c.defaultClient).map(c => (
                 <label key={c.key} style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
                   borderRadius: 6, border: `1.5px solid ${columns[c.key] ? '#16a34a' : '#e2e8f0'}`,
@@ -161,6 +161,11 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                   {c.label}
                 </label>
               ))}
+              {isClient && (
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', padding: '5px 0' }}>
+                  (Query ID, Client, Date not available)
+                </span>
+              )}
             </div>
           </div>
 
@@ -188,34 +193,31 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
             <label style={labelStyle}>Show</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
               {[
-                { key: 'showLogo', label: 'Logo' },
-                { key: 'showCompanyInfo', label: 'Company Info' },
-                { key: 'showClientInfo', label: 'Client Info' },
-                { key: 'showStatusSummary', label: 'Status Summary' },
-                { key: 'showDisclaimer', label: 'Disclaimer' },
-                { key: 'showPageNos', label: 'Page Nos.' },
-              ].map(item => {
-                const checked = item.key === 'showCompanyInfo' ? true
+                { key: 'showLogo', label: 'Logo', hideForClient: false, alwaysOn: false },
+                { key: 'showCompanyInfo', label: 'Company Info', hideForClient: false, alwaysOn: true },
+                { key: 'showClientInfo', label: 'Client Info', hideForClient: false, alwaysOn: isClient },
+                { key: 'showDisclaimer', label: 'Disclaimer', hideForClient: false, alwaysOn: false },
+                { key: 'showPageNos', label: 'Page Nos.', hideForClient: false, alwaysOn: false },
+              ].filter(item => !item.hideForClient || !isClient).map(item => {
+                const checked = item.alwaysOn
+                  ? true
                   : item.key === 'showClientInfo' ? showClientInfo
-                  : item.key === 'showStatusSummary' ? false
                   : item.key === 'showLogo' ? showLogo
                   : item.key === 'showDisclaimer' ? showDisclaimer
                   : showPageNos;
-                const onChange = item.key === 'showCompanyInfo' ? () => {}
-                  : item.key === 'showStatusSummary' ? () => {}
+                const onChange = item.alwaysOn ? () => {}
                   : item.key === 'showLogo' ? () => setShowLogo(!showLogo)
                   : item.key === 'showClientInfo' ? () => setShowClientInfo(!showClientInfo)
                   : item.key === 'showDisclaimer' ? () => setShowDisclaimer(!showDisclaimer)
                   : () => setShowPageNos(!showPageNos);
-                const disabled = item.key === 'showCompanyInfo' || item.key === 'showStatusSummary';
                 return (
                   <label key={item.key} style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
                     borderRadius: 6, border: `1.5px solid ${checked ? '#16a34a' : '#e2e8f0'}`,
-                    background: checked ? '#f0fdf4' : '#fff', cursor: disabled ? 'not-allowed' : 'pointer',
-                    fontSize: '0.8rem', color: checked ? '#166534' : '#64748b', opacity: disabled ? 0.5 : 1,
+                    background: checked ? '#f0fdf4' : '#fff', cursor: item.alwaysOn ? 'not-allowed' : 'pointer',
+                    fontSize: '0.8rem', color: checked ? '#166534' : '#64748b', opacity: item.alwaysOn ? 0.5 : 1,
                   }}>
-                    <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} style={{ accentColor: '#16a34a' }} />
+                    <input type="checkbox" checked={checked} onChange={onChange} disabled={item.alwaysOn} style={{ accentColor: '#16a34a' }} />
                     {item.label}
                   </label>
                 );
