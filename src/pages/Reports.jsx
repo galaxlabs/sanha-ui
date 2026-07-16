@@ -8,7 +8,7 @@ import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
 import { similarity } from '../utils/fuzzy';
-import PrintConfig from '../components/UI/PrintConfig';
+import PrintConfig from './PrintConfig';
 
 /* ─── Workflow states ─── */
 const ALL_STATES = ['Draft','Submitted','Submitted to SB','Under Review','Returned',
