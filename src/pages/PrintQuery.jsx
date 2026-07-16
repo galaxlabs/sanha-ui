@@ -40,9 +40,18 @@ const DEFAULT_OPTS = {
   customRef:         '',
   orgName:           'SANHA HALAL',
   orgAddress:        'Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. Phase 5, Karachi',
-  orgContact:        'Email: karachi@sanha.org.pk | Ph: +92 21 35295263',
-  footerLeft:        '',
+  orgContact:        'Email: evaluation@sanha.org.pk | Ph: +92 21 35295263',
+  slogan:            'Eat Halal, Be Healthy.',
+  footerLeft:        'Sanha Halal Associates Pakistan PVT. LTD.',
   footerRight:       '',
+  // Dynamic columns for documents table
+  visibleColumns: ['documents', 'issue_date', 'expiry_date', 'attachment'],
+  allColumns: [
+    { key: 'documents', label: 'Document Type' },
+    { key: 'issue_date', label: 'Issue Date' },
+    { key: 'expiry_date', label: 'Expiry Date' },
+    { key: 'attachment', label: 'Attachment' },
+  ],
 };
 
 /* ─── Toggle row ─── */
@@ -114,6 +123,28 @@ function SettingsPanel({ opts, setOpts }) {
               <Chip label="Watermark"   checked={opts.showWatermark}     onChange={v => set('showWatermark', v)} />
             </div>
           </div>
+
+          {/* Row 1.5: Document columns */}
+          {opts.showDocuments && (
+            <div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Document Columns</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {opts.allColumns.map(col => (
+                  <Chip
+                    key={col.key}
+                    label={col.label}
+                    checked={opts.visibleColumns.includes(col.key)}
+                    onChange={v => {
+                      const cols = v
+                        ? [...opts.visibleColumns, col.key]
+                        : opts.visibleColumns.filter(c => c !== col.key);
+                      set('visibleColumns', cols);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Row 2: Appearance + Custom content */}
           <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto 1fr 1fr 1fr 1fr', gap: 20, alignItems: 'start' }}>
@@ -300,19 +331,28 @@ export default function PrintQuery() {
           {/* ─── Header / Logo ─── */}
           {opts.showLogo && (
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: `3px solid ${scheme.accent}`, paddingBottom: 20, marginBottom: 24 }}>
-              <div>
-                <img 
-                  src={getPortalLogoUrl()} 
-                  alt="Logo" 
-                  style={{ height: 50, marginBottom: 8 }}
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-                <div style={{ fontSize: 22, fontWeight: 800, color: scheme.accent, letterSpacing: '0.04em' }}>{opts.orgName}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <img 
+                    src={getPortalLogoUrl()} 
+                    alt="Logo" 
+                    style={{ height: 50 }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                  {opts.slogan && (
+                    <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic', fontWeight: 500 }}>
+                      {opts.slogan}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: scheme.accent, letterSpacing: '0.04em', marginTop: 8 }}>
+                  {opts.orgName}
+                </div>
                 <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Halal Certification Query Portal</div>
                 {opts.orgAddress && <div style={{ color: '#64748b', fontSize: 11, marginTop: 1 }}>{opts.orgAddress}</div>}
                 {opts.orgContact && <div style={{ color: '#64748b', fontSize: 11 }}>{opts.orgContact}</div>}
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 10, color: '#94a3b8' }}>Query ID</div>
                 <div style={{ fontWeight: 700, fontSize: 13, fontFamily: 'monospace', color: '#1e293b' }}>{doc.name}</div>
                 {opts.customRef && (
@@ -373,26 +413,34 @@ export default function PrintQuery() {
                 <thead>
                   <tr style={{ background: '#f1f5f9' }}>
                     <th style={TH}>#</th>
-                    <th style={TH}>Document Type</th>
-                    <th style={TH}>Issue Date</th>
-                    <th style={TH}>Expiry Date</th>
-                    <th style={TH}>Attachment</th>
+                    {opts.visibleColumns.includes('documents') && <th style={TH}>Document Type</th>}
+                    {opts.visibleColumns.includes('issue_date') && <th style={TH}>Issue Date</th>}
+                    {opts.visibleColumns.includes('expiry_date') && <th style={TH}>Expiry Date</th>}
+                    {opts.visibleColumns.includes('attachment') && <th style={TH}>Attachment</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {doc.documents.map((row, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', background: row.expiry_date && new Date(row.expiry_date) < new Date() ? '#fff7ed' : '#fff' }}>
                       <td style={TD}>{i + 1}</td>
-                      <td style={{ ...TD, fontWeight: 600 }}>{row.documents || '—'}</td>
-                      <td style={TD}>{fmt(row.issue_date)}</td>
-                      <td style={{ ...TD, color: row.expiry_date && new Date(row.expiry_date) < new Date() ? '#b91c1c' : '#1e293b', fontWeight: row.expiry_date && new Date(row.expiry_date) < new Date() ? 700 : 400 }}>
-                        {fmt(row.expiry_date)}{row.expiry_date && new Date(row.expiry_date) < new Date() ? ' ⚠' : ''}
-                      </td>
-                      <td style={TD}>
-                        {row.attachment
-                          ? <a href={`${FRAPPE_BASE}${row.attachment}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontSize: 12 }}>View File</a>
-                          : <span style={{ color: '#94a3b8' }}>—</span>}
-                      </td>
+                      {opts.visibleColumns.includes('documents') && (
+                        <td style={{ ...TD, fontWeight: 600 }}>{row.documents || '—'}</td>
+                      )}
+                      {opts.visibleColumns.includes('issue_date') && (
+                        <td style={TD}>{fmt(row.issue_date)}</td>
+                      )}
+                      {opts.visibleColumns.includes('expiry_date') && (
+                        <td style={{ ...TD, color: row.expiry_date && new Date(row.expiry_date) < new Date() ? '#b91c1c' : '#1e293b', fontWeight: row.expiry_date && new Date(row.expiry_date) < new Date() ? 700 : 400 }}>
+                          {fmt(row.expiry_date)}{row.expiry_date && new Date(row.expiry_date) < new Date() ? ' ⚠' : ''}
+                        </td>
+                      )}
+                      {opts.visibleColumns.includes('attachment') && (
+                        <td style={TD}>
+                          {row.attachment
+                            ? <a href={`${FRAPPE_BASE}${row.attachment}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontSize: 12 }}>View File</a>
+                            : <span style={{ color: '#94a3b8' }}>—</span>}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -436,6 +484,12 @@ export default function PrintQuery() {
                   <span style={{ fontWeight: 600 }}>Last Modified:</span><br />
                   <span>{fmt(doc.modified)}</span>
                 </div>
+              </div>
+              {/* Company Info */}
+              <div style={{ textAlign: 'center', marginTop: 16, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 700, fontSize: 11, color: '#1e293b' }}>{opts.footerLeft || 'Sanha Halal Associates Pakistan PVT. LTD.'}</div>
+                <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{opts.orgAddress}</div>
+                <div style={{ fontSize: 10, color: '#64748b' }}><strong>{opts.orgContact}</strong></div>
               </div>
               {(opts.footerLeft || opts.footerRight) && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 8 }}>

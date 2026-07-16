@@ -47,6 +47,7 @@ const NAV_GROUPS = {
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
   ],
   Client: [
+    { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
     { label: 'My Queries',    icon: FileText,  to: '/queries' },
     { label: 'Create Query',  icon: Star,      to: '/queries/new' },
     { label: 'Reports',       icon: BarChart2, to: '/reports', children: [
