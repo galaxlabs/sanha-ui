@@ -1,20 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, Users, BarChart2, Settings, Plus, LayoutDashboard, X } from 'lucide-react';
-
-const PAGES = [
-  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, keywords: 'home main' },
-  { label: 'All Queries', to: '/queries', icon: FileText, keywords: 'list queries search' },
-  { label: 'New Query', to: '/queries/new', icon: Plus, keywords: 'create add submit' },
-  { label: 'Clients', to: '/clients', icon: Users, keywords: 'customers companies' },
-  { label: 'Reports', to: '/reports', icon: BarChart2, keywords: 'analytics charts export' },
-  { label: 'Settings', to: '/settings', icon: Settings, keywords: 'preferences password profile' },
-];
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function CommandPalette({ open, onClose }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isClient = user?.roles?.includes('Client');
+  const PAGES = [
+    { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, keywords: 'home main' },
+    { label: 'All Queries', to: '/queries', icon: FileText, keywords: 'list queries search' },
+    { label: 'New Query', to: '/queries/new', icon: Plus, keywords: 'create add submit' },
+    ...(!isClient ? [{ label: 'Clients', to: '/clients', icon: Users, keywords: 'customers companies' }] : []),
+    { label: 'Reports', to: '/reports', icon: BarChart2, keywords: 'analytics charts export' },
+    { label: 'Settings', to: '/settings', icon: Settings, keywords: 'preferences password profile' },
+  ];
+
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState(PAGES);
+  const [results, setResults] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef(null);
 
