@@ -12,6 +12,8 @@ const COLUMNS = [
   { key: 'creation', label: 'Date', defaultStaff: true, defaultClient: false },
 ];
 
+const STATUSES = ['Draft','Submitted','Submitted to SB','Under Review','Returned','Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted'];
+
 export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
   const [title, setTitle] = useState('Monthly Halal Query Report');
   const [orientation, setOrientation] = useState('portrait');
@@ -31,10 +33,16 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
   const [showClientInfo, setShowClientInfo] = useState(true);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [showPageNos, setShowPageNos] = useState(true);
+  const [selectedStatuses, setSelectedStatuses] = useState(() => new Set(STATUSES));
 
   if (!open) return null;
 
   const toggleCol = (key) => setColumns(p => ({ ...p, [key]: !p[key] }));
+  const toggleStatus = (status) => setSelectedStatuses(prev => {
+    const next = new Set(prev);
+    next.has(status) ? next.delete(status) : next.add(status);
+    return next;
+  });
 
   const handleGenerate = () => {
     const clientColumns = ['raw_material', 'query_types', 'manufacturer', 'supplier', 'workflow_state'];
@@ -55,9 +63,10 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
       showStatusSummary: false,
       showDisclaimer: isClient ? true : showDisclaimer,
       showPageNos: isClient ? true : showPageNos,
+      statuses: [...selectedStatuses],
     };
     sessionStorage.setItem('printReportConfig', JSON.stringify(config));
-    onGenerate();
+    onGenerate(config);
   };
 
   const fontSizes = { xs: '0.7rem', s: '0.8rem', m: '0.9rem', l: '1rem' };
@@ -146,6 +155,41 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                 <input type="checkbox" checked={allRecords} onChange={e => setAllRecords(e.target.checked)} style={{ accentColor: '#16a34a' }} />
                 All Records
               </label>
+            </div>
+          </div>
+
+          {/* Status filter */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Statuses to Print</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '3px 8px', fontSize: '0.7rem' }} onClick={() => setSelectedStatuses(new Set(STATUSES))}>All</button>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '3px 8px', fontSize: '0.7rem' }} onClick={() => setSelectedStatuses(new Set())}>None</button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {STATUSES.map(status => {
+                const active = selectedStatuses.has(status);
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => toggleStatus(status)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${active ? '#16a34a' : '#e2e8f0'}`,
+                      background: active ? '#f0fdf4' : '#fff',
+                      color: active ? '#166534' : '#64748b',
+                      fontSize: '0.76rem',
+                      cursor: 'pointer',
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {active ? '✓ ' : ''}{status}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
