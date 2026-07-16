@@ -5,6 +5,7 @@ import {
   Settings, LogOut, Shield, Star, Package, BarChart2,
   CheckCircle, XCircle, AlertTriangle, Clock, Search,
   ChevronDown, ChevronRight, Layers, PieChart, List,
+  MessageSquare, Bot,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl } from '../../api/frappe';
@@ -28,7 +29,9 @@ const NAV_GROUPS = {
     { label: 'Query Types',    icon: ClipboardList,    to: '/query-types' },
     { label: 'Raw Materials',  icon: Package,          to: '/raw-materials' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
     { label: 'Email Templates',icon: FileText,         to: '/email-templates' },
+    { label: 'Chat Agent',     icon: Bot,              to: '/chat-agent' },
     { label: 'Settings',       icon: Settings,         to: '/settings' },
   ],
   Evaluation: [

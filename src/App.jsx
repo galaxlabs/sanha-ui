@@ -13,6 +13,8 @@ import ClientsPage from './pages/ClientsPage';
 import QueryTypes from './pages/QueryTypes';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Messages from './pages/Messages';
+import ChatAgentConfig from './pages/ChatAgentConfig';
 import EmailTemplates from './pages/EmailTemplates';
 import PrintQuery from './pages/PrintQuery';
 import PrintBulk from './pages/PrintBulk';
@@ -124,6 +126,18 @@ function AppRoutes() {
       <Route path="/email-templates" element={
         <ProtectedRoute>
           <AppLayout><EmailTemplates /></AppLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/messages" element={
+        <ProtectedRoute>
+          <AppLayout><Messages /></AppLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/chat-agent" element={
+        <ProtectedRoute>
+          <AppLayout><ChatAgentConfig /></AppLayout>
         </ProtectedRoute>
       } />
 
