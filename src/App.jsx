@@ -18,6 +18,7 @@ import Messages from './pages/Messages';
 import PrintQuery from './pages/PrintQuery';
 import PrintBulk from './pages/PrintBulk';
 import PrintGrouped from './pages/PrintGrouped';
+import PrintReport from './pages/PrintReport';
 import ClientReport from './pages/ClientReport';
 import { Spinner } from './components/UI/Loaders';
 
@@ -120,6 +121,12 @@ function AppRoutes() {
       <Route path="/reports/client-report" element={
         <ProtectedRoute>
           <ClientReport />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/reports/print-custom" element={
+        <ProtectedRoute>
+          <PrintReport />
         </ProtectedRoute>
       } />
 

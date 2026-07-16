@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText, GitCompare, Check, X } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
@@ -8,6 +8,7 @@ import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
 import { similarity } from '../utils/fuzzy';
+import PrintConfig from '../components/UI/PrintConfig';
 
 /* ─── Workflow states ─── */
 const ALL_STATES = ['Draft','Submitted','Submitted to SB','Under Review','Returned',
@@ -188,6 +189,7 @@ export default function Reports() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const showAdvanced = !hasRole('Client');
+  const [showPrintConfig, setShowPrintConfig] = useState(false);
 
   // Allow sidebar to deep-link to a specific tab via ?tab=byState etc.
   const [tab, setTab] = useState(() => {
@@ -457,6 +459,9 @@ export default function Reports() {
           </button>
           <button className="btn btn-outline btn-sm" onClick={() => exportCSV(filtered, COLS, 'queries-report.csv')} style={{ display:'flex', alignItems:'center', gap:5 }}>
             <Download size={14} /> Export CSV
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={() => setShowPrintConfig(true)} style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <Printer size={14} /> Custom Print
           </button>
           {clientFilter && (
             <button className="btn btn-outline btn-sm" onClick={() => navigate(`/reports/client-report?client=${encodeURIComponent(clientFilter)}`)} style={{ display:'flex', alignItems:'center', gap:5 }}>
@@ -842,6 +847,23 @@ export default function Reports() {
           )}
         </>
       )}
+
+      <PrintConfig
+        open={showPrintConfig}
+        onClose={() => setShowPrintConfig(false)}
+        isClient={!showAdvanced}
+        onGenerate={() => {
+          setShowPrintConfig(false);
+          sessionStorage.setItem('printReportRows', JSON.stringify(filtered));
+          const client = allClients.find(c => c === clientFilter);
+          if (client) {
+            sessionStorage.setItem('printReportClient', JSON.stringify({ client_name: client }));
+          } else {
+            sessionStorage.removeItem('printReportClient');
+          }
+          navigate('/reports/print-custom');
+        }}
+      />
     </div>
   );
 }
