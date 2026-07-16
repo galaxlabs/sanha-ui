@@ -32,7 +32,9 @@ function ProtectedRoute({ children, allowedRoles }) {
 function DashboardWrapper() {
   const { user, hasRole, isAdmin } = useAuth();
   const isClient = hasRole('Client') && !isAdmin();
-  return isClient ? <ClientDashboard /> : <Dashboard />;
+  const hasClientData = user?.clientData || user?.clientName;
+  // Show client dashboard if user has Client role OR has client data linked
+  return (isClient || hasClientData) && !isAdmin() ? <ClientDashboard /> : <Dashboard />;
 }
 
 function AppRoutes() {
