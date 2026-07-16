@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../contexts/AuthContext';
-import ClientHeader from '../UI/ClientHeader';
+
+const ClientHeader = lazy(() => import('../UI/ClientHeader'));
 
 export default function AppLayout({ children }) {
   const { user, hasRole, isAdmin } = useAuth();
@@ -21,7 +22,7 @@ export default function AppLayout({ children }) {
       <div className="main-content">
         <Header onToggleSidebar={toggleSidebar} />
         <main className="page-body" onClick={closeSidebar}>
-          {(isClient || hasClientData) && <ClientHeader />}
+          {(isClient || hasClientData) && <Suspense fallback={null}><ClientHeader /></Suspense>}
           {children}
         </main>
       </div>
