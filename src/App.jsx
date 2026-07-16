@@ -13,6 +13,7 @@ import ClientsPage from './pages/ClientsPage';
 import QueryTypes from './pages/QueryTypes';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import EmailTemplates from './pages/EmailTemplates';
 import PrintQuery from './pages/PrintQuery';
 import PrintBulk from './pages/PrintBulk';
 import PrintGrouped from './pages/PrintGrouped';
@@ -115,8 +116,14 @@ function AppRoutes() {
       } />
 
       <Route path="/settings" element={
-        <ProtectedRoute allowedRoles={['Admin', 'System Manager']}>
+        <ProtectedRoute>
           <AppLayout><Settings /></AppLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/email-templates" element={
+        <ProtectedRoute>
+          <AppLayout><EmailTemplates /></AppLayout>
         </ProtectedRoute>
       } />
 

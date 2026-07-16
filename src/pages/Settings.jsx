@@ -34,7 +34,10 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, children, defaultOp
 export default function SettingsPage() {
   const { user, isAdmin, hasRole } = useAuth();
   const { addToast } = useToast();
-  const isClient = hasRole('Client') && !isAdmin();
+
+  if (!user) return <div className="loading-wrap"><div className="spinner" /></div>;
+
+  const isClient = user?.roles?.includes('Client') && !isAdmin();
 
   if (!isAdmin() && !isClient) {
     return (
@@ -51,7 +54,7 @@ export default function SettingsPage() {
   }
 
   if (isClient) {
-    const clientName = user?.clientName || user?.clientData?.name;
+    const clientName = user?.clientName || user?.clientData?.name || user?.clientData?.client_name;
     return (
       <div>
         <div className="mb-4">

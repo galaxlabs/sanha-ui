@@ -28,6 +28,7 @@ const NAV_GROUPS = {
     { label: 'Query Types',    icon: ClipboardList,    to: '/query-types' },
     { label: 'Raw Materials',  icon: Package,          to: '/raw-materials' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Email Templates',icon: FileText,         to: '/email-templates' },
     { label: 'Settings',       icon: Settings,         to: '/settings' },
   ],
   Evaluation: [
