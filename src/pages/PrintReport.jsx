@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
+import PrintHeader from './PrintHeader';
 
 const FONT_SIZES = { xs: 9, s: 10, m: 11, l: 13 };
 const STATE_ORDER = ['Draft','Submitted','Submitted to SB','Under Review','Returned','Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted'];
@@ -75,31 +76,9 @@ export default function PrintReport() {
 
   const renderCompanyHeader = () => (
     <>
-      <div className="header-section" style={{
-        padding: '0 0 16px', marginBottom: 16, borderBottom: '1px solid #ccc',
-        display: 'table', width: '100%',
-      }}>
-        {showLogo && (
-          <div className="logo-container" style={{ display: 'table-cell', textAlign: 'left', width: '55%', verticalAlign: 'middle' }}>
-            <img src={logoUrl || '/sanha-logo.png'} alt="SANHA Logo" style={{ width: 130, height: 'auto', maxHeight: 50 }} onError={e => { e.target.style.display = 'none'; }} />
-          </div>
-        )}
-        <div className="slogan-container" style={{
-          display: 'table-cell', textAlign: 'right', verticalAlign: 'middle',
-          fontSize: fs + 2, fontStyle: 'italic', color: '#666',
-        }}>
-          "Eat Halal, Be Healthy."
-        </div>
-      </div>
-
-      <h2 style={{ textAlign: 'center', color: '#317eac', margin: '4px 0', fontSize: fs + 8 }}>
-        Sanha Halal Associates Pakistan
-      </h2>
+      <PrintHeader logoUrl={showLogo ? logoUrl : '/files/sanha-logo.png'} />
       {showCompanyInfo && (
         <>
-          <h3 style={{ textAlign: 'center', color: '#317eac', margin: '4px 0 12px', fontSize: fs + 4, fontWeight: 500 }}>
-            Halal Raw Material Evaluation Portal
-          </h3>
           <hr style={{ height: 1.5, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
           <div style={{ textAlign: 'center', color: '#555', fontSize: fs - 1, padding: '6px 0' }}>
             <p style={{ margin: '2px 0' }}>Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. phase 5, Karachi, Pakistan</p>

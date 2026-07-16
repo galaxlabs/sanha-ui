@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
+import PrintHeader from './PrintHeader';
 
 /* ─── Workflow states + colors (keep in sync with Reports.jsx) ─── */
 const ALL_STATES = [
@@ -117,32 +118,9 @@ export default function PrintGrouped() {
         }}
       >
         {/* ── Report header ── */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          borderBottom: '3px solid #16a34a', paddingBottom: 16, marginBottom: 24,
-        }}>
-          {/* Left: logo + title */}
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <img
-              src={logoUrl}
-              alt="SANHA"
-              style={{ height: 64, width: 'auto', objectFit: 'contain' }}
-              onError={e => { e.target.src = '/sanha-logo.png'; }}
-            />
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>
-                SANHA HALAL PAKISTAN
-              </div>
-              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>
-                Halal Evaluation Portal
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>
-                {reportTitle}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: client + period info */}
+        <PrintHeader logoUrl={logoUrl} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 16, marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{reportTitle}</div>
           <div style={{ textAlign: 'right', fontSize: 11, color: '#475569', minWidth: 200 }}>
             {singleClient && (
               <>

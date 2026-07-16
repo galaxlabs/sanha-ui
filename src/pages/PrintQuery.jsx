@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft, Settings2, Eye, EyeOff, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { getDoc } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
+import { getPortalLogoUrl } from '../api/frappe';
+import PrintHeader from './PrintHeader';
 
 // In production, private/public files are proxied through Vercel (vercel.json rewrites)
 const FRAPPE_BASE = import.meta.env.VITE_FRAPPE_URL || '';
@@ -351,43 +353,22 @@ export default function PrintQuery() {
         <div style={{ position: 'relative', zIndex: 1 }}>
 
           {/* ─── Header / Logo ─── */}
-          {opts.showLogo && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: `3px solid ${scheme.accent}`, paddingBottom: 20, marginBottom: 24 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <img 
-                    src={getPortalLogoUrl()} 
-                    alt="Logo" 
-                    style={{ height: 50 }}
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                  {opts.slogan && (
-                    <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic', fontWeight: 500 }}>
-                      {opts.slogan}
-                    </div>
-                  )}
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: scheme.accent, letterSpacing: '0.04em', marginTop: 8 }}>
-                  {opts.orgName}
-                </div>
-                <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Halal Certification Query Portal</div>
-                {opts.orgAddress && <div style={{ color: '#64748b', fontSize: 11, marginTop: 1 }}>{opts.orgAddress}</div>}
-                {opts.orgContact && <div style={{ color: '#64748b', fontSize: 11 }}>{opts.orgContact}</div>}
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 10, color: '#94a3b8' }}>Query ID</div>
-                <div style={{ fontWeight: 700, fontSize: 13, fontFamily: 'monospace', color: '#1e293b' }}>{doc.name}</div>
-                {opts.customRef && (
-                  <>
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>Reference No.</div>
-                    <div style={{ fontWeight: 700, fontSize: 12, color: scheme.accent }}>{opts.customRef}</div>
-                  </>
-                )}
-                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>Date</div>
-                <div style={{ fontWeight: 600, fontSize: 12 }}>{fmt(doc.creation)}</div>
-              </div>
+          <PrintHeader logoUrl={getPortalLogoUrl()} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `3px solid ${scheme.accent}`, paddingBottom: 14, marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Query Report</div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: 10, color: '#94a3b8' }}>Query ID</div>
+              <div style={{ fontWeight: 700, fontSize: 13, fontFamily: 'monospace', color: '#1e293b' }}>{doc.name}</div>
+              {opts.customRef && (
+                <>
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>Reference No.</div>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: scheme.accent }}>{opts.customRef}</div>
+                </>
+              )}
+              <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>Date</div>
+              <div style={{ fontWeight: 600, fontSize: 12 }}>{fmt(doc.creation)}</div>
             </div>
-          )}
+          </div>
 
           {/* ─── Status banner ─── */}
           {opts.showStatus && (

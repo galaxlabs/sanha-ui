@@ -5,6 +5,7 @@ import { getPortalLogoUrl } from '../api/frappe';
 import * as frappe from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
+import PrintHeader from './PrintHeader';
 
 export default function ClientReport() {
   const navigate = useNavigate();
@@ -24,10 +25,7 @@ export default function ClientReport() {
     setLoading(true);
     try {
       if (clientName) {
-        const clientDoc = await frappe.call('frappe.client.get', {
-          doctype: 'Client',
-          name: clientName,
-        });
+        const clientDoc = await frappe.getDoc('Client', clientName);
         setClient(clientDoc);
 
         const q = await frappe.getList('Query', {
@@ -77,32 +75,7 @@ export default function ClientReport() {
         boxShadow: '0 1px 4px rgba(0,0,0,.1)', borderRadius: 8,
       }}>
         {/* ─── COMPANY HEADER ─── */}
-        <div className="header-section" style={{
-          padding: '0 0 20px', marginBottom: 20,
-          borderBottom: '1px solid #ccc', display: 'table', width: '100%',
-        }}>
-          <div className="logo-container" style={{ display: 'table-cell', textAlign: 'left', width: '55%', verticalAlign: 'middle' }}>
-            <img
-              src={logoUrl || '/sanha-logo.png'}
-              alt="SANHA Logo"
-              style={{ width: 150, height: 'auto' }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-          </div>
-          <div className="slogan-container" style={{
-            display: 'table-cell', textAlign: 'right', verticalAlign: 'middle', width: '45%',
-            fontSize: 14, fontStyle: 'italic', color: '#666',
-          }}>
-            "Eat Halal, Be Healthy."
-          </div>
-        </div>
-
-        <h2 style={{ textAlign: 'center', color: '#317eac', margin: '4px 0', fontSize: 20 }}>
-          Sanha Halal Associates Pakistan
-        </h2>
-        <h3 style={{ textAlign: 'center', color: '#317eac', margin: '4px 0 16px', fontSize: 15, fontWeight: 500 }}>
-          Halal Raw Material Evaluation Portal
-        </h3>
+        <PrintHeader logoUrl={logoUrl} />
 
         <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
 

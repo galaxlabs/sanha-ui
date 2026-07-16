@@ -4,6 +4,7 @@ import { Printer, ArrowLeft, CheckSquare } from 'lucide-react';
 import { getQueriesByNames, getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
+import PrintHeader from './PrintHeader';
 
 const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on information provided at the time of evaluation. It is valid only for the records and materials mentioned herein. Any misuse, alteration, or use beyond its intended purpose is strictly prohibited. SANHA Halal Pakistan reserves the right to revoke any evaluation in case of non-compliance or deviation from Halal standards.';
 
@@ -406,36 +407,14 @@ export default function PrintBulk() {
       <div className="print-bulk-page" style={{ background: '#fff', margin: '16px auto 60px', maxWidth: opts.orientation === 'landscape' ? 1160 : 860, padding: opts.orientation === 'landscape' ? '32px 40px' : '40px 48px', boxShadow: '0 4px 24px rgba(0,0,0,.09)', fontFamily: 'Arial, sans-serif', fontSize: opts.fontSize }}>
 
         {/* — Logo + Header — */}
-        <div style={{
-          display: 'flex',
-          flexDirection: opts.headerAlign === 'center' ? 'column' : 'row',
-          justifyContent: opts.headerAlign === 'right' ? 'flex-end' : opts.headerAlign === 'center' ? 'center' : 'space-between',
-          alignItems: opts.headerAlign === 'center' ? 'center' : 'flex-start',
-          textAlign: opts.headerAlign,
-          borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16,
-        }}>
-          {/* Logo + org info block */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, justifyContent: opts.headerAlign === 'center' ? 'center' : undefined }}>
-            {opts.showLogo && logoUrl && (
-              <img src={logoUrl} alt="Logo"
-                onError={e => { e.target.style.display = 'none'; }}
-                style={{ height: 56, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-            )}
-            <div style={{ textAlign: opts.headerAlign }}>
-              {opts.showOrgInfo && (
-                <>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#16a34a', letterSpacing: '0.03em' }}>{ORG_NAME}</div>
-                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{ORG_ADDRESS}</div>
-                  <div style={{ fontSize: 10, color: '#64748b' }}>{ORG_CONTACT}</div>
-                </>
-              )}
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginTop: opts.showOrgInfo ? 6 : 0 }}>
-                {opts.reportTitle || `Query Report — ${docs.length} Items`}
-              </div>
-              <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Generated: {now}</div>
+        <PrintHeader logoUrl={logoUrl} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+              {opts.reportTitle || `Query Report — ${docs.length} Items`}
             </div>
+            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Generated: {now}</div>
           </div>
-          {/* Status summary (right-side or below in center mode) */}
           {opts.showSummary && (
             <div style={{ textAlign: opts.headerAlign === 'center' ? 'center' : 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0, marginTop: opts.headerAlign === 'center' ? 8 : 0 }}>
               <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
