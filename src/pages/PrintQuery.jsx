@@ -237,6 +237,32 @@ function PrintField({ label, value }) {
   );
 }
 
+function queryClientLabel(fontSize) {
+  return {
+    padding: '8px 12px',
+    textAlign: 'center',
+    fontWeight: 700,
+    fontSize: fontSize - 2,
+    color: '#317eac',
+    border: '1px solid #dbeafe',
+    background: '#eff6ff',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  };
+}
+
+function queryClientValue(fontSize) {
+  return {
+    padding: '8px 12px',
+    textAlign: 'center',
+    fontSize: fontSize - 1,
+    color: '#1e293b',
+    border: '1px solid #dbeafe',
+    background: '#fff',
+    fontWeight: 600,
+  };
+}
+
 const TH = { padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: '#475569', border: '1px solid #e2e8f0' };
 const TD = { padding: '8px 12px', fontSize: 13, color: '#1e293b', border: '1px solid #e2e8f0' };
 
@@ -386,13 +412,22 @@ export default function PrintQuery() {
 
           {/* ─── Client Information ─── */}
           {opts.showClientInfo && (
-            <div style={{ background: scheme.light, border: `1px solid ${scheme.border}`, borderRadius: 8, padding: '16px 20px', marginBottom: 18 }}>
-              <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', marginBottom: 10 }}>Client Information</div>
-              <div style={{ display: 'grid', gridTemplateColumns: opts.orientation === 'landscape' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px 24px' }}>
-                <PrintField label="Client Name"    value={doc.client_name} />
-                <PrintField label="Client Code"    value={doc.client_code} />
-                {doc.owner && <PrintField label="Submitted by" value={doc.owner} />}
-              </div>
+            <div style={{ marginBottom: 18, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+              <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: opts.fontSize - 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  <tr>
+                    <td style={queryClientLabel(opts.fontSize)}>Client Name</td>
+                    <td style={queryClientLabel(opts.fontSize)}>Client Code</td>
+                    <td style={queryClientLabel(opts.fontSize)}>Submitted By</td>
+                  </tr>
+                  <tr>
+                    <td style={queryClientValue(opts.fontSize)}>{doc.client_name || '—'}</td>
+                    <td style={{ ...queryClientValue(opts.fontSize), fontFamily: 'monospace' }}>{doc.client_code || '—'}</td>
+                    <td style={queryClientValue(opts.fontSize)}>{doc.owner || '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
 

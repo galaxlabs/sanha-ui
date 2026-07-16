@@ -72,7 +72,7 @@ export default function PrintReport() {
   };
   const TH = {
     padding: compact ? '4px 8px' : '6px 10px', textAlign: 'left', fontWeight: 700, fontSize: fs,
-    color: '#475569', border: '1px solid #e2e8f0', background: '#f8fafc', whiteSpace: 'nowrap',
+    color: '#475569', border: '1px solid #e2e8f0', background: '#f1f5f9', whiteSpace: 'nowrap',
   };
 
   const renderCompanyHeader = () => (
@@ -135,9 +135,9 @@ export default function PrintReport() {
     return (
       <div key={groupName} style={{ marginBottom: groupName ? 16 : 0 }}>
         {groupName && (
-          <div style={{ padding: '6px 14px', background: (STATE_COLORS[groupName] || '#475569') + '18', borderLeft: `4px solid ${STATE_COLORS[groupName] || '#475569'}`, marginBottom: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: fs + 1 }}>{groupName}</span>
-            <span style={{ marginLeft: 10, fontSize: fs - 1, color: '#64748b' }}>({groupRows.length})</span>
+          <div style={{ padding: '9px 14px', background: (STATE_COLORS[groupName] || '#475569') + '15', borderTop: `2px solid ${STATE_COLORS[groupName] || '#475569'}`, borderBottom: `1px solid ${(STATE_COLORS[groupName] || '#475569')}40`, marginBottom: 0 }}>
+            <span style={{ fontWeight: 800, fontSize: fs + 1, color: STATE_COLORS[groupName] || '#475569' }}>{groupName}</span>
+            <span style={{ marginLeft: 10, fontSize: fs - 1, color: '#94a3b8' }}>{groupRows.length} record{groupRows.length !== 1 ? 's' : ''}</span>
           </div>
         )}
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
@@ -156,7 +156,7 @@ export default function PrintReport() {
           </thead>
           <tbody>
             {groupRows.map((r, i) => (
-              <tr key={r.name}>
+              <tr key={r.name} style={{ borderBottom: '1px solid #e2e8f0', background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
                 <td style={{ ...TD, textAlign: 'center', color: '#94a3b8', fontSize: fs - 1 }}>{serial++}</td>
                 {showColumn('name') && <td style={{ ...TD, fontFamily: 'monospace', fontWeight: 600, color: '#2563eb', fontSize: fs }}>{r.name}</td>}
                 {showColumn('raw_material') && <td style={{ ...TD, fontWeight: 500 }}>{r.raw_material || '—'}</td>}
@@ -177,7 +177,7 @@ export default function PrintReport() {
   const totalCount = rows.length;
 
   return (
-    <div style={{ maxWidth: isLandscape ? 1100 : 800, margin: '0 auto' }}>
+    <div style={{ maxWidth: isLandscape ? 1160 : 860, margin: '0 auto' }}>
       {/* Action bar */}
       <div className="no-print" style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/reports')}>
@@ -191,8 +191,8 @@ export default function PrintReport() {
 
       {/* Report content */}
       <div id="report-content" style={{
-        background: '#fff', padding: isLandscape ? '20px 30px' : '25px 35px',
-        boxShadow: '0 1px 4px rgba(0,0,0,.1)', borderRadius: 8,
+        background: '#fff', padding: isLandscape ? '32px 40px' : '40px 48px',
+        boxShadow: '0 4px 24px rgba(0,0,0,.09)', borderRadius: 8,
       }}>
         {renderCompanyHeader()}
         <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
