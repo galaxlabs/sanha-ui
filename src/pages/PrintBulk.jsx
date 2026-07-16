@@ -58,8 +58,13 @@ const DEFAULT = {
   headerAlign: 'left',        // 'left' | 'center' | 'right'
 };
 
-function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
+function BulkSettings({ opts, setOpts, isSingleClient, isClientUser, availableStatuses }) {
   const set = (k, v) => setOpts(o => ({ ...o, [k]: v }));
+  const selectedStatuses = opts.statuses || availableStatuses;
+  const toggleStatus = (status) => set('statuses', selectedStatuses.includes(status)
+    ? selectedStatuses.filter(s => s !== status)
+    : [...selectedStatuses, status]
+  );
   const BtnGroup = ({ k, options }) => (
     <div style={{ display: 'flex', gap: 4 }}>
       {options.map(([val, label]) => (
@@ -186,6 +191,31 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
           Reset
         </button>
       </div>
+
+      {availableStatuses.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '0 24px 10px' }}>
+          <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Statuses:</span>
+          {availableStatuses.map(status => {
+            const active = selectedStatuses.includes(status);
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => toggleStatus(status)}
+                style={{
+                  padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', cursor: 'pointer', border: '1px solid',
+                  borderColor: active ? '#16a34a' : '#475569',
+                  background: active ? '#16a34a' : 'transparent',
+                  color: active ? '#fff' : '#94a3b8',
+                  fontWeight: active ? 700 : 500,
+                }}
+              >
+                {active ? '✓ ' : ''}{status}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -304,6 +334,12 @@ export default function PrintBulk() {
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
+  const availableStatuses = [...new Set(docs.map(d => d.workflow_state).filter(Boolean))].sort();
+  const selectedStatusSet = new Set(opts.statuses || availableStatuses);
+  const printDocs = availableStatuses.length
+    ? docs.filter(d => selectedStatusSet.has(d.workflow_state))
+    : docs;
+
   const enabledCols = isClientUser ? CLIENT_COL_KEYS : (opts.cols || ALL_COL_KEYS);
   const hasCols = key => {
     if (!enabledCols.includes(key)) return false;
@@ -312,12 +348,12 @@ export default function PrintBulk() {
     return true;
   };
   const isGrouped = opts.groupBy !== 'none';
-  const perPage = opts.perPage === 'all' ? Math.max(docs.length, 1) : (opts.perPage || 25);
+  const perPage = opts.perPage === 'all' ? Math.max(printDocs.length, 1) : (opts.perPage || 25);
 
   // Flat pages (used only when not grouped)
   const flatPages = [];
   if (!isGrouped) {
-    for (let i = 0; i < docs.length; i += perPage) flatPages.push(docs.slice(i, i + perPage));
+    for (let i = 0; i < printDocs.length; i += perPage) flatPages.push(printDocs.slice(i, i + perPage));
   }
   const totalFlatPages = Math.max(flatPages.length, 1);
 
@@ -327,7 +363,7 @@ export default function PrintBulk() {
 
   // Client summary: per-client name, code, record count, date range
   const clientInfoMap = {};
-  docs.forEach(d => {
+  printDocs.forEach(d => {
     const key = d.client_name || '—';
     if (!clientInfoMap[key]) {
       clientInfoMap[key] = { name: key, code: d.client_code || '—', count: 0, minDate: d.creation, maxDate: d.creation };
@@ -337,14 +373,14 @@ export default function PrintBulk() {
     if (d.creation > clientInfoMap[key].maxDate) clientInfoMap[key].maxDate = d.creation;
   });
   const clientSummary = Object.values(clientInfoMap).sort((a, b) => a.name.localeCompare(b.name));
-  const overallMinDate = docs.reduce((m, d) => (!m || d.creation < m) ? d.creation : m, null);
-  const overallMaxDate = docs.reduce((m, d) => (!m || d.creation > m) ? d.creation : m, null);
+  const overallMinDate = printDocs.reduce((m, d) => (!m || d.creation < m) ? d.creation : m, null);
+  const overallMaxDate = printDocs.reduce((m, d) => (!m || d.creation > m) ? d.creation : m, null);
 
   // Groups (built when groupBy is active)
   const groups = (() => {
     if (!isGrouped) return [];
     const map = new Map();
-    docs.forEach(d => {
+    printDocs.forEach(d => {
       const key = opts.groupBy === 'type' ? (d.query_types || '— No Type —') : (d.workflow_state || '— Unknown —');
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(d);
@@ -413,7 +449,7 @@ export default function PrintBulk() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
             <CheckSquare size={15} style={{ color: '#16a34a' }} />
-            <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>{docs.length} queries loaded</span>
+            <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>{printDocs.length} of {docs.length} queries selected for print</span>
             {errors.length > 0 && <span style={{ color: '#f59e0b', fontSize: '0.8rem' }}>({errors.length} errors)</span>}
           </div>
           <button
@@ -424,7 +460,7 @@ export default function PrintBulk() {
             <Printer size={14} /> Print / Save PDF
           </button>
         </div>
-        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} isClientUser={isClientUser} />
+        <BulkSettings opts={opts} setOpts={setOpts} isSingleClient={clientSummary.length === 1} isClientUser={isClientUser} availableStatuses={availableStatuses} />
       </div>
 
       {/* ─── Error notice ─── */}
@@ -445,7 +481,7 @@ export default function PrintBulk() {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{opts.reportTitle || ''}</div>
           {opts.showSummary && (
             <div style={{ textAlign: opts.headerAlign === 'center' ? 'center' : 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0, marginTop: opts.headerAlign === 'center' ? 8 : 0 }}>
-              <div>Total records: <strong style={{ color: '#1e293b' }}>{docs.length}</strong></div>
+              <div>Total records: <strong style={{ color: '#1e293b' }}>{printDocs.length}</strong></div>
               <div style={{ marginTop: 4, display: 'flex', flexDirection: opts.headerAlign === 'center' ? 'row' : 'column', flexWrap: 'wrap', gap: 4, justifyContent: opts.headerAlign === 'center' ? 'center' : 'flex-end' }}>
                 {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
                   <span key={s} style={{ color: opts.colorState ? STATE_COLOR[s] || '#64748b' : '#64748b', fontWeight: 600 }}>
@@ -483,7 +519,7 @@ export default function PrintBulk() {
           );
         })()}
 
-        {docs.length === 0 ? (
+        {printDocs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No queries to display</div>
         ) : isGrouped ? (
           /* ── Grouped rendering ── */
@@ -518,9 +554,9 @@ export default function PrintBulk() {
                         <td colSpan={2} style={{ ...TH, fontSize: 10, color: gc, padding: '5px 10px' }}>Subtotal</td>
                         <td colSpan={100} style={{ ...TD, fontSize: 10, color: '#64748b', padding: '5px 10px' }}>
                           {group.rows.length} record{group.rows.length !== 1 ? 's' : ''}
-                          {opts.groupBy === 'state' && docs.length > 0 && (
+                          {opts.groupBy === 'state' && printDocs.length > 0 && (
                             <span style={{ marginLeft: 8, color: '#94a3b8' }}>
-                              ({Math.round(group.rows.length / docs.length * 100)}%)
+                              ({Math.round(group.rows.length / printDocs.length * 100)}%)
                             </span>
                           )}
                         </td>
@@ -532,7 +568,7 @@ export default function PrintBulk() {
                   <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
                     <td colSpan={2} style={{ ...TH, color: '#374151' }}>Grand Total</td>
                     <td colSpan={100} style={{ ...TD, fontSize: 11 }}>
-                      {docs.length} record{docs.length !== 1 ? 's' : ''} across {groups.length} group{groups.length !== 1 ? 's' : ''}
+                      {printDocs.length} record{printDocs.length !== 1 ? 's' : ''} across {groups.length} group{groups.length !== 1 ? 's' : ''}
                     </td>
                   </tr>
                 </tfoot>
@@ -554,7 +590,7 @@ export default function PrintBulk() {
                   {isLast && (
                     <tfoot>
                       <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                        <td colSpan={2} style={{ ...TH, color: '#374151' }}>Total: {docs.length}</td>
+                        <td colSpan={2} style={{ ...TH, color: '#374151' }}>Total: {printDocs.length}</td>
                         <td colSpan={100} style={{ ...TD }}>
                           {[...new Set(docs.map(d => d.workflow_state))].sort().map(s => (
                             <span key={s} style={{ marginRight: 10, fontSize: 11 }}>
@@ -568,7 +604,7 @@ export default function PrintBulk() {
                 </table>
                 {opts.showPageNums && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 6, paddingBottom: isLast ? 0 : 16, borderBottom: isLast ? 'none' : '1px dashed #e2e8f0' }}>
-                    <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, docs.length)}</span>
+                    <span>Records {startIdx + 1}–{Math.min(startIdx + perPage, printDocs.length)}</span>
                     <span>Page {pageIdx + 1} / {totalFlatPages}</span>
                   </div>
                 )}
