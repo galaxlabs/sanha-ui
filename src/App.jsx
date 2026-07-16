@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/UI/ErrorBoundary';
 import AppLayout from './components/Layout/AppLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ClientDashboard from './pages/ClientDashboard';
 import QueryList from './pages/QueryList';
 import QueryForm from './pages/QueryForm';
 import ClientsPage from './pages/ClientsPage';
@@ -28,6 +29,12 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
+function DashboardWrapper() {
+  const { user, hasRole, isAdmin } = useAuth();
+  const isClient = hasRole('Client') && !isAdmin();
+  return isClient ? <ClientDashboard /> : <Dashboard />;
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
   if (loading) return (
@@ -47,7 +54,7 @@ function AppRoutes() {
 
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <AppLayout><Dashboard /></AppLayout>
+          <AppLayout><DashboardWrapper /></AppLayout>
         </ProtectedRoute>
       } />
 
