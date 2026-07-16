@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, createElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, MessageSquare, Clock, CheckCircle, XCircle, AlertTriangle,
-  Send, Paperclip, ChevronRight, User, RefreshCw, Bell, Mail, ArrowLeft,
+  Send, Paperclip, ChevronRight, User, RefreshCw, Bell, Mail, ArrowLeft, Filter, X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getNotifications } from '../api/frappe';
@@ -57,6 +57,8 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  const [stateFilter, setStateFilter] = useState(null);
+  const [clientFilter, setClientFilter] = useState('');
   const [composeOpen, setComposeOpen] = useState(false);
   const [newMsg, setNewMsg] = useState('');
   const chatEndRef = useRef(null);
@@ -73,10 +75,14 @@ export default function Messages() {
   }, [selected]);
 
   const filtered = messages.filter(m =>
-    !search || m.title?.toLowerCase().includes(search.toLowerCase()) ||
+    (!stateFilter || m.state === stateFilter) &&
+    (!clientFilter || (m.client || '').toLowerCase().includes(clientFilter.toLowerCase())) &&
+    (!search || m.title?.toLowerCase().includes(search.toLowerCase()) ||
     m.id?.toLowerCase().includes(search.toLowerCase()) ||
-    m.state?.toLowerCase().includes(search.toLowerCase())
+    m.state?.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const uniqueStates = [...new Set(messages.map(m => m.state).filter(Boolean))];
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 130px)', gap: 0, overflow: 'hidden', borderRadius: 12, border: '1px solid var(--border-base)', background: 'var(--surface-card)' }}>
@@ -88,12 +94,73 @@ export default function Messages() {
               <MessageSquare size={16} /> Messages
             </h3>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: 'var(--surface-card)', padding: '2px 8px', borderRadius: 999 }}>
-              {messages.length}
+              {filtered.length}
             </span>
           </div>
+
+          {/* Modern search input */}
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by query, client or status…"
+              style={{
+                width: '100%', padding: '9px 12px 9px 36px', fontSize: '0.82rem',
+                borderRadius: 10, border: '1.5px solid var(--border-input)',
+                background: 'var(--surface-card)', outline: 'none',
+                transition: 'border-color .15s, box-shadow .15s',
+              }}
+              onFocus={e => { e.target.style.borderColor = 'var(--brand-500)'; e.target.style.boxShadow = '0 0 0 3px var(--brand-100)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border-input)'; e.target.style.boxShadow = 'none'; }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Filter chips */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            <button
+              onClick={() => setStateFilter(null)}
+              style={{
+                padding: '4px 10px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600,
+                border: '1px solid var(--border-base)', cursor: 'pointer',
+                background: !stateFilter ? 'var(--brand-500)' : 'var(--surface-card)',
+                color: !stateFilter ? '#fff' : 'var(--text-secondary)',
+                transition: 'all .15s',
+              }}
+            >All</button>
+            {uniqueStates.map(s => (
+              <button
+                key={s}
+                onClick={() => setStateFilter(stateFilter === s ? null : s)}
+                style={{
+                  padding: '4px 10px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600,
+                  border: `1px solid ${STATE_COLORS[s] || 'var(--border-base)'}`, cursor: 'pointer',
+                  background: stateFilter === s ? (STATE_COLORS[s] || 'var(--brand-500)') : 'var(--surface-card)',
+                  color: stateFilter === s ? '#fff' : (STATE_COLORS[s] || 'var(--text-secondary)'),
+                  transition: 'all .15s',
+                }}
+              >{s}</button>
+            ))}
+          </div>
+
+          {/* Client filter input */}
           <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input className="form-input" placeholder="Search messages…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', paddingLeft: 30, fontSize: '0.8rem' }} />
+            <User size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              value={clientFilter}
+              onChange={e => setClientFilter(e.target.value)}
+              placeholder="Filter by client…"
+              style={{
+                width: '100%', padding: '7px 12px 7px 30px', fontSize: '0.75rem',
+                borderRadius: 8, border: '1px solid var(--border-input)',
+                background: 'var(--surface-card)', outline: 'none',
+              }}
+            />
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>

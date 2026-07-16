@@ -51,7 +51,6 @@ const NAV_GROUPS = {
     { label: 'On Hold',        icon: Clock,            to: '/queries?state=Hold' },
     { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
-    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
   Client: [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
@@ -70,7 +69,6 @@ const NAV_GROUPS = {
     { label: 'Halal',          icon: Star,             to: '/queries?state=Halal' },
     { label: 'Haram',          icon: XCircle,          to: '/queries?state=Haram' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
-    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
 };
 
