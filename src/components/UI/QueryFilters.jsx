@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ChevronDown, ChevronUp, Filter, Search } from 'lucide-react';
 
 function ExcludeButton({ active, disabled, onClick, title }) {
@@ -35,46 +34,6 @@ function OptionButton({ active, children, onClick, color = '#16a34a' }) {
   );
 }
 
-function CheckboxDropdown({ label, options, selected, onToggle, onClear }) {
-  const [open, setOpen] = useState(false);
-  const activeCount = selected.length;
-
-  return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
-      <button
-        type="button"
-        className="btn btn-outline btn-sm"
-        onClick={() => setOpen(v => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
-      >
-        <Filter size={13} /> {activeCount ? `${label} (${activeCount})` : label}
-        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-      </button>
-      {open && (
-        <div className="dropdown-menu" style={{ right: 0, top: 'calc(100% + 4px)', minWidth: 190, maxHeight: 280, overflow: 'auto', zIndex: 30 }}>
-          <div style={{ padding: '6px 10px 4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>
-            {label}
-          </div>
-          {activeCount > 0 && (
-            <button type="button" className="dropdown-item" onClick={onClear} style={{ gap: 8, cursor: 'pointer', color: '#2563eb', fontWeight: 700 }}>
-              All available statuses
-            </button>
-          )}
-          {options.map(option => {
-            const checked = selected.includes(option);
-            return (
-              <label key={option} className="dropdown-item" style={{ gap: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={checked} onChange={() => onToggle(option)} style={{ accentColor: '#16a34a' }} />
-                <span>{option}</span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function QueryFilters({
   search,
   onSearchChange,
@@ -107,15 +66,10 @@ export default function QueryFilters({
   onFromDateChange,
   toDate,
   onToDateChange,
-  includedStatuses = [],
-  onToggleIncludedStatus,
-  onClearIncludedStatuses,
-  presentStatuses = [],
   showAdvanced,
   onToggleAdvanced,
   showAdvancedToggle = true,
   showAdvancedFields = true,
-  showStatusChips = true,
   pageSizeControl = null,
   hasFilters,
   onClear,
@@ -164,16 +118,6 @@ export default function QueryFilters({
             />
           )}
         </div>
-
-        {showStatusChips && presentStatuses.length > 0 && onToggleIncludedStatus && (
-          <CheckboxDropdown
-            label="Status"
-            options={presentStatuses}
-            selected={includedStatuses}
-            onToggle={onToggleIncludedStatus}
-            onClear={onClearIncludedStatuses}
-          />
-        )}
 
         {pageSizeControl}
 

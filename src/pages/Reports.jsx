@@ -239,7 +239,6 @@ export default function Reports() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
-  const [includedStatuses, setIncludedStatuses] = useState([]);
 
   /* Load all queries — filter to client's own records for non-admin users */
   useEffect(() => {
@@ -366,7 +365,6 @@ export default function Reports() {
   const filtered = useMemo(() => rows.filter(r => {
     const summaryStatus = getSummaryStatus(r.workflow_state);
     if (stateFilter && summaryStatus !== stateFilter) return false;
-    if (includedStatuses.length && !includedStatuses.includes(summaryStatus)) return false;
     if (typeFilter && r.query_types !== typeFilter) return false;
     if (clientFilter && r.client_name !== clientFilter) return false;
     if (fromDate && r.creation < fromDate) return false;
@@ -379,7 +377,7 @@ export default function Reports() {
              (r.name||'').toLowerCase().includes(q);
     }
     return true;
-  }), [rows, stateFilter, includedStatuses, typeFilter, clientFilter, fromDate, toDate, search]);
+  }), [rows, stateFilter, typeFilter, clientFilter, fromDate, toDate, search]);
   const summaryFiltered = useMemo(() => filtered.map(r => ({ ...r, summary_workflow_state: getSummaryStatus(r.workflow_state) })), [filtered]);
 
   /* Derived data for charts & pivots */
@@ -412,11 +410,10 @@ export default function Reports() {
   const allClients = useMemo(() => [...new Set(rows.map(r=>r.client_name).filter(Boolean))].sort(), [rows]);
   const summaryStates = useMemo(() => [...new Set(ALL_STATES.map(getSummaryStatus))], []);
   const presentStatuses = useMemo(() => [...new Set(rows.map(r => getSummaryStatus(r.workflow_state)))].sort(), [rows]);
-  const hasFilters = !!(stateFilter || typeFilter || clientFilter || fromDate || toDate || search || includedStatuses.length);
+  const hasFilters = !!(stateFilter || typeFilter || clientFilter || fromDate || toDate || search);
   const clearFilters = () => {
-    setStateFilter(''); setTypeFilter(''); setClientFilter(''); setFromDate(''); setToDate(''); setSearch(''); setIncludedStatuses([]); setSelected(new Set());
+    setStateFilter(''); setTypeFilter(''); setClientFilter(''); setFromDate(''); setToDate(''); setSearch(''); setSelected(new Set());
   };
-  const toggleIncludedStatus = status => setIncludedStatuses(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
@@ -533,7 +530,7 @@ export default function Reports() {
           searchPlaceholder="Search material, supplier, mfr..."
           stateFilter={stateFilter}
           onStateChange={setStateFilter}
-          states={summaryStates}
+          states={presentStatuses.length ? presentStatuses : summaryStates}
           typeFilter={typeFilter}
           onTypeChange={setTypeFilter}
           types={allTypes}
@@ -545,10 +542,6 @@ export default function Reports() {
           onFromDateChange={setFromDate}
           toDate={toDate}
           onToDateChange={setToDate}
-          includedStatuses={includedStatuses}
-          onToggleIncludedStatus={toggleIncludedStatus}
-          onClearIncludedStatuses={() => setIncludedStatuses([])}
-          presentStatuses={presentStatuses}
           showAdvanced={showFilterAdvanced}
           onToggleAdvanced={() => setShowFilterAdvanced(v => !v)}
           hasFilters={hasFilters}

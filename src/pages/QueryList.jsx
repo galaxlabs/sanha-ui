@@ -119,7 +119,6 @@ export default function QueryList() {
 
   /* How many records to fetch when "Print List" is clicked */
   const [printLimit, setPrintLimit] = useState('all');
-  const [includedStatuses, setIncludedStatuses] = useState([]);
 
   /* Dropdown options */
   const [typeOptions, setTypeOptions] = useState([]);
@@ -158,9 +157,7 @@ export default function QueryList() {
       // Then paginate client-side to avoid double-fetch
       const allRows = await getQueries(buildFilters(), 9999, 0, signal);
       setAllRows(allRows);
-      const filteredRows = includedStatuses.length
-        ? allRows.filter(r => includedStatuses.includes(r.workflow_state || 'Draft'))
-        : allRows;
+      const filteredRows = allRows;
       setTotalCount(filteredRows.length);
       
       if (pageSize === 'all') {
@@ -181,7 +178,7 @@ export default function QueryList() {
     } catch (e) {
       if (e.name !== 'AbortError') throw e;
     } finally { setLoading(false); }
-  }, [buildFilters, pageSize, includedStatuses]);
+  }, [buildFilters, pageSize]);
 
   /* Sync URL → state on navigation */
   useEffect(() => {
@@ -209,14 +206,12 @@ export default function QueryList() {
   const clearAll = () => {
     setStateFilter(''); setTypeFilter(''); setClientFilter(''); setMfrFilter('');
     setSupplierFilter(''); setFromDate(''); setToDate(''); setSearchText('');
-    setIncludedStatuses([]);
     setExcludeState(false); setExcludeType(false); setExcludeClient(false);
     setSearchParams({}, { replace: true });
   };
 
-  const hasFilters = !!(stateFilter || typeFilter || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate || includedStatuses.length);
+  const hasFilters = !!(stateFilter || typeFilter || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate);
   const presentStatuses = useMemo(() => [...new Set(allRows.map(r => r.workflow_state || 'Draft'))].sort(), [allRows]);
-  const toggleIncludedStatus = (status) => setIncludedStatuses(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -240,8 +235,7 @@ export default function QueryList() {
     setLoading(true);
     try {
       const all = await getQueries(buildFilters(), 9999, 0);
-      const filteredRows = includedStatuses.length ? all.filter(q => includedStatuses.includes(q.workflow_state || 'Draft')) : all;
-      setSelected(new Set(filteredRows.map(q => q.name)));
+      setSelected(new Set(all.map(q => q.name)));
       setAllMatchingSelected(true);
     } finally { setLoading(false); }
   };
@@ -269,8 +263,7 @@ export default function QueryList() {
         ids = queries.map(q => q.name);
       } else {
         const rows = await getQueries(buildFilters(), 9999, 0);
-        const filteredRows = includedStatuses.length ? rows.filter(q => includedStatuses.includes(q.workflow_state || 'Draft')) : rows;
-        const limitedRows = printLimit === 'all' ? filteredRows : filteredRows.slice(0, Number(printLimit));
+        const limitedRows = printLimit === 'all' ? rows : rows.slice(0, Number(printLimit));
         ids = limitedRows.map(q => q.name);
       }
       await goBulkPrint(ids);
@@ -309,7 +302,6 @@ export default function QueryList() {
             {supplierFilter && <Tag label={`Supplier: ${supplierFilter}`} onRemove={() => setSupplierFilter('')} />}
             {fromDate      && <Tag label={`From: ${fromDate}`}        onRemove={() => setFromDate('')} />}
             {toDate        && <Tag label={`To: ${toDate}`}            onRemove={() => setToDate('')} />}
-            {includedStatuses.map(status => <Tag key={status} label={`Include: ${status}`} onRemove={() => toggleIncludedStatus(status)} />)}
           </div>
         </div>
         <div className="flex gap-2">
@@ -416,7 +408,7 @@ export default function QueryList() {
         searchPlaceholder='Search raw material... (" / " to focus)'
         stateFilter={stateFilter}
         onStateChange={val => { setStateFilter(val); pushParams({ state: val }); if (!val) setExcludeState(false); }}
-        states={ALL_STATES}
+        states={presentStatuses.length ? presentStatuses : ALL_STATES}
         getStateLabel={s => STATE_META[s]?.label || s}
         excludeState={excludeState}
         onToggleExcludeState={() => setExcludeState(v => !v)}
@@ -441,10 +433,6 @@ export default function QueryList() {
         onFromDateChange={setFromDate}
         toDate={toDate}
         onToDateChange={setToDate}
-        includedStatuses={includedStatuses}
-        onToggleIncludedStatus={toggleIncludedStatus}
-        onClearIncludedStatuses={() => setIncludedStatuses([])}
-        presentStatuses={presentStatuses}
         showAdvanced={showAdvanced}
         onToggleAdvanced={() => setShowAdvanced(v => !v)}
         hasFilters={hasFilters}
