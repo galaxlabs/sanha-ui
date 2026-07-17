@@ -54,6 +54,39 @@ function BarChart({ data, colorKey }) {
   );
 }
 
+function topCounts(rows, key, limit = 8, fallback = 'Unknown') {
+  const counts = {};
+  rows.forEach(row => {
+    const value = typeof key === 'function' ? key(row) : row[key];
+    const label = value || fallback;
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([label, value]) => ({ label, value }));
+}
+
+function ageBuckets(rows, dateKey = 'expiry_date') {
+  const buckets = { '0-30 days': 0, '31-90 days': 0, '90+ days': 0 };
+  const today = new Date();
+  rows.forEach(row => {
+    const dateValue = row[dateKey];
+    if (!dateValue) return;
+    const days = Math.max(0, Math.floor((today - new Date(dateValue)) / 86400000));
+    if (days <= 30) buckets['0-30 days'] += 1;
+    else if (days <= 90) buckets['31-90 days'] += 1;
+    else buckets['90+ days'] += 1;
+  });
+  return Object.entries(buckets).filter(([, value]) => value > 0).map(([label, value]) => ({ label, value }));
+}
+
+function ChartCard({ title, data, colorKey }) {
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 12 }}>{title}</div>
+      {data.length ? <BarChart data={data} colorKey={colorKey} /> : <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>No chart data</div>}
+    </div>
+  );
+}
+
 /* ─── Pivot table ─── */
 function PivotTable({ rows, rowKey, colKey, title }) {
   const rowSet = [...new Set(rows.map(r => r[rowKey] || 'Unknown'))].sort();
@@ -194,8 +227,10 @@ export default function Reports() {
   const { error: showError } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const isClientUser = hasRole('Client') || !!user?.clientName || !!user?.clientData;
-  const showAdvanced = !isClientUser;
+  const isAdminUser = isAdmin();
+  const isStaffUser = isAdminUser || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
+  const isClientUser = !isStaffUser && (hasRole('Client') || !!user?.clientName || !!user?.clientData);
+  const showAdvanced = isStaffUser;
   const [showPrintConfig, setShowPrintConfig] = useState(false);
   const [showFilterAdvanced, setShowFilterAdvanced] = useState(false);
 
@@ -240,31 +275,23 @@ export default function Reports() {
   const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
 
-  /* Load all queries — filter to client's own records for non-admin users */
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        // If non-admin user has a linked client, restrict to their records only
-        // Fallback to owner-based filter if clientName is not available
-        let extraFilters = [];
-        if (!isAdmin()) {
-          if (user?.clientName) {
-            extraFilters = [['client_name', '=', user.clientName]];
-          } else if (user?.name) {
-            extraFilters = [['owner', '=', user.name]];
-          } else {
-            extraFilters = [['owner', '=', '__NONE__']];
-          }
-        }
-        const data = await frappe.getQueriesForReport(extraFilters);
-        setRows(data);
-      } catch (e) { showError(e.message); }
-      finally { setLoading(false); }
-    }
-    load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const loadReportRows = useCallback(async () => {
+    setLoading(true);
+    try {
+      let extraFilters = [];
+      if (isClientUser) {
+        if (user?.clientName) extraFilters = [['client_name', '=', user.clientName]];
+        else if (user?.name) extraFilters = [['owner', '=', user.name]];
+        else extraFilters = [['owner', '=', '__NONE__']];
+      }
+      const data = await frappe.getQueriesForReport(extraFilters);
+      setRows(data);
+      setSelected(new Set());
+    } catch (e) { showError(e.message); }
+    finally { setLoading(false); }
+  }, [isClientUser, user?.clientName, user?.name, showError]);
+
+  useEffect(() => { loadReportRows(); }, [loadReportRows]);
 
   /* Load script report */
   async function loadScript(reportName, setter, key) {
@@ -405,6 +432,17 @@ export default function Reports() {
     return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([label,value])=>({label,value}));
   }, [filtered]);
 
+  const scopedExpiredData = useMemo(() => clientFilter ? expiredData.filter(r => r.client_name === clientFilter) : expiredData, [expiredData, clientFilter]);
+  const scopedDuplicateData = useMemo(() => clientFilter ? duplicateData.filter(r => r.client_name === clientFilter) : duplicateData, [duplicateData, clientFilter]);
+  const scopedMissingData = useMemo(() => clientFilter ? missingData.filter(r => r.client_name === clientFilter) : missingData, [missingData, clientFilter]);
+  const expiredByDocument = useMemo(() => topCounts(scopedExpiredData, 'document_name', 8, 'Unknown Document'), [scopedExpiredData]);
+  const expiredByClient = useMemo(() => topCounts(scopedExpiredData, 'client_name', 8, 'Unknown Client'), [scopedExpiredData]);
+  const expiredAgeBuckets = useMemo(() => ageBuckets(scopedExpiredData), [scopedExpiredData]);
+  const duplicateByMaterial = useMemo(() => topCounts(scopedDuplicateData, 'raw_material', 8, 'Unknown Material'), [scopedDuplicateData]);
+  const duplicateByClient = useMemo(() => topCounts(scopedDuplicateData, 'client_name', 8, 'Unknown Client'), [scopedDuplicateData]);
+  const missingByField = useMemo(() => topCounts(scopedMissingData, 'missing_fields', 6, 'Unknown'), [scopedMissingData]);
+  const missingByClient = useMemo(() => topCounts(scopedMissingData, 'client_name', 8, 'Unknown Client'), [scopedMissingData]);
+
   /* Unique filter options */
   const allTypes = useMemo(() => [...new Set(rows.map(r=>r.query_types).filter(Boolean))].sort(), [rows]);
   const allClients = useMemo(() => [...new Set(rows.map(r=>r.client_name).filter(Boolean))].sort(), [rows]);
@@ -474,7 +512,7 @@ export default function Reports() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline btn-sm" onClick={() => { setRows([]); setLoading(true); frappe.getQueriesForReport().then(setRows).catch(e=>showError(e.message)).finally(()=>setLoading(false)); }} style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <button className="btn btn-outline btn-sm" onClick={loadReportRows} style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RefreshCw size={14} /> Refresh
           </button>
           <button className="btn btn-outline btn-sm" onClick={() => exportCSV(filtered, COLS, 'queries-report.csv')} style={{ display:'flex', alignItems:'center', gap:5 }}>
@@ -523,6 +561,32 @@ export default function Reports() {
         </div>
       </div>
 
+      {isAdminUser && (
+        <div className="card" style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: '#f8fafc' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>Admin Reporting Scope</div>
+          <select
+            className="form-control form-select"
+            style={{ flex: '1 1 260px', maxWidth: 360, fontSize: '0.82rem' }}
+            value={clientFilter}
+            onChange={e => setClientFilter(e.target.value)}
+          >
+            <option value="">All Clients</option>
+            {allClients.map(client => <option key={client} value={client}>{client}</option>)}
+          </select>
+          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            {clientFilter ? `${filtered.length} queries for ${clientFilter}` : `${filtered.length} queries across ${allClients.length} clients`}
+          </span>
+          {clientFilter && (
+            <>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setClientFilter('')}>All Clients</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate(`/reports/client-report?client=${encodeURIComponent(clientFilter)}`)}>
+                Client Report
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {['all','byState','byType','pivot','charts'].includes(tab) && (
         <QueryFilters
           search={search}
@@ -537,7 +601,7 @@ export default function Reports() {
           clientFilter={clientFilter}
           onClientChange={setClientFilter}
           clients={allClients}
-          showClient={showAdvanced}
+          showClient={showAdvanced && !isAdminUser}
           fromDate={fromDate}
           onFromDateChange={setFromDate}
           toDate={toDate}
@@ -697,16 +761,22 @@ export default function Reports() {
 
           {/* ─── Expired Docs Tab ─── */}
           {tab === 'expired' && (
+            <div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:16, marginBottom:16 }}>
+              <ChartCard title="Expired by Document Type" data={expiredByDocument} />
+              <ChartCard title="Expired by Client" data={expiredByClient} />
+              <ChartCard title="How Long Expired" data={expiredAgeBuckets} colorKey={{ '0-30 days':'#f59e0b', '31-90 days':'#ef4444', '90+ days':'#991b1b' }} />
+            </div>
             <div className="card" style={{ padding:0 }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#fffbeb' }}>
                 <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#92400e' }}>
                   <AlertTriangle size={14} style={{ marginRight:6 }} />
-                  Expired Documents ({expiredData.length})
+                  Expired Documents ({scopedExpiredData.length})
                 </span>
                 <div style={{ display:'flex', gap:8 }}>
                   {scriptLoading.expired && <Spinner size={14} />}
                   <button className="btn btn-outline btn-sm" onClick={() => loadScript('Expired Documents', setExpiredData, 'expired')}><RefreshCw size={13} /></button>
-                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(expiredData, [
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(scopedExpiredData, [
                     {fieldname:'query_name',label:'Query'},{fieldname:'raw_material',label:'Raw Material'},
                     {fieldname:'status',label:'Status'},{fieldname:'owner_full_name',label:'Owner'},{fieldname:'client_name',label:'Client'},
                     {fieldname:'document_name',label:'Document'},{fieldname:'issue_date',label:'Issue Date'},{fieldname:'expiry_date',label:'Expiry Date'}
@@ -717,8 +787,8 @@ export default function Reports() {
                 <table>
                   <thead><tr><th>Query</th><th>Raw Material</th><th>Status</th><th>Owner</th><th>Client</th><th>Document</th><th>Issue Date</th><th>Expiry Date</th></tr></thead>
                   <tbody>
-                    {expiredData.length === 0 && !scriptLoading.expired && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No expired documents found</td></tr>}
-                    {expiredData.map((r,i) => (
+                    {scopedExpiredData.length === 0 && !scriptLoading.expired && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No expired documents found</td></tr>}
+                    {scopedExpiredData.map((r,i) => (
                       <tr key={i} style={{ background:'#fff7ed' }}>
                         <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[0]}</td>
                         <td style={{ fontWeight:500 }}>{r.raw_material || r[1]}</td>
@@ -734,17 +804,23 @@ export default function Reports() {
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {/* ─── Duplicate Queries Tab ─── */}
           {tab === 'duplicates' && (
+            <div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:16, marginBottom:16 }}>
+              <ChartCard title="Duplicates by Raw Material" data={duplicateByMaterial} />
+              <ChartCard title="Duplicates by Client" data={duplicateByClient} />
+            </div>
             <div className="card" style={{ padding:0 }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#eff6ff' }}>
-                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#1d4ed8' }}><GitCompare size={14} style={{ marginRight:6 }} />Duplicate Queries ({duplicateData.length})</span>
+                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#1d4ed8' }}><GitCompare size={14} style={{ marginRight:6 }} />Duplicate Queries ({scopedDuplicateData.length})</span>
                 <div style={{ display:'flex', gap:8 }}>
                   {scriptLoading.duplicates && <Spinner size={14} />}
                   <button className="btn btn-outline btn-sm" onClick={() => loadScript('Duplicate Queries', setDuplicateData, 'duplicates')}><RefreshCw size={13} /></button>
-                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(duplicateData, [
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(scopedDuplicateData, [
                     {fieldname:'duplicate_key',label:'Duplicate Key'},{fieldname:'duplicate_count',label:'Count'},{fieldname:'query_name',label:'Query'},
                     {fieldname:'raw_material',label:'Raw Material'},{fieldname:'manufacturer',label:'Manufacturer'},{fieldname:'supplier',label:'Supplier'},
                     {fieldname:'client_name',label:'Client'},{fieldname:'owner',label:'Owner'},{fieldname:'status',label:'Status'}
@@ -755,8 +831,8 @@ export default function Reports() {
                 <table>
                   <thead><tr><th>Key</th><th>Count</th><th>Query</th><th>Raw Material</th><th>Manufacturer</th><th>Supplier</th><th>Client</th><th>Status</th></tr></thead>
                   <tbody>
-                    {duplicateData.length === 0 && !scriptLoading.duplicates && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No duplicates found</td></tr>}
-                    {duplicateData.map((r,i) => (
+                    {scopedDuplicateData.length === 0 && !scriptLoading.duplicates && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No duplicates found</td></tr>}
+                    {scopedDuplicateData.map((r,i) => (
                       <tr key={i}>
                         <td style={{ fontSize:'0.72rem', color:'#64748b', maxWidth:220 }}>{r.duplicate_key || r[0]}</td>
                         <td style={{ fontWeight:800, color:'#1d4ed8' }}>{r.duplicate_count ?? r[1]}</td>
@@ -772,17 +848,23 @@ export default function Reports() {
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {/* ─── Missing Supplier/Manufacturer Tab ─── */}
           {tab === 'missing' && (
+            <div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:16, marginBottom:16 }}>
+              <ChartCard title="Missing by Field" data={missingByField} colorKey={{ Supplier:'#f59e0b', Manufacturer:'#ef4444', 'Supplier, Manufacturer':'#7c2d12' }} />
+              <ChartCard title="Missing by Client" data={missingByClient} />
+            </div>
             <div className="card" style={{ padding:0 }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#fff7ed' }}>
-                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#9a3412' }}><AlertTriangle size={14} style={{ marginRight:6 }} />Missing Supplier / Manufacturer ({missingData.length})</span>
+                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#9a3412' }}><AlertTriangle size={14} style={{ marginRight:6 }} />Missing Supplier / Manufacturer ({scopedMissingData.length})</span>
                 <div style={{ display:'flex', gap:8 }}>
                   {scriptLoading.missing && <Spinner size={14} />}
                   <button className="btn btn-outline btn-sm" onClick={() => loadScript('Missing Supplier Manufacturer', setMissingData, 'missing')}><RefreshCw size={13} /></button>
-                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(missingData, [
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(scopedMissingData, [
                     {fieldname:'query_name',label:'Query'},{fieldname:'raw_material',label:'Raw Material'},{fieldname:'missing_fields',label:'Missing Fields'},
                     {fieldname:'supplier',label:'Supplier'},{fieldname:'manufacturer',label:'Manufacturer'},{fieldname:'client_name',label:'Client'},
                     {fieldname:'owner',label:'Owner'},{fieldname:'status',label:'Status'}
@@ -793,8 +875,8 @@ export default function Reports() {
                 <table>
                   <thead><tr><th>Query</th><th>Raw Material</th><th>Missing</th><th>Supplier</th><th>Manufacturer</th><th>Client</th><th>Status</th></tr></thead>
                   <tbody>
-                    {missingData.length === 0 && !scriptLoading.missing && <tr><td colSpan={7} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No missing supplier/manufacturer data found</td></tr>}
-                    {missingData.map((r,i) => (
+                    {scopedMissingData.length === 0 && !scriptLoading.missing && <tr><td colSpan={7} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No missing supplier/manufacturer data found</td></tr>}
+                    {scopedMissingData.map((r,i) => (
                       <tr key={i}>
                         <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[0]}</td>
                         <td style={{ fontWeight:500 }}>{r.raw_material || r[1]}</td>
@@ -808,6 +890,7 @@ export default function Reports() {
                   </tbody>
                 </table>
               </div>
+            </div>
             </div>
           )}
 
