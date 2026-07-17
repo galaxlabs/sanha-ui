@@ -51,8 +51,8 @@ export default function QueryList() {
   const [searchText,     setSearchText]     = useState(searchParams.get('q') || '');
   const searchTimerRef = useRef(null);
   const searchInputRef = useRef(null);
-  const [stateFilter,    setStateFilter]    = useState(initState);
-  const [typeFilter,     setTypeFilter]     = useState(initType);
+  const [stateFilter,    setStateFilter]    = useState(initState ? [initState] : []);
+  const [typeFilter,     setTypeFilter]     = useState(initType ? [initType] : []);
   const [clientFilter,   setClientFilter]   = useState(initClient);
   const [mfrFilter,      setMfrFilter]      = useState('');
   const [supplierFilter, setSupplierFilter] = useState('');
@@ -139,8 +139,8 @@ export default function QueryList() {
   const buildFilters = useCallback(() => {
     const f = [];
     if (isClient) f.push(['owner', '=', user.name]);
-    if (stateFilter)               f.push(['workflow_state', excludeState  ? '!=' : '=', stateFilter]);
-    if (typeFilter)                f.push(['query_types',    excludeType   ? '!=' : '=', typeFilter]);
+    if (stateFilter.length)        f.push(['workflow_state', excludeState  ? 'not in' : 'in', stateFilter]);
+    if (typeFilter.length)         f.push(['query_types',    excludeType   ? 'not in' : 'in', typeFilter]);
     if (clientFilter && !isClient) f.push(['client_name',   excludeClient ? '!=' : '=', clientFilter]);
     if (mfrFilter.trim())          f.push(['manufacturer', 'like', `%${mfrFilter.trim()}%`]);
     if (supplierFilter.trim())     f.push(['supplier',     'like', `%${supplierFilter.trim()}%`]);
@@ -186,7 +186,7 @@ export default function QueryList() {
     const s = searchParams.get('state')  || '';
     const t = searchParams.get('type')   || '';
     const q = searchParams.get('q')      || '';
-    setClientFilter(c); setStateFilter(s); setTypeFilter(t); setSearchText(q);
+    setClientFilter(c); setStateFilter(s ? [s] : []); setTypeFilter(t ? [t] : []); setSearchText(q);
     if (c || t) setShowAdvanced(true);
   }, [searchParams]);
 
@@ -204,13 +204,13 @@ export default function QueryList() {
   };
 
   const clearAll = () => {
-    setStateFilter(''); setTypeFilter(''); setClientFilter(''); setMfrFilter('');
+    setStateFilter([]); setTypeFilter([]); setClientFilter(''); setMfrFilter('');
     setSupplierFilter(''); setFromDate(''); setToDate(''); setSearchText('');
     setExcludeState(false); setExcludeType(false); setExcludeClient(false);
     setSearchParams({}, { replace: true });
   };
 
-  const hasFilters = !!(stateFilter || typeFilter || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate);
+  const hasFilters = !!(stateFilter.length || typeFilter.length || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate);
   const presentStatuses = useMemo(() => [...new Set(allRows.map(r => r.workflow_state || 'Draft'))].sort(), [allRows]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -296,8 +296,8 @@ export default function QueryList() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
             <p className="text-sm text-gray" style={{ margin: 0 }}>{queries.length}{totalCount > queries.length ? ` / ${totalCount}` : ''} records{pageSize !== 'all' && hasMore ? ` (${pageSize} per page)` : ''}</p>
             {clientFilter  && <Tag label={`${excludeClient ? '≠ ' : ''}Client: ${clientFilter}`} onRemove={() => { setClientFilter(''); setExcludeClient(false); pushParams({ client: '' }); }} />}
-            {stateFilter   && <Tag label={`${excludeState ? '≠ ' : ''}State: ${stateFilter}`}    onRemove={() => { setStateFilter('');  setExcludeState(false);  pushParams({ state: '' }); }} />}
-            {typeFilter    && <Tag label={`${excludeType ? '≠ ' : ''}Type: ${typeFilter}`}        onRemove={() => { setTypeFilter('');   setExcludeType(false);   pushParams({ type: '' }); }} />}
+            {stateFilter.map(status => <Tag key={status} label={`${excludeState ? '!= ' : ''}State: ${status}`} onRemove={() => { const next = stateFilter.filter(s => s !== status); setStateFilter(next); if (!next.length) { setExcludeState(false); pushParams({ state: '' }); } }} />)}
+            {typeFilter.map(type => <Tag key={type} label={`${excludeType ? '!= ' : ''}Type: ${type}`} onRemove={() => { const next = typeFilter.filter(t => t !== type); setTypeFilter(next); if (!next.length) { setExcludeType(false); pushParams({ type: '' }); } }} />)}
             {mfrFilter     && <Tag label={`Mfr: ${mfrFilter}`}        onRemove={() => setMfrFilter('')} />}
             {supplierFilter && <Tag label={`Supplier: ${supplierFilter}`} onRemove={() => setSupplierFilter('')} />}
             {fromDate      && <Tag label={`From: ${fromDate}`}        onRemove={() => setFromDate('')} />}
@@ -407,13 +407,13 @@ export default function QueryList() {
         searchInputRef={searchInputRef}
         searchPlaceholder='Search raw material... (" / " to focus)'
         stateFilter={stateFilter}
-        onStateChange={val => { setStateFilter(val); pushParams({ state: val }); if (!val) setExcludeState(false); }}
+        onStateChange={val => { setStateFilter(val); pushParams({ state: val[0] || '' }); if (!val.length) setExcludeState(false); }}
         states={presentStatuses.length ? presentStatuses : ALL_STATES}
         getStateLabel={s => STATE_META[s]?.label || s}
         excludeState={excludeState}
         onToggleExcludeState={() => setExcludeState(v => !v)}
         typeFilter={typeFilter}
-        onTypeChange={val => { setTypeFilter(val); pushParams({ type: val }); if (!val) setExcludeType(false); }}
+        onTypeChange={val => { setTypeFilter(val); pushParams({ type: val[0] || '' }); if (!val.length) setExcludeType(false); }}
         types={typeOptions}
         getTypeValue={t => t.name}
         getTypeLabel={t => t.query_type_name || t.name}
@@ -450,13 +450,13 @@ export default function QueryList() {
       {/* ─── State quick-tabs ─── */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
         {stateGroups.map(sg => (
-          <button key={sg.value} onClick={() => { setStateFilter(sg.value); pushParams({ state: sg.value }); }}
+          <button key={sg.value} onClick={() => { const next = sg.value ? [sg.value] : []; setStateFilter(next); pushParams({ state: sg.value }); }}
             style={{
               padding: '5px 13px', borderRadius: 999, fontSize: '0.78rem', cursor: 'pointer', border: '1px solid',
-              borderColor: stateFilter === sg.value ? '#2563eb' : '#e2e8f0',
-              background: stateFilter === sg.value ? '#2563eb' : '#fff',
-              color: stateFilter === sg.value ? '#fff' : '#374151',
-              fontWeight: stateFilter === sg.value ? 700 : 400,
+              borderColor: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#2563eb' : '#e2e8f0',
+              background: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#2563eb' : '#fff',
+              color: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#fff' : '#374151',
+              fontWeight: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? 700 : 400,
             }}>{sg.label}</button>
         ))}
       </div>

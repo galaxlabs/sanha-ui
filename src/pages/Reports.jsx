@@ -233,8 +233,8 @@ export default function Reports() {
   const [selected, setSelected] = useState(new Set()  );
 
   /* Filters */
-  const [stateFilter, setStateFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState([]);
+  const [typeFilter, setTypeFilter] = useState([]);
   const [clientFilter, setClientFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -364,8 +364,8 @@ export default function Reports() {
   /* Filtered rows */
   const filtered = useMemo(() => rows.filter(r => {
     const summaryStatus = getSummaryStatus(r.workflow_state);
-    if (stateFilter && summaryStatus !== stateFilter) return false;
-    if (typeFilter && r.query_types !== typeFilter) return false;
+    if (stateFilter.length && !stateFilter.includes(summaryStatus)) return false;
+    if (typeFilter.length && !typeFilter.includes(r.query_types)) return false;
     if (clientFilter && r.client_name !== clientFilter) return false;
     if (fromDate && r.creation < fromDate) return false;
     if (toDate && r.creation > toDate + 'T23:59:59') return false;
@@ -410,9 +410,9 @@ export default function Reports() {
   const allClients = useMemo(() => [...new Set(rows.map(r=>r.client_name).filter(Boolean))].sort(), [rows]);
   const summaryStates = useMemo(() => [...new Set(ALL_STATES.map(getSummaryStatus))], []);
   const presentStatuses = useMemo(() => [...new Set(rows.map(r => getSummaryStatus(r.workflow_state)))].sort(), [rows]);
-  const hasFilters = !!(stateFilter || typeFilter || clientFilter || fromDate || toDate || search);
+  const hasFilters = !!(stateFilter.length || typeFilter.length || clientFilter || fromDate || toDate || search);
   const clearFilters = () => {
-    setStateFilter(''); setTypeFilter(''); setClientFilter(''); setFromDate(''); setToDate(''); setSearch(''); setSelected(new Set());
+    setStateFilter([]); setTypeFilter([]); setClientFilter(''); setFromDate(''); setToDate(''); setSearch(''); setSelected(new Set());
   };
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';

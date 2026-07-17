@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ChevronDown, ChevronUp, Filter, Search } from 'lucide-react';
 
 function ExcludeButton({ active, disabled, onClick, title }) {
@@ -31,6 +32,53 @@ function OptionButton({ active, children, onClick, color = '#16a34a' }) {
         fontWeight: active ? 700 : 400,
       }}
     >{active ? '✓ ' : ''}{children}</button>
+  );
+}
+
+function MultiSelectFilter({ label, allLabel, options, value = [], onChange, getOptionLabel = s => s, allowSingleAll = true }) {
+  const [open, setOpen] = useState(false);
+  const selected = Array.isArray(value) ? value : value ? [value] : [];
+
+  const toggle = (option) => {
+    const next = selected.includes(option) ? selected.filter(v => v !== option) : [...selected, option];
+    onChange(next);
+  };
+
+  const buttonLabel = selected.length === 0
+    ? allLabel
+    : selected.length === 1 ? getOptionLabel(selected[0]) : `${label}: ${selected.length}`;
+
+  return (
+    <div style={{ position: 'relative', flex: '1 1 200px' }}>
+      <button
+        type="button"
+        className="form-control"
+        onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, textAlign: 'left', background: '#fff', cursor: 'pointer' }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{buttonLabel}</span>
+        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+      </button>
+      {open && (
+        <div className="dropdown-menu" style={{ top: 'calc(100% + 4px)', left: 0, minWidth: 220, maxHeight: 280, overflow: 'auto', zIndex: 30 }}>
+          <div style={{ padding: '6px 10px 4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>{label}</div>
+          {allowSingleAll && selected.length > 0 && (
+            <button type="button" className="dropdown-item" onClick={() => onChange([])} style={{ cursor: 'pointer', color: '#2563eb', fontWeight: 700 }}>
+              {allLabel}
+            </button>
+          )}
+          {options.map(option => {
+            const checked = selected.includes(option);
+            return (
+              <label key={option} className="dropdown-item" style={{ gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={checked} onChange={() => toggle(option)} style={{ accentColor: '#16a34a' }} />
+                <span>{getOptionLabel(option)}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -90,14 +138,11 @@ export default function QueryFilters({
         </div>
 
         <div style={{ display: 'flex', gap: 0, flex: '1 1 200px' }}>
-          <select className="form-control form-select" style={{ borderRadius: onToggleExcludeState ? '6px 0 0 6px' : 6, borderRight: onToggleExcludeState ? 'none' : undefined }} value={stateFilter} onChange={e => onStateChange(e.target.value)}>
-            <option value="">All States</option>
-            {states.map(s => <option key={s} value={s}>{getStateLabel(s)}</option>)}
-          </select>
+          <MultiSelectFilter label="Status" allLabel="All States" options={states} value={stateFilter} onChange={onStateChange} getOptionLabel={getStateLabel} />
           {onToggleExcludeState && (
             <ExcludeButton
               active={excludeState}
-              disabled={!stateFilter}
+              disabled={!stateFilter?.length}
               onClick={onToggleExcludeState}
               title={excludeState ? 'Exclude mode active: showing records NOT matching this state' : 'Click to exclude this state instead of filter by it'}
             />
@@ -105,14 +150,11 @@ export default function QueryFilters({
         </div>
 
         <div style={{ display: 'flex', gap: 0, flex: '1 1 180px' }}>
-          <select className="form-control form-select" style={{ borderRadius: onToggleExcludeType ? '6px 0 0 6px' : 6, borderRight: onToggleExcludeType ? 'none' : undefined }} value={typeFilter} onChange={e => onTypeChange(e.target.value)}>
-            <option value="">All Types</option>
-            {types.map(t => <option key={getTypeValue(t)} value={getTypeValue(t)}>{getTypeLabel(t)}</option>)}
-          </select>
+          <MultiSelectFilter label="Type" allLabel="All Types" options={types.map(getTypeValue)} value={typeFilter} onChange={onTypeChange} getOptionLabel={value => getTypeLabel(types.find(t => getTypeValue(t) === value) || value)} />
           {onToggleExcludeType && (
             <ExcludeButton
               active={excludeType}
-              disabled={!typeFilter}
+              disabled={!typeFilter?.length}
               onClick={onToggleExcludeType}
               title={excludeType ? 'Exclude mode active: showing records NOT matching this type' : 'Click to exclude this type instead of filter by it'}
             />
