@@ -130,9 +130,13 @@ export async function logout() {
 }
 
 export async function getSession() {
-  // Always ask the server — never short-circuit with a hardcoded user
-  const res = await request('GET', '/api/method/frappe.auth.get_logged_user');
+  const res = await request('GET', '/api/method/sanha.api.auth.get_current_user', null, { cache: false });
   return res;
+}
+
+export async function getCurrentUser() {
+  const res = await request('GET', '/api/method/sanha.api.auth.get_current_user', null, { cache: false });
+  return res.message || res;
 }
 
 /* ── User roles — tries multiple methods, returns only portal roles ── */
