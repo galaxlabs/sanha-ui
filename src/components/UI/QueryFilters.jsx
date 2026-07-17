@@ -40,22 +40,26 @@ function CheckboxDropdown({ label, options, selected, onToggle, onClear }) {
   const activeCount = selected.length;
 
   return (
-    <div style={{ position: 'relative', flex: '1 1 180px' }}>
+    <div style={{ position: 'relative', flexShrink: 0 }}>
       <button
         type="button"
-        className="form-control"
+        className="btn btn-outline btn-sm"
         onClick={() => setOpen(v => !v)}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: '0.8rem', cursor: 'pointer', background: '#fff' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
       >
-        <span>{activeCount ? `${label}: ${activeCount} selected` : `All ${label}`}</span>
+        <Filter size={13} /> {activeCount ? `${label} (${activeCount})` : label}
         {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
       </button>
       {open && (
-        <div className="dropdown-menu" style={{ top: 'calc(100% + 4px)', left: 0, minWidth: 220, maxHeight: 280, overflow: 'auto', zIndex: 30 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px 4px', borderBottom: '1px solid #f1f5f9' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>{label}</span>
-            {activeCount > 0 && <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '2px 6px', fontSize: '0.68rem' }} onClick={onClear}>All</button>}
+        <div className="dropdown-menu" style={{ right: 0, top: 'calc(100% + 4px)', minWidth: 190, maxHeight: 280, overflow: 'auto', zIndex: 30 }}>
+          <div style={{ padding: '6px 10px 4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>
+            {label}
           </div>
+          {activeCount > 0 && (
+            <button type="button" className="dropdown-item" onClick={onClear} style={{ gap: 8, cursor: 'pointer', color: '#2563eb', fontWeight: 700 }}>
+              All available statuses
+            </button>
+          )}
           {options.map(option => {
             const checked = selected.includes(option);
             return (
@@ -163,7 +167,7 @@ export default function QueryFilters({
 
         {showStatusChips && presentStatuses.length > 0 && onToggleIncludedStatus && (
           <CheckboxDropdown
-            label="Statuses"
+            label="Status"
             options={presentStatuses}
             selected={includedStatuses}
             onToggle={onToggleIncludedStatus}
