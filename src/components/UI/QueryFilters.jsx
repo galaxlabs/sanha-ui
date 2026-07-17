@@ -174,25 +174,16 @@ export default function QueryFilters({
       {showAdvanced && showAdvancedFields && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
           {showClient && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: '1 1 100%' }}>
-              <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>Client:</span>
-              {clients.length > 0 ? clients.map(name => (
-                <OptionButton key={name} active={clientFilter === name} color="#2563eb" onClick={() => onClientChange(clientFilter === name ? '' : name)}>
-                  {name}
-                </OptionButton>
-              )) : <span style={{ fontSize: '0.73rem', color: '#94a3b8', fontStyle: 'italic' }}>Load records first to see client options</span>}
-              {clientFilter && onToggleExcludeClient && (
-                <button
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, flex: '1 1 260px' }}>
+              <MultiSelectFilter label="Client" allLabel="All Clients" options={clients} value={clientFilter} onChange={onClientChange} />
+              {clientFilter?.length > 0 && onToggleExcludeClient && (
+                <ExcludeButton
                   type="button"
                   title={excludeClient ? 'Exclude mode ON - showing records NOT from this client' : 'Click to exclude this client instead of filter by it'}
+                  active={excludeClient}
+                  disabled={!clientFilter?.length}
                   onClick={onToggleExcludeClient}
-                  style={{
-                    padding: '3px 9px', borderRadius: 6, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid', fontWeight: 700,
-                    borderColor: excludeClient ? '#dc2626' : '#e2e8f0',
-                    background: excludeClient ? '#fef2f2' : '#f8fafc',
-                    color: excludeClient ? '#dc2626' : '#94a3b8',
-                  }}
-                >!=</button>
+                />
               )}
             </div>
           )}

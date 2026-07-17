@@ -23,6 +23,8 @@ const PRINT_COUNTS = [
   { label: 'Loaded Only', value: 'loaded' },
 ];
 
+const splitParam = (value) => value ? value.split(',').map(v => v.trim()).filter(Boolean) : [];
+
 /* ─── Active filter tag ─── */
 function Tag({ label, onRemove }) {
   return (
@@ -40,9 +42,9 @@ export default function QueryList() {
 
   const isClient = hasRole('Client') && !isAdmin();
 
-  const initClient = searchParams.get('client') || '';
-  const initState  = searchParams.get('state')  || '';
-  const initType   = searchParams.get('type')   || '';
+  const initClient = splitParam(searchParams.get('client') || '');
+  const initState  = splitParam(searchParams.get('state')  || '');
+  const initType   = splitParam(searchParams.get('type')   || '');
 
   const [queries,        setQueries]        = useState([]);
   const [allRows,        setAllRows]        = useState([]);
@@ -51,14 +53,14 @@ export default function QueryList() {
   const [searchText,     setSearchText]     = useState(searchParams.get('q') || '');
   const searchTimerRef = useRef(null);
   const searchInputRef = useRef(null);
-  const [stateFilter,    setStateFilter]    = useState(initState ? [initState] : []);
-  const [typeFilter,     setTypeFilter]     = useState(initType ? [initType] : []);
+  const [stateFilter,    setStateFilter]    = useState(initState);
+  const [typeFilter,     setTypeFilter]     = useState(initType);
   const [clientFilter,   setClientFilter]   = useState(initClient);
   const [mfrFilter,      setMfrFilter]      = useState('');
   const [supplierFilter, setSupplierFilter] = useState('');
   const [fromDate,       setFromDate]       = useState('');
   const [toDate,         setToDate]         = useState('');
-  const [showAdvanced,   setShowAdvanced]   = useState(!!initClient || !!initType);
+  const [showAdvanced,   setShowAdvanced]   = useState(!!initClient.length || !!initType.length);
   const [page,           setPage]           = useState(0);
   const [hasMore,        setHasMore]        = useState(false);
 
@@ -141,7 +143,7 @@ export default function QueryList() {
     if (isClient) f.push(['owner', '=', user.name]);
     if (stateFilter.length)        f.push(['workflow_state', excludeState  ? 'not in' : 'in', stateFilter]);
     if (typeFilter.length)         f.push(['query_types',    excludeType   ? 'not in' : 'in', typeFilter]);
-    if (clientFilter && !isClient) f.push(['client_name',   excludeClient ? '!=' : '=', clientFilter]);
+    if (clientFilter.length && !isClient) f.push(['client_name', excludeClient ? 'not in' : 'in', clientFilter]);
     if (mfrFilter.trim())          f.push(['manufacturer', 'like', `%${mfrFilter.trim()}%`]);
     if (supplierFilter.trim())     f.push(['supplier',     'like', `%${supplierFilter.trim()}%`]);
     if (searchText.trim())         f.push(['raw_material', 'like', `%${searchText.trim()}%`]);
@@ -182,12 +184,12 @@ export default function QueryList() {
 
   /* Sync URL → state on navigation */
   useEffect(() => {
-    const c = searchParams.get('client') || '';
-    const s = searchParams.get('state')  || '';
-    const t = searchParams.get('type')   || '';
+    const c = splitParam(searchParams.get('client') || '');
+    const s = splitParam(searchParams.get('state')  || '');
+    const t = splitParam(searchParams.get('type')   || '');
     const q = searchParams.get('q')      || '';
-    setClientFilter(c); setStateFilter(s ? [s] : []); setTypeFilter(t ? [t] : []); setSearchText(q);
-    if (c || t) setShowAdvanced(true);
+    setClientFilter(c); setStateFilter(s); setTypeFilter(t); setSearchText(q);
+    if (c.length || t.length) setShowAdvanced(true);
   }, [searchParams]);
 
   // Re-load whenever filters OR page size changes
@@ -199,18 +201,21 @@ export default function QueryList() {
 
   const pushParams = (updates) => {
     const next = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([k, v]) => { if (v) next.set(k, v); else next.delete(k); });
+    Object.entries(updates).forEach(([k, v]) => {
+      const value = Array.isArray(v) ? v.join(',') : v;
+      if (value) next.set(k, value); else next.delete(k);
+    });
     setSearchParams(next, { replace: true });
   };
 
   const clearAll = () => {
-    setStateFilter([]); setTypeFilter([]); setClientFilter(''); setMfrFilter('');
+    setStateFilter([]); setTypeFilter([]); setClientFilter([]); setMfrFilter('');
     setSupplierFilter(''); setFromDate(''); setToDate(''); setSearchText('');
     setExcludeState(false); setExcludeType(false); setExcludeClient(false);
     setSearchParams({}, { replace: true });
   };
 
-  const hasFilters = !!(stateFilter.length || typeFilter.length || clientFilter || mfrFilter || supplierFilter || searchText || fromDate || toDate);
+  const hasFilters = !!(stateFilter.length || typeFilter.length || clientFilter.length || mfrFilter || supplierFilter || searchText || fromDate || toDate);
   const presentStatuses = useMemo(() => [...new Set(allRows.map(r => r.workflow_state || 'Draft'))].sort(), [allRows]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -291,13 +296,13 @@ export default function QueryList() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 style={{ margin: 0 }}>
-            {isClient ? 'My Queries' : clientFilter ? `Queries — ${clientFilter}` : 'Query Management'}
+            {isClient ? 'My Queries' : clientFilter.length === 1 ? `Queries - ${clientFilter[0]}` : 'Query Management'}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
             <p className="text-sm text-gray" style={{ margin: 0 }}>{queries.length}{totalCount > queries.length ? ` / ${totalCount}` : ''} records{pageSize !== 'all' && hasMore ? ` (${pageSize} per page)` : ''}</p>
-            {clientFilter  && <Tag label={`${excludeClient ? '≠ ' : ''}Client: ${clientFilter}`} onRemove={() => { setClientFilter(''); setExcludeClient(false); pushParams({ client: '' }); }} />}
-            {stateFilter.map(status => <Tag key={status} label={`${excludeState ? '!= ' : ''}State: ${status}`} onRemove={() => { const next = stateFilter.filter(s => s !== status); setStateFilter(next); if (!next.length) { setExcludeState(false); pushParams({ state: '' }); } }} />)}
-            {typeFilter.map(type => <Tag key={type} label={`${excludeType ? '!= ' : ''}Type: ${type}`} onRemove={() => { const next = typeFilter.filter(t => t !== type); setTypeFilter(next); if (!next.length) { setExcludeType(false); pushParams({ type: '' }); } }} />)}
+            {clientFilter.map(client => <Tag key={client} label={`${excludeClient ? '!= ' : ''}Client: ${client}`} onRemove={() => { const next = clientFilter.filter(c => c !== client); setClientFilter(next); if (!next.length) setExcludeClient(false); pushParams({ client: next }); }} />)}
+            {stateFilter.map(status => <Tag key={status} label={`${excludeState ? '!= ' : ''}State: ${status}`} onRemove={() => { const next = stateFilter.filter(s => s !== status); setStateFilter(next); if (!next.length) setExcludeState(false); pushParams({ state: next }); }} />)}
+            {typeFilter.map(type => <Tag key={type} label={`${excludeType ? '!= ' : ''}Type: ${type}`} onRemove={() => { const next = typeFilter.filter(t => t !== type); setTypeFilter(next); if (!next.length) setExcludeType(false); pushParams({ type: next }); }} />)}
             {mfrFilter     && <Tag label={`Mfr: ${mfrFilter}`}        onRemove={() => setMfrFilter('')} />}
             {supplierFilter && <Tag label={`Supplier: ${supplierFilter}`} onRemove={() => setSupplierFilter('')} />}
             {fromDate      && <Tag label={`From: ${fromDate}`}        onRemove={() => setFromDate('')} />}
@@ -407,20 +412,20 @@ export default function QueryList() {
         searchInputRef={searchInputRef}
         searchPlaceholder='Search raw material... (" / " to focus)'
         stateFilter={stateFilter}
-        onStateChange={val => { setStateFilter(val); pushParams({ state: val[0] || '' }); if (!val.length) setExcludeState(false); }}
+        onStateChange={val => { setStateFilter(val); pushParams({ state: val }); if (!val.length) setExcludeState(false); }}
         states={presentStatuses.length ? presentStatuses : ALL_STATES}
         getStateLabel={s => STATE_META[s]?.label || s}
         excludeState={excludeState}
         onToggleExcludeState={() => setExcludeState(v => !v)}
         typeFilter={typeFilter}
-        onTypeChange={val => { setTypeFilter(val); pushParams({ type: val[0] || '' }); if (!val.length) setExcludeType(false); }}
+        onTypeChange={val => { setTypeFilter(val); pushParams({ type: val }); if (!val.length) setExcludeType(false); }}
         types={typeOptions}
         getTypeValue={t => t.name}
         getTypeLabel={t => t.query_type_name || t.name}
         excludeType={excludeType}
         onToggleExcludeType={() => setExcludeType(v => !v)}
         clientFilter={clientFilter}
-        onClientChange={val => { setClientFilter(val); pushParams({ client: val }); if (!val) setExcludeClient(false); }}
+        onClientChange={val => { setClientFilter(val); pushParams({ client: val }); if (!val.length) setExcludeClient(false); }}
         clients={uniqueClients}
         showClient={isAdmin()}
         excludeClient={excludeClient}
