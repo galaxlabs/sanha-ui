@@ -1,4 +1,5 @@
 /* ── Frappe REST API helper ── */
+import { getSummaryStatus } from '../utils/statusGroups';
 
 const DEFAULT_FRAPPE_URL = import.meta.env.PROD ? 'https://evaluation.sanha.org.pk' : '';
 const DEFAULT_PORTAL_URL = import.meta.env.PROD ? 'https://portal.sanha.org.pk' : window.location.origin;
@@ -294,7 +295,7 @@ export async function getStateCounts(extraFilters = []) {
   });
   const counts = {};
   rows.forEach(r => {
-    const s = r.workflow_state || 'Draft';
+    const s = getSummaryStatus(r.workflow_state);
     counts[s] = (counts[s] || 0) + 1;
   });
   return Object.entries(counts).map(([state, count]) => ({ state, count }));
@@ -323,19 +324,15 @@ export async function getExpiringClients(days = 65, includeExpired = 1) {
 }
 
 /* ── Duplicate check ── */
-export async function findSimilarQuery(rawMaterial, manufacturer, excludeName = '') {
-  const filters = [
-    ['raw_material', '=', rawMaterial],
-    ['name', '!=', excludeName || '___NONE___'],
-    ['workflow_state', '!=', 'Delisted'],
-  ];
-  if (manufacturer) filters.push(['manufacturer', '=', manufacturer]);
-  const rows = await getList('Query', {
-    filters,
-    fields: ['name', 'raw_material', 'manufacturer', 'workflow_state', 'client_name'],
-    limit: 5,
+export async function findSimilarQuery(rawMaterial, manufacturer, excludeName = '', supplier = '') {
+  const params = new URLSearchParams({
+    raw_material: rawMaterial || '',
+    manufacturer: manufacturer || '',
+    supplier: supplier || '',
+    exclude_name: excludeName || '',
   });
-  return rows;
+  const res = await request('GET', `/api/method/sanha.sanha.doctype.query.query.find_similar_query?${params}`, null, { cache: false });
+  return res.message?.matches || res.matches || [];
 }
 
 /* ── Multi-dimensional report: all queries with extra fields ── */

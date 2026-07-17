@@ -241,7 +241,7 @@ export default function ClientDashboard() {
           { label: 'My Queries', value: totalQueries, gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)', state: null },
           { label: 'Submitted', value: counts.Submitted || 0, gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', state: 'Submitted' },
           { label: 'Approved', value: counts.Approved || 0, gradient: 'linear-gradient(135deg, #10b981, #059669)', state: 'Approved' },
-          { label: 'Returned', value: counts.Returned || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Returned' },
+          { label: 'Rejected', value: counts.Rejected || 0, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', state: 'Rejected' },
         ].map((s, i) => (
           <div
             key={i}

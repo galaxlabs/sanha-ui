@@ -91,11 +91,13 @@ export default function QueryForm() {
   const isEvaluation = hasRole('Evaluation');
   const isSBUser = hasRole('SB User');
   const canSeeSimilar = isEvaluation || isSBUser;
-  const isDraft = doc.workflow_state === 'Draft' || doc.workflow_state === 'Returned';
+  const isDraft = doc.workflow_state === 'Draft';
   const canEdit = isNew || isAdmin() ||
     (isClient && isDraft) ||
     (hasRole('Evaluation') && ['Submitted'].includes(doc.workflow_state)) ||
     (hasRole('SB User') && ['Submitted to SB', 'Under Review', 'Hold'].includes(doc.workflow_state));
+  const canAppendDocuments = isClient && !isNew && !isDraft;
+  const canEditDocuments = canEdit || canAppendDocuments;
 
   useEffect(() => {
     async function loadMeta() {
@@ -136,12 +138,12 @@ export default function QueryForm() {
   }, [name]);
 
   /* Duplicate check: call after raw_material / manufacturer changes */
-  const checkDuplicates = useCallback(async (rawMaterial, manufacturer, docName) => {
+  const checkDuplicates = useCallback(async (rawMaterial, manufacturer, docName, supplier = '') => {
     if (!rawMaterial?.trim()) { setDupWarning([]); return; }
     clearTimeout(dupTimer.current);
     dupTimer.current = setTimeout(async () => {
       try {
-        const similar = await frappe.findSimilarQuery(rawMaterial.trim(), manufacturer?.trim() || '', docName || '');
+        const similar = await frappe.findSimilarQuery(rawMaterial.trim(), manufacturer?.trim() || '', docName || '', supplier?.trim() || '');
         setDupWarning(similar);
       } catch { setDupWarning([]); }
     }, 600);
@@ -163,14 +165,12 @@ export default function QueryForm() {
         const [enumbers, similar] = await Promise.all([
           frappe.eNumbersLookup(rm),
           canSeeSimilar && rm && mf
-            ? frappe.findSimilarQuery(rm, mf, doc.name || '')
+            ? frappe.findSimilarQuery(rm, mf, doc.name || '', doc.supplier || '')
             : Promise.resolve([]),
         ]);
         setMaterialStatus(enumbers[0] || null);
         if (canSeeSimilar && similar.length) {
-          const topFinal = similar.find(s =>
-            FINAL_STATES.includes(s.workflow_state)
-          );
+          const topFinal = similar.find(s => s.workflow_state && s.workflow_state !== 'Draft');
           setSimilarBanner(topFinal || null);
         } else {
           setSimilarBanner(null);
@@ -192,7 +192,8 @@ export default function QueryForm() {
         checkDuplicates(
           field === 'raw_material' ? val : prev.raw_material,
           field === 'manufacturer' ? val : prev.manufacturer,
-          prev.name
+          prev.name,
+          field === 'supplier' ? val : prev.supplier
         );
       }
       return next;
@@ -260,6 +261,7 @@ export default function QueryForm() {
         manufacturer: doc.manufacturer || '',
         manufacturer_contact: doc.manufacturer_contact || '',
         documents: (doc.documents || []).map(r => ({
+          name: r.name,
           doctype: 'Documents',
           documents: r.documents,
           issue_date: r.issue_date || null,
@@ -414,13 +416,8 @@ export default function QueryForm() {
           <div style={{ display:'flex', alignItems:'center', gap:8, fontWeight:600, color:'#92400e', marginBottom:6, fontSize:'0.875rem' }}>
             <AlertTriangle size={15} /> Possible duplicate detected
           </div>
-          {dupWarning.map(r => (
-            <div key={r.name} style={{ fontSize:'0.8rem', color:'#78350f', marginTop:4 }}>
-              <a href={`/queries/${r.name}`} target="_blank" rel="noopener noreferrer" style={{ color:'#b45309', fontWeight:600 }}>{r.name}</a>
-              {' — '}{r.raw_material}{r.manufacturer ? ` / ${r.manufacturer}`:''} — <StatusBadge state={r.workflow_state} />
-            </div>
-          ))}
-          <div style={{ fontSize:'0.75rem', color:'#92400e', marginTop:6 }}>You may proceed, but the server will block if a true duplicate (same scope) is found.</div>
+          {dupWarning.map(r => <SimilarQueryCard key={r.name} match={r} compact />)}
+          <div style={{ fontSize:'0.75rem', color:'#92400e', marginTop:8 }}>You may proceed, but the server will block if a true duplicate exists in the same scope.</div>
         </div>
       )}
 
@@ -445,6 +442,12 @@ export default function QueryForm() {
           onAction={handleAction}
           loading={wfLoading}
         />
+      )}
+
+      {isClient && !isNew && !isDraft && (
+        <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#9a3412', fontSize: '0.85rem' }}>
+          This query has been submitted. Query details are locked, but you can add new supporting documents.
+        </div>
       )}
 
       {/* Form card */}
@@ -505,16 +508,14 @@ export default function QueryForm() {
               {/* Similar previous query banner (Evaluation/SB User only) */}
               {canSeeSimilar && similarBanner && (
                 <div style={{
-                  marginTop: 6, padding: '6px 10px', borderRadius: 6, fontSize: '0.75rem',
-                  backgroundColor: '#d4edda', color: '#155724',
+                  marginTop: 8, padding: '10px 12px', borderRadius: 8, fontSize: '0.78rem',
+                  backgroundColor: '#ecfdf5', color: '#14532d',
                   border: '1px solid #c3e6cb',
                 }}>
-                  <CheckCircle size={12} style={{ marginRight: 4 }} />
-                  Previously submitted by <b>{similarBanner.client_name || similarBanner.owner || 'Unknown'}</b> as
-                  {' '}<a href={`/queries/${similarBanner.name}`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: '#155724' }}>
-                    {similarBanner.name}
-                  </a>
-                  {' — '}<b>{similarBanner.workflow_state}</b>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700, marginBottom: 6 }}>
+                    <CheckCircle size={14} /> Existing material history may help your review
+                  </div>
+                  <SimilarQueryCard match={similarBanner} />
                 </div>
               )}
             </div>
@@ -601,14 +602,17 @@ export default function QueryForm() {
               <span>Attachment</span>
               <span></span>
             </div>
-            {(doc.documents || []).map((row, idx) => (
+            {(doc.documents || []).map((row, idx) => {
+              const isNewDocumentRow = !!row.__new || !row.name;
+              const rowCanEdit = canEdit || (canAppendDocuments && isNewDocumentRow);
+              return (
               <div key={idx} className="doc-table-row cols-5">
                 <select
                   className="form-control form-select"
                   style={{ fontSize: '0.8125rem', padding: '6px 30px 6px 8px' }}
                   value={row.documents}
                   onChange={e => setDocRow(idx, 'documents', e.target.value)}
-                  disabled={!canEdit}
+                  disabled={!rowCanEdit}
                 >
                   <option value="">— Select —</option>
                   {docTypes.map(dt => <option key={dt.name} value={dt.name}>{dt.name}</option>)}
@@ -618,21 +622,21 @@ export default function QueryForm() {
                   style={{ fontSize: '0.8125rem', padding: '6px 8px' }}
                   value={row.issue_date || ''}
                   onChange={e => setDocRow(idx, 'issue_date', e.target.value)}
-                  disabled={!canEdit}
+                  disabled={!rowCanEdit}
                 />
                 <input
                   type="date" className="form-control"
                   style={{ fontSize: '0.8125rem', padding: '6px 8px' }}
                   value={row.expiry_date || ''}
                   onChange={e => setDocRow(idx, 'expiry_date', e.target.value)}
-                  disabled={!canEdit}
+                  disabled={!rowCanEdit}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {row.attachment ? (
                     <button type="button" className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem' }} onClick={() => setPreviewFile(row.attachment)}>
                       <Paperclip size={11} /> View
                     </button>
-                  ) : canEdit ? (
+                  ) : rowCanEdit ? (
                     <FileUploadCell
                       onUploaded={(url) => setDocRow(idx, 'attachment', url)}
                       docname={doc.name}
@@ -640,21 +644,21 @@ export default function QueryForm() {
                     />
                   ) : <span className="text-xs text-gray">No file</span>}
                 </div>
-                {canEdit && (
+                {rowCanEdit && (
                   <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => removeDocRow(idx)} style={{ color: '#dc2626' }}>
                     <X size={14} />
                   </button>
                 )}
               </div>
-            ))}
-            {canEdit && (
+            );})}
+            {canEditDocuments && (
               <div style={{ padding: '10px 14px', borderTop: (doc.documents || []).length ? '1px solid #f1f5f9' : 'none' }}>
                 <button type="button" className="btn btn-outline btn-sm" onClick={addDocRow}>
                   <Plus size={14} /> Add Document
                 </button>
               </div>
             )}
-            {(doc.documents || []).length === 0 && !canEdit && (
+            {(doc.documents || []).length === 0 && !canEditDocuments && (
               <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
                 No documents attached
               </div>
@@ -692,13 +696,13 @@ export default function QueryForm() {
         )}
 
         {/* Footer actions */}
-        {canEdit && (
+        {(canEdit || canAppendDocuments) && (
           <div className="flex gap-3" style={{ justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-outline" onClick={() => navigate(-1)}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              <Save size={15} /> {saving ? 'Saving…' : isNew ? 'Save Query' : 'Save Changes'}
+              <Save size={15} /> {saving ? 'Saving...' : isNew ? 'Save Query' : canAppendDocuments ? 'Save Documents' : 'Save Changes'}
             </button>
           </div>
         )}
@@ -707,6 +711,36 @@ export default function QueryForm() {
       {/* Inline file preview modal */}
       {previewFile && (
         <FilePreviewModal fileUrl={previewFile} onClose={() => setPreviewFile(null)} />
+      )}
+    </div>
+  );
+}
+
+function SimilarQueryCard({ match, compact = false }) {
+  const docs = match.documents || [];
+  return (
+    <div style={{ marginTop: compact ? 6 : 0, padding: compact ? '6px 0' : 0, fontSize: '0.78rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <a href={`/queries/${match.name}`} target="_blank" rel="noopener noreferrer" style={{ color: compact ? '#b45309' : '#047857', fontWeight: 800, fontFamily: 'monospace' }}>
+          {match.name}
+        </a>
+        <StatusBadge state={match.workflow_state} />
+        <span><b>Client:</b> {match.client_name || match.owner || 'Unknown'}</span>
+      </div>
+      <div style={{ marginTop: 4, color: compact ? '#78350f' : '#166534' }}>
+        <b>{match.raw_material}</b>
+        {match.manufacturer ? <> | Mfr: {match.manufacturer}</> : null}
+        {match.supplier ? <> | Supplier: {match.supplier}</> : null}
+      </div>
+      {docs.length > 0 && (
+        <div style={{ marginTop: 6, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {docs.slice(0, 5).map((doc, idx) => (
+            <span key={`${doc.documents || 'doc'}-${idx}`} style={{ padding: '2px 8px', borderRadius: 999, background: compact ? '#fef3c7' : '#d1fae5', border: '1px solid rgba(0,0,0,.08)', fontSize: '0.72rem' }}>
+              {doc.documents || 'Document'}{doc.expiry_date ? ` exp ${new Date(doc.expiry_date).toLocaleDateString('en-GB')}` : ''}
+            </span>
+          ))}
+          {docs.length > 5 && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>+{docs.length - 5} more</span>}
+        </div>
       )}
     </div>
   );

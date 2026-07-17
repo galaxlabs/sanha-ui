@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, CheckCircle, XCircle, Clock, AlertTriangle,
-  TrendingUp, Star, ArrowRight,
+  TrendingUp, ArrowRight,
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -23,8 +23,6 @@ const STAT_DEFS_ADMIN = [
   { state: 'Submitted',    icon: FileText,    gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Submitted' },
   { state: 'Under Review', icon: Clock,       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
   { state: 'Approved',     icon: CheckCircle, gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
-  { state: 'Halal',        icon: Star,        gradient: 'linear-gradient(135deg, #065f46, #047857)', label: 'Halal' },
-  { state: 'Haram',        icon: XCircle,     gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Haram' },
   { state: 'Doubtful',     icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Doubtful' },
   { state: 'Hold',         icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
   { state: 'Rejected',     icon: XCircle,     gradient: 'linear-gradient(135deg, #f87171, #ef4444)', label: 'Rejected' },
@@ -35,7 +33,6 @@ const STAT_DEFS_CLIENT = [
   { state: 'Submitted', icon: TrendingUp,   gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Submitted' },
   { state: 'Returned', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Returned' },
   { state: 'Approved', icon: CheckCircle,   gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
-  { state: 'Halal',    icon: Star,          gradient: 'linear-gradient(135deg, #065f46, #047857)', label: 'Halal' },
   { state: 'Rejected', icon: XCircle,       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Rejected' },
 ];
 
@@ -50,8 +47,7 @@ const STAT_DEFS_SBU = [
   { state: 'Under Review',    icon: Clock,       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
   { state: 'Hold',            icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
   { state: 'Approved',        icon: CheckCircle, gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
-  { state: 'Halal',           icon: Star,        gradient: 'linear-gradient(135deg, #065f46, #047857)', label: 'Halal' },
-  { state: 'Haram',           icon: XCircle,     gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Haram' },
+  { state: 'Rejected',        icon: XCircle,     gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Rejected' },
 ];
 
 /* ── Chart colors ── */
@@ -139,8 +135,6 @@ export default function Dashboard() {
     { state: 'Submitted to SB', color: '#3b82f6' },
     { state: 'Under Review', color: '#8b5cf6' },
     { state: 'Approved', color: '#10b981' },
-    { state: 'Halal', color: '#065f46' },
-    { state: 'Haram', color: '#ef4444' },
     { state: 'Rejected', color: '#f87171' },
   ].filter(p => counts[p.state] > 0);
 

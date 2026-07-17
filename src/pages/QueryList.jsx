@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
-  Search, Plus, RefreshCw, LayoutGrid, List, X, Filter,
-  ChevronDown, ChevronUp, Printer, CheckSquare, Square, Columns,
+  Search, Plus, RefreshCw, LayoutGrid, List, X, Printer, Columns,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getQueries, getQueryTypes, getQueriesForReport } from '../api/frappe';
+import { getQueries, getQueryTypes } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import QueryCard from '../components/UI/QueryCard';
+import QueryFilters from '../components/UI/QueryFilters';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import { STATE_META } from '../utils/workflow';
 import { useHotkeys } from '../utils/useHotkeys';
@@ -131,11 +131,11 @@ export default function QueryList() {
   /* Unique clients derived from loaded queries (no API fetch needed) */
   const uniqueClients = useMemo(() => {
     const seen = new Map();
-    queries.forEach(q => {
+    allRows.forEach(q => {
       if (q.client_name && !seen.has(q.client_name)) seen.set(q.client_name, q.client_name);
     });
     return [...seen.keys()].sort((a, b) => a.localeCompare(b));
-  }, [queries]);
+  }, [allRows]);
 
   const buildFilters = useCallback(() => {
     const f = [];
@@ -405,160 +405,59 @@ export default function QueryList() {
         </div>
       )}
 
-      {/* ─── Filter panel ─── */}
-      <div className="card mb-4" style={{ padding: '14px 18px' }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ position: 'relative', flex: '2 1 240px', minWidth: 180 }}>
-            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-            <input ref={searchInputRef} className="form-control" style={{ paddingLeft: 32 }} placeholder='Search raw material… (" / " to focus)' value={searchText}
-              onChange={e => {
-                const val = e.target.value;
-                setSearchText(val);
-                clearTimeout(searchTimerRef.current);
-                searchTimerRef.current = setTimeout(() => pushParams({ q: val }), 300);
-              }} />
-          </div>
-
-          {/* State filter + exclude toggle */}
-          <div style={{ display: 'flex', gap: 0, flex: '1 1 200px' }}>
-            <select className="form-control form-select" style={{ borderRadius: '6px 0 0 6px', borderRight: 'none' }} value={stateFilter}
-              onChange={e => { setStateFilter(e.target.value); pushParams({ state: e.target.value }); if (!e.target.value) setExcludeState(false); }}>
-              <option value="">All States</option>
-              {ALL_STATES.map(s => <option key={s} value={s}>{STATE_META[s]?.label || s}</option>)}
-            </select>
-            <button
-              title={excludeState ? 'Exclude mode active: showing records NOT matching this state' : 'Click to exclude this state instead of filter by it'}
-              disabled={!stateFilter}
-              onClick={() => setExcludeState(v => !v)}
-              style={{
-                padding: '0 10px', border: '1px solid', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: stateFilter ? 'pointer' : 'not-allowed',
-                fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap',
-                borderColor: excludeState ? '#dc2626' : '#e2e8f0',
-                background: excludeState ? '#fef2f2' : '#f8fafc',
-                color: excludeState ? '#dc2626' : '#94a3b8',
-              }}
-            >≠</button>
-          </div>
-
-          {/* Type filter + exclude toggle */}
-          <div style={{ display: 'flex', gap: 0, flex: '1 1 180px' }}>
-            <select className="form-control form-select" style={{ borderRadius: '6px 0 0 6px', borderRight: 'none' }} value={typeFilter}
-              onChange={e => { setTypeFilter(e.target.value); pushParams({ type: e.target.value }); if (!e.target.value) setExcludeType(false); }}>
-              <option value="">All Types</option>
-              {typeOptions.map(t => <option key={t.name} value={t.name}>{t.query_type_name || t.name}</option>)}
-            </select>
-            <button
-              title={excludeType ? 'Exclude mode active: showing records NOT matching this type' : 'Click to exclude this type instead of filter by it'}
-              disabled={!typeFilter}
-              onClick={() => setExcludeType(v => !v)}
-              style={{
-                padding: '0 10px', border: '1px solid', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: typeFilter ? 'pointer' : 'not-allowed',
-                fontWeight: 700, fontSize: '0.82rem',
-                borderColor: excludeType ? '#dc2626' : '#e2e8f0',
-                background: excludeType ? '#fef2f2' : '#f8fafc',
-                color: excludeType ? '#dc2626' : '#94a3b8',
-              }}
-            >≠</button>
-          </div>
-
-          {/* Page size selector */}
+      <QueryFilters
+        search={searchText}
+        onSearchChange={val => {
+          setSearchText(val);
+          clearTimeout(searchTimerRef.current);
+          searchTimerRef.current = setTimeout(() => pushParams({ q: val }), 300);
+        }}
+        searchInputRef={searchInputRef}
+        searchPlaceholder='Search raw material... (" / " to focus)'
+        stateFilter={stateFilter}
+        onStateChange={val => { setStateFilter(val); pushParams({ state: val }); if (!val) setExcludeState(false); }}
+        states={ALL_STATES}
+        getStateLabel={s => STATE_META[s]?.label || s}
+        excludeState={excludeState}
+        onToggleExcludeState={() => setExcludeState(v => !v)}
+        typeFilter={typeFilter}
+        onTypeChange={val => { setTypeFilter(val); pushParams({ type: val }); if (!val) setExcludeType(false); }}
+        types={typeOptions}
+        getTypeValue={t => t.name}
+        getTypeLabel={t => t.query_type_name || t.name}
+        excludeType={excludeType}
+        onToggleExcludeType={() => setExcludeType(v => !v)}
+        clientFilter={clientFilter}
+        onClientChange={val => { setClientFilter(val); pushParams({ client: val }); if (!val) setExcludeClient(false); }}
+        clients={uniqueClients}
+        showClient={isAdmin()}
+        excludeClient={excludeClient}
+        onToggleExcludeClient={() => setExcludeClient(v => !v)}
+        manufacturer={mfrFilter}
+        onManufacturerChange={setMfrFilter}
+        supplier={supplierFilter}
+        onSupplierChange={setSupplierFilter}
+        fromDate={fromDate}
+        onFromDateChange={setFromDate}
+        toDate={toDate}
+        onToDateChange={setToDate}
+        includedStatuses={includedStatuses}
+        onToggleIncludedStatus={toggleIncludedStatus}
+        onClearIncludedStatuses={() => setIncludedStatuses([])}
+        presentStatuses={presentStatuses}
+        showAdvanced={showAdvanced}
+        onToggleAdvanced={() => setShowAdvanced(v => !v)}
+        hasFilters={hasFilters}
+        onClear={clearAll}
+        pageSizeControl={(
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>Show:</span>
-            <select
-              className="form-control form-select"
-              style={{ width: 86, fontSize: '0.8rem' }}
-              value={pageSize}
-              onChange={e => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-            >
+            <select className="form-control form-select" style={{ width: 86, fontSize: '0.8rem' }} value={pageSize} onChange={e => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
               {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 'all' ? 'All' : s}</option>)}
             </select>
           </div>
-
-          <button className="btn btn-outline btn-sm" onClick={() => setShowAdvanced(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-            <Filter size={13} /> Advanced {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </button>
-          {hasFilters && <button className="btn btn-ghost btn-sm" onClick={clearAll}>Clear All</button>}
-        </div>
-
-        {showAdvanced && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
-            {isAdmin() && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: '1 1 100%' }}>
-                <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>Client:</span>
-                {uniqueClients.length > 0 ? (
-                  uniqueClients.map(name => (
-                    <button
-                      key={name}
-                      onClick={() => {
-                        const next = clientFilter === name ? '' : name;
-                        setClientFilter(next);
-                        pushParams({ client: next });
-                        if (!next) setExcludeClient(false);
-                      }}
-                      style={{
-                        padding: '3px 12px', borderRadius: 999, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid',
-                        borderColor: clientFilter === name ? '#2563eb' : '#e2e8f0',
-                        background:  clientFilter === name ? '#2563eb' : '#fff',
-                        color:       clientFilter === name ? '#fff' : '#374151',
-                        fontWeight:  clientFilter === name ? 700 : 400,
-                      }}
-                    >{name}</button>
-                  ))
-                ) : (
-                  <span style={{ fontSize: '0.73rem', color: '#94a3b8', fontStyle: 'italic' }}>Load records first to see client options</span>
-                )}
-                {clientFilter && (
-                  <button
-                    title={excludeClient ? 'Exclude mode ON — showing records NOT from this client' : 'Click to exclude this client instead of filter by it'}
-                    onClick={() => setExcludeClient(v => !v)}
-                    style={{
-                      padding: '3px 9px', borderRadius: 6, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid', fontWeight: 700,
-                      borderColor: excludeClient ? '#dc2626' : '#e2e8f0',
-                      background:  excludeClient ? '#fef2f2' : '#f8fafc',
-                      color:       excludeClient ? '#dc2626' : '#94a3b8',
-                    }}
-                  >≠</button>
-                )}
-              </div>
-            )}
-            <input className="form-control" style={{ flex: '1 1 160px' }} placeholder="Manufacturer…" value={mfrFilter}
-              onChange={e => setMfrFilter(e.target.value)} />
-            <input className="form-control" style={{ flex: '1 1 160px' }} placeholder="Supplier…" value={supplierFilter}
-              onChange={e => setSupplierFilter(e.target.value)} />
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: '1 1 300px', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>Date from:</label>
-              <input className="form-control" type="date" style={{ flex: '1 1 130px' }} value={fromDate} onChange={e => setFromDate(e.target.value)} />
-              <label style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>to:</label>
-              <input className="form-control" type="date" style={{ flex: '1 1 130px' }} value={toDate} onChange={e => setToDate(e.target.value)} />
-            </div>
-            {presentStatuses.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: '1 1 100%' }}>
-                <span style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>Include statuses:</span>
-                {presentStatuses.map(status => {
-                  const active = includedStatuses.includes(status);
-                  return (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => toggleIncludedStatus(status)}
-                      style={{
-                        padding: '3px 12px', borderRadius: 999, fontSize: '0.73rem', cursor: 'pointer', border: '1px solid',
-                        borderColor: active ? '#16a34a' : '#e2e8f0',
-                        background: active ? '#16a34a' : '#fff',
-                        color: active ? '#fff' : '#374151',
-                        fontWeight: active ? 700 : 400,
-                      }}
-                    >{active ? '✓ ' : ''}{status}</button>
-                  );
-                })}
-                {includedStatuses.length > 0 && (
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIncludedStatuses([])}>All statuses</button>
-                )}
-              </div>
-            )}
-          </div>
         )}
-      </div>
+      />
 
       {/* ─── State quick-tabs ─── */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>

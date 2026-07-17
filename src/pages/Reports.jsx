@@ -7,7 +7,9 @@ import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
+import QueryFilters from '../components/UI/QueryFilters';
 import { similarity } from '../utils/fuzzy';
+import { getSummaryStatus } from '../utils/statusGroups';
 import PrintConfig from './PrintConfig';
 
 /* ─── Workflow states ─── */
@@ -117,9 +119,13 @@ const TABS = [
   { id: 'charts',   label: 'State Charts',    icon: BarChart2 },
   { id: 'approved', label: 'Approved RM',     icon: null },
   { id: 'expired',  label: 'Expired Docs',    icon: AlertTriangle },
+  { id: 'duplicates', label: 'Duplicates',    icon: GitCompare },
+  { id: 'missing',  label: 'Missing Data',    icon: AlertTriangle },
   { id: 'counts',   label: 'RM Counts',       icon: null },
   { id: 'quality',  label: 'Data Quality',    icon: GitCompare },
 ];
+
+const CLIENT_TABS = ['all', 'byState', 'byType', 'pivot', 'charts', 'expired', 'duplicates', 'missing'];
 
 /* ─── Grouped query view (shared by By State + By Type tabs) ─── */
 function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, showAdvanced, fmt }) {
@@ -191,12 +197,13 @@ export default function Reports() {
   const isClientUser = hasRole('Client') || !!user?.clientName || !!user?.clientData;
   const showAdvanced = !isClientUser;
   const [showPrintConfig, setShowPrintConfig] = useState(false);
+  const [showFilterAdvanced, setShowFilterAdvanced] = useState(false);
 
   // Allow sidebar to deep-link to a specific tab via ?tab=byState etc.
   const [tab, setTab] = useState(() => {
     const t = searchParams.get('tab') || 'all';
     // Client users can only access basic tabs
-    if (!showAdvanced && !['all', 'byState', 'byType', 'pivot', 'charts'].includes(t)) return 'all';
+    if (!showAdvanced && !CLIENT_TABS.includes(t)) return 'all';
     return t;
   });
 
@@ -205,7 +212,7 @@ export default function Reports() {
     const t = searchParams.get('tab');
     if (t) {
       // Redirect client users away from restricted tabs
-      if (!showAdvanced && !['all', 'byState', 'byType', 'pivot', 'charts'].includes(t)) return;
+      if (!showAdvanced && !CLIENT_TABS.includes(t)) return;
       setTab(t);
     }
   }, [searchParams]);
@@ -215,6 +222,8 @@ export default function Reports() {
   /* Script reports */
   const [approvedData, setApprovedData] = useState([]);
   const [expiredData, setExpiredData] = useState([]);
+  const [duplicateData, setDuplicateData] = useState([]);
+  const [missingData, setMissingData] = useState([]);
   const [countsData, setCountsData] = useState([]);
   const [scriptLoading, setScriptLoading] = useState({});
   const [qualityData, setQualityData] = useState(null);
@@ -230,6 +239,7 @@ export default function Reports() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
+  const [includedStatuses, setIncludedStatuses] = useState([]);
 
   /* Load all queries — filter to client's own records for non-admin users */
   useEffect(() => {
@@ -346,13 +356,17 @@ export default function Reports() {
   useEffect(() => {
     if (tab === 'approved' && !approvedData.length) loadScript('Approved Raw Materials', setApprovedData, 'approved');
     if (tab === 'expired' && !expiredData.length) loadScript('Expired Documents', setExpiredData, 'expired');
+    if (tab === 'duplicates' && !duplicateData.length) loadScript('Duplicate Queries', setDuplicateData, 'duplicates');
+    if (tab === 'missing' && !missingData.length) loadScript('Missing Supplier Manufacturer', setMissingData, 'missing');
     if (tab === 'counts' && !countsData.length) loadScript('Raw Material Counts', setCountsData, 'counts');
     if (tab === 'quality' && !qualityData) loadQualityData();
   }, [tab]);
 
   /* Filtered rows */
   const filtered = useMemo(() => rows.filter(r => {
-    if (stateFilter && r.workflow_state !== stateFilter) return false;
+    const summaryStatus = getSummaryStatus(r.workflow_state);
+    if (stateFilter && summaryStatus !== stateFilter) return false;
+    if (includedStatuses.length && !includedStatuses.includes(summaryStatus)) return false;
     if (typeFilter && r.query_types !== typeFilter) return false;
     if (clientFilter && r.client_name !== clientFilter) return false;
     if (fromDate && r.creation < fromDate) return false;
@@ -365,12 +379,13 @@ export default function Reports() {
              (r.name||'').toLowerCase().includes(q);
     }
     return true;
-  }), [rows, stateFilter, typeFilter, clientFilter, fromDate, toDate, search]);
+  }), [rows, stateFilter, includedStatuses, typeFilter, clientFilter, fromDate, toDate, search]);
+  const summaryFiltered = useMemo(() => filtered.map(r => ({ ...r, summary_workflow_state: getSummaryStatus(r.workflow_state) })), [filtered]);
 
   /* Derived data for charts & pivots */
   const stateData = useMemo(() => {
     const counts = {};
-    filtered.forEach(r => { const s = r.workflow_state||'Draft'; counts[s]=(counts[s]||0)+1; });
+    filtered.forEach(r => { const s = getSummaryStatus(r.workflow_state); counts[s]=(counts[s]||0)+1; });
     return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([label,value])=>({label,value}));
   }, [filtered]);
 
@@ -395,6 +410,13 @@ export default function Reports() {
   /* Unique filter options */
   const allTypes = useMemo(() => [...new Set(rows.map(r=>r.query_types).filter(Boolean))].sort(), [rows]);
   const allClients = useMemo(() => [...new Set(rows.map(r=>r.client_name).filter(Boolean))].sort(), [rows]);
+  const summaryStates = useMemo(() => [...new Set(ALL_STATES.map(getSummaryStatus))], []);
+  const presentStatuses = useMemo(() => [...new Set(rows.map(r => getSummaryStatus(r.workflow_state)))].sort(), [rows]);
+  const hasFilters = !!(stateFilter || typeFilter || clientFilter || fromDate || toDate || search || includedStatuses.length);
+  const clearFilters = () => {
+    setStateFilter(''); setTypeFilter(''); setClientFilter(''); setFromDate(''); setToDate(''); setSearch(''); setIncludedStatuses([]); setSelected(new Set());
+  };
+  const toggleIncludedStatus = status => setIncludedStatuses(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
@@ -504,32 +526,34 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Filters (shared for all/pivot/charts tabs) */}
-      {['all','pivot','charts'].includes(tab) && (
-        <div className="card" style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input className="form-control" style={{ flex: '1 1 180px', fontSize: '0.8rem' }} placeholder="Search material, supplier, mfr…" value={search} onChange={e=>setSearch(e.target.value)} />
-          <select className="form-control" style={{ flex: '1 1 140px', fontSize: '0.8rem' }} value={stateFilter} onChange={e=>setStateFilter(e.target.value)}>
-            <option value="">All States</option>
-            {ALL_STATES.map(s=><option key={s} value={s}>{s}</option>)}
-          </select>
-          <select className="form-control" style={{ flex: '1 1 130px', fontSize: '0.8rem' }} value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}>
-            <option value="">All Types</option>
-            {allTypes.map(t=><option key={t} value={t}>{t}</option>)}
-          </select>
-          {showAdvanced && (
-            <select className="form-control" style={{ flex: '1 1 150px', fontSize: '0.8rem' }} value={clientFilter} onChange={e=>setClientFilter(e.target.value)}>
-              <option value="">All Clients</option>
-              {allClients.map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
-          )}
-          <input className="form-control" type="date" style={{ flex: '1 1 130px', fontSize: '0.8rem' }} value={fromDate} onChange={e=>setFromDate(e.target.value)} placeholder="From" title="From date" />
-          <input className="form-control" type="date" style={{ flex: '1 1 130px', fontSize: '0.8rem' }} value={toDate} onChange={e=>setToDate(e.target.value)} placeholder="To" title="To date" />
-          {(stateFilter||typeFilter||clientFilter||fromDate||toDate||search) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => { setStateFilter(''); setTypeFilter(''); setClientFilter(''); setFromDate(''); setToDate(''); setSearch(''); }}>
-              Clear
-            </button>
-          )}
-        </div>
+      {['all','byState','byType','pivot','charts'].includes(tab) && (
+        <QueryFilters
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search material, supplier, mfr..."
+          stateFilter={stateFilter}
+          onStateChange={setStateFilter}
+          states={summaryStates}
+          typeFilter={typeFilter}
+          onTypeChange={setTypeFilter}
+          types={allTypes}
+          clientFilter={clientFilter}
+          onClientChange={setClientFilter}
+          clients={allClients}
+          showClient={showAdvanced}
+          fromDate={fromDate}
+          onFromDateChange={setFromDate}
+          toDate={toDate}
+          onToDateChange={setToDate}
+          includedStatuses={includedStatuses}
+          onToggleIncludedStatus={toggleIncludedStatus}
+          onClearIncludedStatuses={() => setIncludedStatuses([])}
+          presentStatuses={presentStatuses}
+          showAdvanced={showFilterAdvanced}
+          onToggleAdvanced={() => setShowFilterAdvanced(v => !v)}
+          hasFilters={hasFilters}
+          onClear={clearFilters}
+        />
       )}
 
       {loading ? <Spinner /> : (
@@ -584,8 +608,8 @@ export default function Reports() {
           {tab === 'byState' && (
             <GroupedQueryView
               rows={filtered}
-              groupBy="workflow_state"
-              groups={ALL_STATES}
+              groupBy="summary_workflow_state"
+              groups={summaryStates}
               groupColors={STATE_COLORS}
               showClient={showAdvanced}
               showAdvanced={showAdvanced}
@@ -609,8 +633,8 @@ export default function Reports() {
           {/* ─── Pivot Analysis Tab ─── */}
           {tab === 'pivot' && (
             <div>
-              <PivotTable rows={filtered} rowKey="query_types" colKey="workflow_state" title="Query Type × Status" />
-              {showAdvanced && <PivotTable rows={filtered} rowKey="client_name" colKey="workflow_state" title="Client × Status" />}
+              <PivotTable rows={summaryFiltered} rowKey="query_types" colKey="summary_workflow_state" title="Query Type × Status" />
+              {showAdvanced && <PivotTable rows={summaryFiltered} rowKey="client_name" colKey="summary_workflow_state" title="Client × Status" />}
               <PivotTable rows={filtered} rowKey="query_types" colKey="manufacturer" title="Query Type × Manufacturer (top)" />
             </div>
           )}
@@ -691,24 +715,101 @@ export default function Reports() {
                   <button className="btn btn-outline btn-sm" onClick={() => loadScript('Expired Documents', setExpiredData, 'expired')}><RefreshCw size={13} /></button>
                   <button className="btn btn-outline btn-sm" onClick={() => exportCSV(expiredData, [
                     {fieldname:'query_name',label:'Query'},{fieldname:'raw_material',label:'Raw Material'},
-                    {fieldname:'status',label:'Status'},{fieldname:'owner_full_name',label:'Owner'},
-                    {fieldname:'document_name',label:'Document'},{fieldname:'expiry_date',label:'Expiry Date'}
+                    {fieldname:'status',label:'Status'},{fieldname:'owner_full_name',label:'Owner'},{fieldname:'client_name',label:'Client'},
+                    {fieldname:'document_name',label:'Document'},{fieldname:'issue_date',label:'Issue Date'},{fieldname:'expiry_date',label:'Expiry Date'}
                   ], 'expired-docs.csv')}><Download size={13} /></button>
                 </div>
               </div>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Query</th><th>Raw Material</th><th>Status</th><th>Owner</th><th>Document</th><th>Expiry Date</th></tr></thead>
+                  <thead><tr><th>Query</th><th>Raw Material</th><th>Status</th><th>Owner</th><th>Client</th><th>Document</th><th>Issue Date</th><th>Expiry Date</th></tr></thead>
                   <tbody>
-                    {expiredData.length === 0 && !scriptLoading.expired && <tr><td colSpan={6} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No expired documents found</td></tr>}
+                    {expiredData.length === 0 && !scriptLoading.expired && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No expired documents found</td></tr>}
                     {expiredData.map((r,i) => (
                       <tr key={i} style={{ background:'#fff7ed' }}>
                         <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[0]}</td>
                         <td style={{ fontWeight:500 }}>{r.raw_material || r[1]}</td>
                         <td><StatusBadge state={r.status || r[2]} /></td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.owner_full_name || r[3] || '—'}</td>
-                        <td style={{ fontSize:'0.8rem' }}>{r.document_name || r[4] || '—'}</td>
-                        <td style={{ fontSize:'0.8rem', color:'#b91c1c', fontWeight:600 }}>{fmt(r.expiry_date || r[5])}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || r[4] || '—'}</td>
+                        <td style={{ fontSize:'0.8rem' }}>{r.document_name || r[5] || '—'}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{fmt(r.issue_date || r[6])}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#b91c1c', fontWeight:600 }}>{fmt(r.expiry_date || r[7])}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Duplicate Queries Tab ─── */}
+          {tab === 'duplicates' && (
+            <div className="card" style={{ padding:0 }}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#eff6ff' }}>
+                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#1d4ed8' }}><GitCompare size={14} style={{ marginRight:6 }} />Duplicate Queries ({duplicateData.length})</span>
+                <div style={{ display:'flex', gap:8 }}>
+                  {scriptLoading.duplicates && <Spinner size={14} />}
+                  <button className="btn btn-outline btn-sm" onClick={() => loadScript('Duplicate Queries', setDuplicateData, 'duplicates')}><RefreshCw size={13} /></button>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(duplicateData, [
+                    {fieldname:'duplicate_key',label:'Duplicate Key'},{fieldname:'duplicate_count',label:'Count'},{fieldname:'query_name',label:'Query'},
+                    {fieldname:'raw_material',label:'Raw Material'},{fieldname:'manufacturer',label:'Manufacturer'},{fieldname:'supplier',label:'Supplier'},
+                    {fieldname:'client_name',label:'Client'},{fieldname:'owner',label:'Owner'},{fieldname:'status',label:'Status'}
+                  ], 'duplicate-queries.csv')}><Download size={13} /></button>
+                </div>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>Key</th><th>Count</th><th>Query</th><th>Raw Material</th><th>Manufacturer</th><th>Supplier</th><th>Client</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {duplicateData.length === 0 && !scriptLoading.duplicates && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No duplicates found</td></tr>}
+                    {duplicateData.map((r,i) => (
+                      <tr key={i}>
+                        <td style={{ fontSize:'0.72rem', color:'#64748b', maxWidth:220 }}>{r.duplicate_key || r[0]}</td>
+                        <td style={{ fontWeight:800, color:'#1d4ed8' }}>{r.duplicate_count ?? r[1]}</td>
+                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[2]}</td>
+                        <td style={{ fontWeight:500 }}>{r.raw_material || r[3]}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || r[4] || '—'}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || r[5] || '—'}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || r[6] || '—'}</td>
+                        <td><StatusBadge state={r.status || r[8]} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Missing Supplier/Manufacturer Tab ─── */}
+          {tab === 'missing' && (
+            <div className="card" style={{ padding:0 }}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#fff7ed' }}>
+                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#9a3412' }}><AlertTriangle size={14} style={{ marginRight:6 }} />Missing Supplier / Manufacturer ({missingData.length})</span>
+                <div style={{ display:'flex', gap:8 }}>
+                  {scriptLoading.missing && <Spinner size={14} />}
+                  <button className="btn btn-outline btn-sm" onClick={() => loadScript('Missing Supplier Manufacturer', setMissingData, 'missing')}><RefreshCw size={13} /></button>
+                  <button className="btn btn-outline btn-sm" onClick={() => exportCSV(missingData, [
+                    {fieldname:'query_name',label:'Query'},{fieldname:'raw_material',label:'Raw Material'},{fieldname:'missing_fields',label:'Missing Fields'},
+                    {fieldname:'supplier',label:'Supplier'},{fieldname:'manufacturer',label:'Manufacturer'},{fieldname:'client_name',label:'Client'},
+                    {fieldname:'owner',label:'Owner'},{fieldname:'status',label:'Status'}
+                  ], 'missing-supplier-manufacturer.csv')}><Download size={13} /></button>
+                </div>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>Query</th><th>Raw Material</th><th>Missing</th><th>Supplier</th><th>Manufacturer</th><th>Client</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {missingData.length === 0 && !scriptLoading.missing && <tr><td colSpan={7} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No missing supplier/manufacturer data found</td></tr>}
+                    {missingData.map((r,i) => (
+                      <tr key={i}>
+                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[0]}</td>
+                        <td style={{ fontWeight:500 }}>{r.raw_material || r[1]}</td>
+                        <td style={{ fontWeight:700, color:'#c2410c' }}>{r.missing_fields || r[2]}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || r[3] || '—'}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || r[4] || '—'}</td>
+                        <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || r[5] || '—'}</td>
+                        <td><StatusBadge state={r.status || r[7]} /></td>
                       </tr>
                     ))}
                   </tbody>
