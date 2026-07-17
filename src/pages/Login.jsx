@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getPortalLogoUrl } from '../api/frappe';
+import { getPortalLogoUrl, getPortalUrl, isPortalOrigin } from '../api/frappe';
 
 export default function Login() {
   const { login } = useAuth();
@@ -22,7 +22,12 @@ export default function Login() {
     if (!usr.trim() || !pwd) { setErr('Email and password are required.'); return; }
     setLoading(true);
     try {
-      await login(usr.trim(), pwd);
+      const loggedInUser = await login(usr.trim(), pwd);
+      const isClientUser = loggedInUser?.roles?.includes('Client') || !!loggedInUser?.clientName || !!loggedInUser?.clientData;
+      if (isClientUser && !isPortalOrigin()) {
+        window.location.href = getPortalUrl(from);
+        return;
+      }
       navigate(from, { replace: true });
     } catch (ex) {
       setErr(ex.message || 'Login failed. Check your credentials.');

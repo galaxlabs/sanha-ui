@@ -1,9 +1,21 @@
 /* ── Frappe REST API helper ── */
 
-// VITE_FRAPPE_URL is only used by the local dev Vite proxy config.
-// In production (Vercel) BASE stays empty — all requests use Vercel proxy rewrites
-// which forward /api/* cookies transparently, keeping per-user session auth.
-const BASE = import.meta.env.VITE_FRAPPE_URL || '';
+const DEFAULT_FRAPPE_URL = import.meta.env.PROD ? 'https://evaluation.sanha.org.pk' : '';
+const DEFAULT_PORTAL_URL = import.meta.env.PROD ? 'https://portal.sanha.org.pk' : window.location.origin;
+
+// Frappe backend/API origin. In local dev this can stay empty for the Vite proxy.
+export const FRAPPE_URL = (import.meta.env.VITE_FRAPPE_URL || DEFAULT_FRAPPE_URL).replace(/\/$/, '');
+export const PORTAL_URL = (import.meta.env.VITE_PORTAL_URL || DEFAULT_PORTAL_URL).replace(/\/$/, '');
+const BASE = FRAPPE_URL;
+
+export function getPortalUrl(path = '/dashboard') {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${PORTAL_URL}${normalizedPath}`;
+}
+
+export function isPortalOrigin() {
+  return window.location.origin === PORTAL_URL;
+}
 
 // API Token Authentication
 const API_KEY = import.meta.env.VITE_API_KEY || '';

@@ -25,9 +25,11 @@ export function AuthProvider({ children }) {
 
       console.log('[Auth] Current user:', { name: nextUser.name, roles: nextUser.roles, clientName: nextUser.clientName });
       setUser(nextUser);
+      return nextUser;
     } catch (e) {
       console.log('[Auth] Fatal error:', e);
       setUser(null);
+      return null;
     }
   }, []);
 
@@ -38,7 +40,7 @@ export function AuthProvider({ children }) {
   const login = async (usr, pwd) => {
     // Always do the cookie login so the server creates a session for this user
     await apiLogin(usr, pwd);
-    await fetchUser();
+    return await fetchUser();
   };
 
   const logout = async () => {
