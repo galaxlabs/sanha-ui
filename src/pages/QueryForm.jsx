@@ -87,16 +87,16 @@ export default function QueryForm() {
   const [entityCandidates, setEntityCandidates] = useState({ suppliers: [], manufacturers: [], rawMaterials: [] });
   const dupTimer = useRef(null);
 
-  const isClient = hasRole('Client') && !isAdmin();
+  const isClient = hasRole('Client') && !isAdmin() && !hasRole('Evaluation') && !hasRole('SB User');
   const isEvaluation = hasRole('Evaluation');
   const isSBUser = hasRole('SB User');
   const canSeeSimilar = isEvaluation || isSBUser;
   const isDraft = doc.workflow_state === 'Draft';
   const canEdit = isNew || isAdmin() ||
-    (isClient && isDraft) ||
+    (isClient && ['Draft', 'Returned'].includes(doc.workflow_state)) ||
     (hasRole('Evaluation') && ['Submitted'].includes(doc.workflow_state)) ||
     (hasRole('SB User') && ['Submitted to SB', 'Under Review', 'Hold'].includes(doc.workflow_state));
-  const canAppendDocuments = isClient && !isNew && !isDraft;
+  const canAppendDocuments = false;
   const canEditDocuments = canEdit || canAppendDocuments;
 
   useEffect(() => {
@@ -279,6 +279,7 @@ export default function QueryForm() {
         saved = await frappe.updateDoc('Query', name, payload);
       }
       success('Query saved successfully!');
+      setDoc(saved);
       navigate(`/queries/${saved.name}`);
     } catch (ex) {
       showError(ex.message || 'Save failed.');
@@ -350,7 +351,8 @@ export default function QueryForm() {
   const handleAction = async (action) => {
     // If submitting (moving out of Draft), run full doc validation
     const movingFromDraft = doc.workflow_state === 'Draft';
-    if (movingFromDraft) {
+    if (movingFromDraft || doc.workflow_state === 'Returned') {
+      if (!validate(true)) return;
       const docErrs = validateDocuments(doc.documents);
       if (docErrs.length) {
         setDocWarnings(docErrs);
@@ -401,6 +403,11 @@ export default function QueryForm() {
         )}
       </div>
 
+      {isClient && isDraft && <div className="card" style={{ marginBottom: 16 }}>
+        <p>You can save an incomplete draft and complete it later. A complete draft is automatically submitted five minutes after your last save.</p>
+        {doc.auto_submit_after && <p>Auto-submit check: {new Date(doc.auto_submit_after.replace(' ', 'T')).toLocaleString()}</p>}
+        {doc.auto_submit_error && <p role="status">Draft not submitted: {doc.auto_submit_error}. Complete the missing details and save again.</p>}
+      </div>}
       {/* Recovered draft banner */}
       {recoveredDraft && (
         <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:8, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>

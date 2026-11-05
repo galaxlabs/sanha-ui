@@ -15,6 +15,8 @@ import Modal from '../components/UI/Modal';
 function validateClient(form) {
   const errors = {};
   if (!form.client_name?.trim()) errors.client_name = 'Client Name is required';
+  if (!form.business_name?.trim()) errors.business_name = 'Business Name is required';
+  if (!form.client_code?.trim()) errors.client_code = 'Client Code is required';
   if (!form.email?.trim()) errors.email = 'Email is required';
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
     errors.email = 'Enter a valid email address';
@@ -30,7 +32,7 @@ const BLANK_CLIENT = {
   business_name: '', client_code: '', contact_person: '',
   certified_since: '', certified_expiry: '', standards: '',
   is_active: 1, scope: '', products: '', region: '', city: '',
-  category: '', address_type: '', address: '',
+  category: '', address_type: '', address: '', ext: '', emails: [], phone_nos: [], records_hub: [],
 };
 
 /* ─── Status badge ─── */
@@ -54,6 +56,7 @@ function Field({ label, name, type = 'text', required, form, setForm, errors }) 
       <input
         className="form-control"
         type={type}
+        list={['city', 'address', 'address_type'].includes(name) ? `client-${name === 'city' ? 'city' : 'address'}-options` : undefined}
         value={form[name] || ''}
         onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))}
         style={{ borderColor: errors[name] ? '#ef4444' : undefined }}
@@ -68,16 +71,52 @@ function ClientFormModal({ initial, onSave, onClose }) {
   const [form, setForm] = useState({ ...BLANK_CLIENT, ...initial });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(!!initial?.name);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [links, setLinks] = useState({ city: [], address: [], audit: [] });
   const { success, error: showError } = useToast();
 
+  useEffect(() => {
+    Promise.all(['Cities', 'Address', 'Audit Documents'].map(doctype => frappe.getList(doctype, { fields: ['name'], orderBy: 'name asc', limit: 1000 })))
+      .then(([city, address, audit]) => setLinks({ city, address, audit }))
+      .catch(err => showError(`Linked field choices could not load: ${err.message}`));
+  }, []);
+
+  useEffect(() => {
+    if (!initial?.name) return;
+    let active = true;
+    frappe.getClientDetail(initial.name).then(data => {
+      if (active) setForm({ ...BLANK_CLIENT, ...data });
+    }).catch(err => { if (active) { setLoadFailed(true); showError(err.message); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [initial?.name]);
+
+  const changeRow = (table, index, field, value) => setForm(prev => ({ ...prev,
+    [table]: (prev[table] || []).map((row, i) => ({ ...row,
+      ...(i === index ? { [field]: value } : (value === 1 && field.startsWith('is_primary') ? { [field]: 0 } : {})),
+    })),
+  }));
+
+  const uploadRecord = async (index, file) => {
+    if (!file || !initial?.name) return;
+    setUploading(true);
+    try {
+      const result = await frappe.uploadFile(file, 'Client', initial.name, 'records_hub', true);
+      changeRow('records_hub', index, 'attach_ilxb', result.file_url);
+    } catch (err) { showError(err.message); } finally { setUploading(false); }
+  };
+
   async function handleSave() {
+    if (loading || loadFailed || uploading) return;
     const errs = validateClient(form);
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSaving(true);
     try {
       let saved;
       if (initial?.name) {
-        saved = await frappe.updateClient(initial.name, form);
+        saved = await frappe.updateClient(initial.name, Object.fromEntries(Object.keys(BLANK_CLIENT).map(key => [key, form[key]])));
       } else {
         saved = await frappe.createClient(form);
       }
@@ -98,11 +137,12 @@ function ClientFormModal({ initial, onSave, onClose }) {
           <button className="btn btn-ghost btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <div style={{ padding: '20px 24px' }}>
+          {Object.entries(links).map(([key, rows]) => <datalist key={key} id={`client-${key}-options`}>{rows.map(row => <option key={row.name} value={row.name} />)}</datalist>)}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
             <Field label="Client Name" name="client_name" required {...fp} />
             <Field label="Email" name="email" type="email" required {...fp} />
-            <Field label="Business Name" name="business_name" {...fp} />
-            <Field label="Client Code" name="client_code" {...fp} />
+            <Field label="Business Name" name="business_name" required {...fp} />
+            <Field label="Client Code" name="client_code" required {...fp} />
             <Field label="Contact Person" name="contact_person" {...fp} />
             <Field label="Contact No" name="contact_no" {...fp} />
             <Field label="Telephone" name="telephone" {...fp} />
@@ -120,7 +160,7 @@ function ClientFormModal({ initial, onSave, onClose }) {
           <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 16, marginTop: 4 }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location & Scope</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
-              <Field label="Region" name="region" {...fp} />
+              <div><label>Region</label><select className="form-control" value={form.region || ''} onChange={e => setForm(prev => ({ ...prev, region: e.target.value }))}><option value="">Select region</option>{['Punjab', 'Sindh', 'KPK'].map(region => <option key={region}>{region}</option>)}</select></div>
               <Field label="City" name="city" {...fp} />
               <Field label="Address Type" name="address_type" {...fp} />
               <Field label="Address" name="address" {...fp} />
@@ -130,6 +170,22 @@ function ClientFormModal({ initial, onSave, onClose }) {
               <Field label="Products" name="products" {...fp} />
             </div>
           </div>
+          {loading && <Spinner />}
+          {loadFailed && <p role="alert">Client details could not load. Close and reopen this form before editing.</p>}
+          <p style={{ fontSize: '.8rem' }}>Status: {form.status || 'Not calculated'} (calculated from certification expiry)</p>
+          {[
+            { key: 'emails', label: 'Email Contacts', doctype: 'Contact Email', fields: [['email_id', 'Email', 'email'], ['is_primary', 'Primary', 'checkbox']] },
+            { key: 'phone_nos', label: 'Phone Contacts', doctype: 'Contact Phone', fields: [['phone', 'Phone', 'text'], ['is_primary_phone', 'Primary Phone', 'checkbox'], ['is_primary_mobile_no', 'Primary Mobile', 'checkbox']] },
+            { key: 'records_hub', label: 'Records Hub', doctype: 'Records Hub', fields: [['doc_type', 'Audit Document Type', 'text'], ['date', 'Date', 'date'], ['attach_ilxb', 'Attachment URL', 'text']] },
+          ].map(table => <section key={table.key} style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16, marginTop: 16 }}>
+            <h4>{table.label}</h4>
+            {(form[table.key] || []).map((row, index) => <div key={row.name || index} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              {table.fields.map(([field, label, type]) => <label key={field} style={{ flex: '1 1 140px', fontSize: '.75rem' }}>{label}<input className={type === 'checkbox' ? '' : 'form-control'} type={type} list={field === 'doc_type' ? 'client-audit-options' : undefined} checked={type === 'checkbox' ? !!row[field] : undefined} value={type === 'checkbox' ? undefined : row[field] || ''} onChange={e => changeRow(table.key, index, field, type === 'checkbox' ? Number(e.target.checked) : e.target.value)} /></label>)}
+              {table.key === 'records_hub' && <label style={{ fontSize: '.75rem' }}>Upload attachment<input type="file" disabled={!initial?.name || uploading} onChange={e => uploadRecord(index, e.target.files?.[0])} />{!initial?.name && <small>Save Client first to upload files.</small>}</label>}
+              <button type="button" className="btn btn-outline btn-sm" disabled={uploading} onClick={() => setForm(prev => ({ ...prev, [table.key]: prev[table.key].filter((_, i) => i !== index) }))}>Remove row</button>
+            </div>)}
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setForm(prev => ({ ...prev, [table.key]: [...(prev[table.key] || []), { doctype: table.doctype }] }))}>Add row</button>
+          </section>)}
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.875rem', marginTop: 8 }}>
             <input type="checkbox" checked={!!form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked ? 1 : 0 }))} />
             Is Active
@@ -141,7 +197,7 @@ function ClientFormModal({ initial, onSave, onClose }) {
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
           <button className="btn btn-outline" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving || loading || loadFailed || uploading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {saving ? <Spinner size={14} /> : <Save size={14} />}
             {initial?.name ? 'Save Changes' : 'Create Client'}
           </button>

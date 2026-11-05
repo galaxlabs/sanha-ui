@@ -236,10 +236,10 @@ export async function applyWorkflow(doctype, docname, action) {
 }
 
 /* ── File upload ── */
-export async function uploadFile(file, doctype, docname, fieldname) {
+export async function uploadFile(file, doctype, docname, fieldname, isPrivate = false) {
   const fd = new FormData();
   fd.append('file', file);
-  fd.append('is_private', '0');
+  fd.append('is_private', isPrivate ? '1' : '0');
   fd.append('doctype', doctype);
   fd.append('docname', docname || 'New Query');
   fd.append('fieldname', fieldname);
