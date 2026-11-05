@@ -249,7 +249,8 @@ export default function QueryForm() {
   /* Save */
   const handleSave = async (e) => {
     e?.preventDefault();
-    if (!validate()) return;
+    // Drafts intentionally allow incomplete data; required fields apply on submission.
+    if (doc.workflow_state !== 'Draft' && !validate(true)) return;
     setSaving(true);
     try {
       let saved;
