@@ -14,7 +14,7 @@ import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getClients, getStateCounts, getQueries } from '../api/frappe';
+import { getOverviewMetrics, getStateCounts, getQueries } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, Filler);
@@ -80,6 +80,7 @@ export default function Dashboard() {
   const [recent, setRecent] = useState([]);
   const [allQueries, setAllQueries] = useState([]);
   const [clientTotal, setClientTotal] = useState(null);
+  const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(true);
 
   const isStaffRole = isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
@@ -104,18 +105,19 @@ export default function Dashboard() {
         const extraFilters = isClientRole
           ? [[user.clientName ? 'client_name' : 'owner', '=', user.clientName || user.name]]
           : [];
-        const [statRows, queries, allData, clients] = await Promise.all([
+        const [statRows, queries, allData, overview] = await Promise.all([
           getStateCounts(extraFilters, { fresh: true }),
           getQueries(extraFilters, 6, 0, controller.signal, true),
           getQueries(extraFilters, 9999, 0, controller.signal, true),
-          isAdmin() ? getClients({ fresh: true }) : Promise.resolve(null),
+          getOverviewMetrics(extraFilters),
         ]);
         const map = {};
         statRows.forEach(r => { map[r.state] = r.count; });
         setCounts(map);
         setRecent(queries);
         setAllQueries(allData);
-        setClientTotal(clients?.length ?? null);
+        setClientTotal(overview.clients ?? null);
+        setMetrics(overview);
       } catch (e) {
         if (e.name !== 'AbortError') {
           console.error(e);
@@ -138,7 +140,7 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
-  const totalQueries = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totalQueries = Number(metrics.total_queries ?? Object.values(counts).reduce((a, b) => a + b, 0));
 
   /* ── Doughnut chart ── */
   const doughnutStates = Object.entries(counts).filter(([, v]) => v > 0);
@@ -529,10 +531,10 @@ export default function Dashboard() {
       {/* ── Quick Stats Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         {[
-          { label: 'Total Queries', value: allQueries.length, color: '#2563eb', bg: '#eff6ff' },
+          { label: 'Total Queries', value: totalQueries, color: '#2563eb', bg: '#eff6ff' },
           { label: 'Clients', value: clientTotal ?? Object.keys(clientCounts).length, color: '#16a34a', bg: '#f0fdf4' },
-          { label: 'Unique Materials', value: new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size, color: '#7c3aed', bg: '#f5f3ff' },
-          { label: 'Duplicate Rate', value: allQueries.length ? `${Math.round((dupCount / allQueries.length) * 100)}%` : '0%', color: '#f59e0b', bg: '#fffbeb' },
+          { label: 'Unique Materials', value: Number(metrics.unique_materials ?? new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size), color: '#7c3aed', bg: '#f5f3ff' },
+          { label: 'Duplicate Rate', value: totalQueries ? `${Math.round((Number(metrics.duplicate_queries ?? dupCount) / totalQueries) * 100)}%` : '0%', color: '#f59e0b', bg: '#fffbeb' },
         ].map((stat, i) => (
           <div key={i} style={{ background: stat.bg, borderRadius: 14, padding: '18px 20px' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: stat.color }}>{stat.value}</div>

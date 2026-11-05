@@ -342,6 +342,11 @@ export async function findSimilarQuery(rawMaterial, manufacturer, excludeName = 
   return res.message?.matches || res.matches || [];
 }
 
+export async function getOverviewMetrics(filters = []) {
+  const res = await request('GET', `/api/method/sanha.api.dashboard.overview_metrics?filters=${encodeURIComponent(JSON.stringify(filters))}`, null, { cache: false });
+  return res.message || {};
+}
+
 export async function getExpiredDocuments() {
   const res = await request('GET', '/api/method/sanha.api.dashboard.expired_documents', null, { cache: false });
   return res.message?.data || [];
