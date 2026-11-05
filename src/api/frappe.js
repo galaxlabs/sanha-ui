@@ -135,11 +135,15 @@ export async function login(usr, pwd) {
 }
 
 export async function logout() {
-  await request('GET', '/api/method/frappe.auth.web_logout');
-  // Reset login state
-  userLoggedIn = false;
-  // Clear cache on logout
-  clearCache();
+  try {
+    await request('GET', '/api/method/frappe.auth.web_logout');
+  } catch (error) {
+    // An expired server session is already logged out from the portal's perspective.
+    if (!/HTTP 417|Authentication|session/i.test(error.message)) throw error;
+  } finally {
+    userLoggedIn = false;
+    clearCache();
+  }
 }
 
 export async function getSession() {

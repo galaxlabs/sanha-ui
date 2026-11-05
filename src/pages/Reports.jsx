@@ -193,10 +193,10 @@ function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, show
                   <tr>
                     <th style={{ width: 36 }}>#</th>
                     {showAdvanced && <th>Query ID</th>}
-                    <th>Raw Material</th><th>Type</th>
+                    <th>Raw Material</th>{groupBy !== 'query_types' && <th>Type</th>}
                     <th>Manufacturer</th><th>Supplier</th>
                     {showClient && <th>Client</th>}
-                    {showAdvanced && <th>Date</th>}
+                    {showAdvanced && <><th>Created</th><th>Updated</th></>}
                   </tr>
                 </thead>
                 <tbody>
@@ -205,11 +205,11 @@ function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, show
                       <td style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{i + 1}</td>
                       {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>}
                       <td style={{ fontWeight:500 }}>{r.raw_material || '—'}</td>
-                      <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
+                      {groupBy !== 'query_types' && <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>}
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
                       {showClient && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
-                      {showAdvanced && <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>}
+                      {showAdvanced && <><td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td><td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.modified)}</td></>}
                     </tr>
                   ))}
                 </tbody>
@@ -492,7 +492,8 @@ export default function Reports() {
         { fieldname:'query_types', label:'Type' },
         { fieldname:'workflow_state', label:'Status' },
         { fieldname:'client_name', label:'Client' },
-        { fieldname:'creation', label:'Date' },
+        { fieldname:'creation', label:'Created' },
+        { fieldname:'modified', label:'Updated' },
       ]
     : [
         { fieldname:'raw_material', label:'Raw Material' },
@@ -500,6 +501,8 @@ export default function Reports() {
         { fieldname:'manufacturer', label:'Manufacturer' },
         { fieldname:'query_types', label:'Type' },
         { fieldname:'workflow_state', label:'Status' },
+        { fieldname:'creation', label:'Created' },
+        { fieldname:'modified', label:'Updated' },
       ];
 
   return (
@@ -635,7 +638,7 @@ export default function Reports() {
                         <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'#2563eb' }} title={allChecked ? 'Deselect all' : 'Select all'} />
                       </th>
                       {showAdvanced && <th>ID</th>}<th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
-                      <th>Type</th><th>Status</th>{showAdvanced && <th>Client</th>}{showAdvanced && <th>Date</th>}
+                      <th>Type</th><th>Status</th>{showAdvanced && <th>Client</th>}<th>Created</th><th>Updated</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -652,7 +655,8 @@ export default function Reports() {
                         <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>
                         <td><StatusBadge state={r.workflow_state} /></td>
                         {showAdvanced && <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.client_name || '—'}</td>}
-                        {showAdvanced && <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>}
+                        <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.creation)}</td>
+                        <td style={{ fontSize:'0.78rem', color:'#94a3b8' }}>{fmt(r.modified)}</td>
                       </tr>
                     ))}
                   </tbody>

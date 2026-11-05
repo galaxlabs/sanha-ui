@@ -9,7 +9,8 @@ const COLUMNS = [
   { key: 'supplier', label: 'Supplier', defaultStaff: true, defaultClient: true },
   { key: 'client_name', label: 'Client', defaultStaff: true, defaultClient: false },
   { key: 'workflow_state', label: 'Status', defaultStaff: true, defaultClient: true },
-  { key: 'creation', label: 'Date', defaultStaff: true, defaultClient: false },
+  { key: 'creation', label: 'Created', defaultStaff: true, defaultClient: true },
+  { key: 'modified', label: 'Updated', defaultStaff: true, defaultClient: true },
 ];
 
 export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
@@ -37,7 +38,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
   const toggleCol = (key) => setColumns(p => ({ ...p, [key]: !p[key] }));
 
   const handleGenerate = () => {
-    const clientColumns = ['raw_material', 'query_types', 'manufacturer', 'supplier', 'workflow_state'];
+    const clientColumns = ['raw_material', 'query_types', 'manufacturer', 'supplier', 'workflow_state', 'creation', 'modified'];
     const config = {
       title,
       orientation,
@@ -175,6 +176,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
               <label style={labelStyle}>Group By</label>
               <select className="form-control" value={groupBy} onChange={e => setGroupBy(e.target.value)} style={{ fontSize: '0.85rem' }}>
                 <option value="none">None</option>
+                <option value="raw_material">Raw Material</option>
                 <option value="query_types">Query Type</option>
                 <option value="workflow_state">Status</option>
               </select>

@@ -1,24 +1,34 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
+import { CalendarClock, RefreshCw, Search } from 'lucide-react';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
+import { useToast } from '../contexts/ToastContext';
+
+function formatDate(value) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat(undefined, {
+    day: '2-digit', month: 'short', year: 'numeric',
+  }).format(new Date(value.replace(' ', 'T')));
+}
 
 export default function RawMaterials() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const { error } = useToast();
 
   async function load() {
     setLoading(true);
     try {
       const data = await frappe.getList('E-NUMBERS', {
-        fields: ['name', 'material_name', 'e_number', 'halal_status', 'category', 'modified'],
-        order_by: 'modified desc',
+        fields: ['name', 'code', 'name1', 'alternative_name', 'function', 'status', 'creation', 'modified'],
+        orderBy: 'modified desc',
         limit: 500,
       });
       setRows(data);
     } catch (e) {
       console.error(e);
+      error('Raw materials could not be loaded. Please try again.');
     }
     setLoading(false);
   }
@@ -27,9 +37,10 @@ export default function RawMaterials() {
 
   const filtered = search
     ? rows.filter(r =>
-        (r.material_name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (r.e_number || '').toLowerCase().includes(search.toLowerCase()) ||
-        (r.category || '').toLowerCase().includes(search.toLowerCase())
+        (r.name1 || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.code || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.function || '').toLowerCase().includes(search.toLowerCase()) ||
+        (r.alternative_name || '').toLowerCase().includes(search.toLowerCase())
       )
     : rows;
 
@@ -44,25 +55,28 @@ export default function RawMaterials() {
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>Raw Materials (E-NUMBERS)</h2>
-        <button className="btn btn-outline btn-sm" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+    <div className="page-stack">
+      <div className="page-heading">
+        <div>
+          <p className="page-kicker">Reference library</p>
+          <h1>Raw Materials</h1>
+          <p>Browse E-NUMBERS with their recorded creation and last update dates.</p>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={load}>
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
 
-      <div className="card" style={{ padding: '12px 16px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div className="card filter-card">
+        <div className="search-row">
           <Search size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
           <input
             className="form-control"
-            style={{ flex: 1, fontSize: '0.85rem' }}
-            placeholder="Search by material name, E-NUMBER, or category…"
+            placeholder="Search name, code, function, or alternative name…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+          <span className="result-count">
             {filtered.length} of {rows.length}
           </span>
         </div>
@@ -71,24 +85,28 @@ export default function RawMaterials() {
       {loading ? <Spinner /> : filtered.length === 0 ? (
         <EmptyState message="No raw materials found" />
       ) : (
-        <div className="card" style={{ padding: 0 }}>
+        <div className="card data-card">
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Material Name</th>
-                  <th>E-NUMBER</th>
-                  <th>Category</th>
-                  <th>Halal Status</th>
+                  <th>Name</th>
+                  <th>Code</th>
+                  <th>Function</th>
+                  <th>Status</th>
+                  <th>Created</th>
                   <th>Last Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(r => (
                   <tr key={r.name}>
-                    <td style={{ fontWeight: 500 }}>{r.material_name || r.name}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{r.e_number || '—'}</td>
-                    <td>{r.category || '—'}</td>
+                    <td>
+                      <strong>{r.name1 || r.name}</strong>
+                      {r.alternative_name && <span className="table-subtext">{r.alternative_name}</span>}
+                    </td>
+                    <td className="code-cell">{r.code || '—'}</td>
+                    <td>{r.function || '—'}</td>
                     <td>
                       <span style={{
                         display: 'inline-block', padding: '2px 10px', borderRadius: 999,
@@ -96,12 +114,11 @@ export default function RawMaterials() {
                         background: statusColor(r.halal_status) + '18',
                         color: statusColor(r.halal_status),
                       }}>
-                        {r.halal_status || 'Unknown'}
+                        {r.status || 'Unknown'}
                       </span>
                     </td>
-                    <td style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      {r.modified?.split(' ')[0] || '—'}
-                    </td>
+                    <td className="date-cell"><CalendarClock size={14} /> {formatDate(r.creation)}</td>
+                    <td className="date-cell"><CalendarClock size={14} /> {formatDate(r.modified)}</td>
                   </tr>
                 ))}
               </tbody>

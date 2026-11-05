@@ -128,9 +128,7 @@ export default function PrintReport() {
     let serial = startSerial;
     const showColumn = (key) => {
       if (!columns.includes(key)) return false;
-      if (groupBy === 'query_types' && key === 'query_types') return false;
-      if (groupBy === 'workflow_state' && key === 'workflow_state') return false;
-      return true;
+      return groupBy !== key;
     };
     return (
       <div key={groupName} style={{ marginBottom: groupName ? 16 : 0 }}>
@@ -151,7 +149,8 @@ export default function PrintReport() {
               {showColumn('supplier') && <th style={TH}>Supplier</th>}
               {showColumn('client_name') && <th style={TH}>Client</th>}
               {showColumn('workflow_state') && <th style={TH}>Status</th>}
-              {showColumn('creation') && <th style={TH}>Date</th>}
+              {showColumn('creation') && <th style={TH}>Created</th>}
+              {showColumn('modified') && <th style={TH}>Updated</th>}
             </tr>
           </thead>
           <tbody>
@@ -166,6 +165,7 @@ export default function PrintReport() {
                 {showColumn('client_name') && <td style={TD}>{r.client_name || '—'}</td>}
                 {showColumn('workflow_state') && <td style={TD}><StatusBadge state={r.workflow_state} /></td>}
                 {showColumn('creation') && <td style={{ ...TD, fontSize: fs - 1, color: '#94a3b8' }}>{fmt(r.creation)}</td>}
+                {showColumn('modified') && <td style={{ ...TD, fontSize: fs - 1, color: '#94a3b8' }}>{fmt(r.modified)}</td>}
               </tr>
             ))}
           </tbody>

@@ -12,9 +12,9 @@ import { getPortalLogoUrl } from '../../api/frappe';
 
 /* ─── Report sub-items (shared across all roles that have Reports) ─── */
 const REPORT_CHILDREN = [
-  { label: 'All Queries',    to: '/reports#all' },
-  { label: 'By State',       to: '/reports#byState' },
-  { label: 'By Type',        to: '/reports#byType' },
+  { label: 'Report Overview', to: '/reports#all' },
+  { label: 'Status Summary',  to: '/reports#byState' },
+  { label: 'Type Summary',    to: '/reports#byType' },
   { label: 'Pivot Analysis', to: '/reports#pivot' },
   { label: 'State Charts',   to: '/reports#charts' },
   { label: 'Approved RM',    to: '/reports#approved' },
@@ -84,11 +84,21 @@ function getRoleLinks(roles = []) {
   return { group: 'Portal', links: NAV_GROUPS.Client };
 }
 
+function uniqueLinks(links) {
+  const routes = new Set();
+  return links.filter((link) => {
+    if (routes.has(link.to)) return false;
+    routes.add(link.to);
+    return true;
+  });
+}
+
 export default function Sidebar({ collapsed, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { group, links } = getRoleLinks(user?.roles || []);
+  const sidebarLinks = uniqueLinks(links);
   const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Track which expandable items are open (default: Reports open if on /reports)
@@ -153,7 +163,7 @@ export default function Sidebar({ collapsed, onClose }) {
       {/* Nav */}
       <nav className="sidebar-nav">
         {group && !sidebarCollapsed && <div className="sidebar-role-badge">{group}</div>}
-        {links.map(link => {
+        {sidebarLinks.map(link => {
           const hasChildren = link.children?.length > 0;
           const isOpen = expanded.has(link.label);
           const isReportsActive = location.pathname.startsWith('/reports');

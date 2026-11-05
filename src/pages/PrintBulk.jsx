@@ -24,11 +24,12 @@ const COLUMNS = [
   { key: 'sup',    label: 'Supplier' },
   { key: 'client', label: 'Client' },
   { key: 'status', label: 'Status' },
-  { key: 'date',   label: 'Date' },
+  { key: 'date',   label: 'Created' },
+  { key: 'modified', label: 'Updated' },
   { key: 'docs',   label: 'Documents' },
 ];
 const ALL_COL_KEYS = COLUMNS.map(c => c.key);
-const CLIENT_COL_KEYS = ['rm', 'type', 'mfr', 'sup', 'status'];
+const CLIENT_COL_KEYS = ['rm', 'type', 'mfr', 'sup', 'status', 'date', 'modified'];
 
 /* ─── Fixed company info (not user-editable) ─── */
 const ORG_NAME    = 'SANHA HALAL';
@@ -53,7 +54,7 @@ const DEFAULT = {
   showDisclaimer: true,
   showPageNums:   true,
   /* Grouping */
-  groupBy:     'none',        // 'none' | 'type' | 'state'
+   groupBy:     'none',        // 'none' | 'rawMaterial' | 'type' | 'state'
   serialMode:  'continuous',  // 'continuous' | 'grouped'
   headerAlign: 'left',        // 'left' | 'center' | 'right'
 };
@@ -163,7 +164,7 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end', padding: '8px 24px 10px' }}>
         <div>
           <Label>Group By</Label>
-          <BtnGroup k="groupBy" options={[['none','None'],['type','Query Type'],['state','Status']]} />
+          <BtnGroup k="groupBy" options={[['none','None'],['rawMaterial','Raw Material'],['type','Query Type'],['state','Status']]} />
         </div>
         <div>
           <Label>Serial #</Label>
@@ -239,7 +240,15 @@ export default function PrintBulk() {
   const [errors, setErrors]  = useState([]);
   const [logoUrl, setLogoUrl] = useState('');
   const [opts, setOpts] = useState(() => {
-    try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem('printBulkOpts') || '{}') }; }
+    try {
+      const saved = JSON.parse(localStorage.getItem('printBulkOpts') || '{}');
+      return {
+        ...DEFAULT,
+        ...saved,
+        // Existing saved configurations predate the Updated column.
+        cols: [...new Set([...(saved.cols || DEFAULT.cols), 'modified'])],
+      };
+    }
     catch { return { ...DEFAULT }; }
   });
 
@@ -309,6 +318,7 @@ export default function PrintBulk() {
   const enabledCols = isClientUser ? CLIENT_COL_KEYS : (opts.cols || ALL_COL_KEYS);
   const hasCols = key => {
     if (!enabledCols.includes(key)) return false;
+    if (opts.groupBy === 'rawMaterial' && key === 'rm') return false;
     if (opts.groupBy === 'type' && key === 'type') return false;
     if (opts.groupBy === 'state' && key === 'status') return false;
     return true;
@@ -324,8 +334,8 @@ export default function PrintBulk() {
   const totalFlatPages = Math.max(flatPages.length, 1);
 
   const colWidths = opts.orientation === 'landscape'
-    ? { id: 100, rm: 200, type: 80, mfr: 130, sup: 130, client: 80, status: 90, date: 80, docs: 80 }
-    : { id: 90, rm: 160, type: 70, mfr: 110, sup: 110, client: 70, status: 80, date: 70, docs: 70 };
+    ? { id: 100, rm: 200, type: 80, mfr: 130, sup: 130, client: 80, status: 90, date: 80, modified: 80, docs: 80 }
+    : { id: 90, rm: 160, type: 70, mfr: 110, sup: 110, client: 70, status: 80, date: 70, modified: 70, docs: 70 };
 
   // Client summary: per-client name, code, record count, date range
   const clientInfoMap = {};
@@ -347,7 +357,11 @@ export default function PrintBulk() {
     if (!isGrouped) return [];
     const map = new Map();
     printDocs.forEach(d => {
-      const key = opts.groupBy === 'type' ? (d.query_types || '— No Type —') : (d.workflow_state || '— Unknown —');
+      const key = opts.groupBy === 'rawMaterial'
+        ? (d.raw_material || '— No Raw Material —')
+        : opts.groupBy === 'type'
+          ? (d.query_types || '— No Type —')
+          : (d.workflow_state || '— Unknown —');
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(d);
     });
@@ -367,7 +381,8 @@ export default function PrintBulk() {
         {hasCols('sup')    && <th style={{ ...TH, width: colWidths.sup }}>Supplier</th>}
         {hasCols('client') && <th style={{ ...TH, width: colWidths.client }}>Client</th>}
         {hasCols('status') && <th style={{ ...TH, width: colWidths.status }}>Status</th>}
-        {hasCols('date')   && <th style={{ ...TH, width: colWidths.date }}>Date</th>}
+        {hasCols('date')   && <th style={{ ...TH, width: colWidths.date }}>Created</th>}
+        {hasCols('modified') && <th style={{ ...TH, width: colWidths.modified }}>Updated</th>}
         {hasCols('docs') && !opts.compactMode && <th style={{ ...TH, width: colWidths.docs }}>Docs</th>}
       </tr>
     </thead>
@@ -390,7 +405,8 @@ export default function PrintBulk() {
             : q.workflow_state}
         </td>
       )}
-      {hasCols('date')   && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.creation)}</td>}
+        {hasCols('date')   && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.creation)}</td>}
+        {hasCols('modified') && <td style={{ ...TD, color: '#94a3b8', fontSize: opts.fontSize - 1 }}>{fmt(q.modified)}</td>}
       {hasCols('docs') && !opts.compactMode && <td style={{ ...TD }}><DocCount docs={q.documents} /></td>}
     </tr>
   );
