@@ -5,7 +5,7 @@ import {
   Settings, LogOut, Shield, Star, Package, BarChart2,
   CheckCircle, XCircle, AlertTriangle, Clock, Search,
   ChevronDown, ChevronRight, Layers, PieChart, List,
-  MessageSquare, PanelLeftClose, PanelLeft,
+  MessageSquare, PanelLeftClose, PanelLeft, BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl } from '../../api/frappe';
@@ -60,9 +60,9 @@ const NAV_GROUPS = {
         { label: 'Pivot Analysis', to: '/reports#pivot' },
         { label: 'State Charts', to: '/reports#charts' },
         { label: 'Expired Docs', to: '/reports?tab=expired' },
-        { label: 'Duplicates', to: '/reports#duplicates' },
-        { label: 'Missing Data', to: '/reports#missing' },
      ]},
+    { label: 'E-Numbers',     icon: Package,    to: '/raw-materials' },
+    { label: 'Learning',      icon: BookOpen,   to: '/learning' },
     { label: 'Messages',     icon: MessageSquare, to: '/messages' },
   ],
   'Certificate Manager': [
@@ -193,12 +193,12 @@ export default function Sidebar({ collapsed, onClose }) {
                 {!sidebarCollapsed && isOpen && (
                   <div style={{ paddingLeft: 16, borderLeft: '2px solid #e2e8f0', marginLeft: 20, marginBottom: 4 }}>
                     {link.children.map(child => {
-                      const tab = child.to.split('#')[1] || '';
-                      const isChildActive = isReportsActive && location.hash === `#${tab}`;
+                      const tab = child.to.split('?tab=')[1] || child.to.split('#')[1] || '';
+                      const isChildActive = isReportsActive && (location.search === `?tab=${tab}` || location.hash === `#${tab}`);
                       return (
                         <button
                           key={child.to}
-                          onClick={() => navigate(`/reports?tab=${tab}`)}
+                          onClick={() => navigate(tab === 'all' ? '/reports' : `/reports?tab=${tab}`)}
                           className={`nav-item${isChildActive ? ' active' : ''}`}
                           style={{
                             width: '100%', textAlign: 'left', background: 'none', border: 'none',

@@ -158,7 +158,7 @@ const TABS = [
   { id: 'quality',  label: 'Data Quality',    icon: GitCompare },
 ];
 
-const CLIENT_TABS = ['all', 'byState', 'byType', 'pivot', 'charts', 'expired', 'duplicates', 'missing'];
+const CLIENT_TABS = ['all', 'byState', 'byType', 'pivot', 'charts', 'expired'];
 
 /* ─── Grouped query view (shared by By State + By Type tabs) ─── */
 function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, showAdvanced, fmt }) {

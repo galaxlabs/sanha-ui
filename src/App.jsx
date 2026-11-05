@@ -20,6 +20,7 @@ import PrintBulk from './pages/PrintBulk';
 import PrintGrouped from './pages/PrintGrouped';
 import PrintReport from './pages/PrintReport';
 import ClientReport from './pages/ClientReport';
+import Learning from './pages/Learning';
 import { Spinner } from './components/UI/Loaders';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -106,6 +107,7 @@ function AppRoutes() {
           <AppLayout><RawMaterials /></AppLayout>
         </ProtectedRoute>
       } />
+      <Route path="/learning" element={<ProtectedRoute><AppLayout><Learning /></AppLayout></ProtectedRoute>} />
 
       <Route path="/reports" element={
         <ProtectedRoute>
