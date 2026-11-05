@@ -352,6 +352,11 @@ export async function getPlaylistVideos(url) {
   return res.message || [];
 }
 
+export async function getClientResources(kind) {
+  const res = await request('GET', `/api/method/sanha.api.dashboard.client_resources?kind=${encodeURIComponent(kind)}`, null, { cache: false });
+  return res.message || [];
+}
+
 export async function getExpiredDocuments() {
   const res = await request('GET', '/api/method/sanha.api.dashboard.expired_documents', null, { cache: false });
   return res.message?.data || [];
