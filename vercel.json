@@ -13,10 +13,6 @@
       "destination": "https://evaluation.sanha.org.pk/private/:path*"
     },
     {
-      "source": "/assets/:path*",
-      "destination": "https://evaluation.sanha.org.pk/assets/:path*"
-    },
-    {
       "source": "/((?!api/|files/|assets/).*)",
       "destination": "/index.html"
     }
