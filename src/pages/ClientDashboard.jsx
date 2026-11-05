@@ -9,6 +9,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { getQueries, getStateCounts } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
+import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import { Doughnut, Bar } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 /* ── Status helpers ── */
 function getStatusInfo(expiry) {
@@ -60,7 +64,7 @@ export default function ClientDashboard() {
 
   const loadData = async () => {
     try {
-      const filters = [['owner', '=', user.name]];
+      const filters = [[user?.clientName ? 'client_name' : 'owner', '=', user?.clientName || user.name]];
       const [statRows, queries] = await Promise.all([
         getStateCounts(filters),
         getQueries(filters, 6, 0),
@@ -90,6 +94,21 @@ export default function ClientDashboard() {
   const totalQueries = Object.values(counts).reduce((a, b) => a + b, 0);
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
   const certificationWindow = [fmtDate(clientData?.certified_since), fmtDate(clientData?.certified_expiry)].filter(Boolean).join(' - ');
+  const statusEntries = Object.entries(counts).filter(([, value]) => value > 0);
+  const statusColors = statusEntries.map(([state]) => STATE_COLORS[state] || '#94a3b8');
+  const chartData = {
+    labels: statusEntries.map(([state]) => state),
+    datasets: [{ data: statusEntries.map(([, value]) => value), backgroundColor: statusColors, borderWidth: 0 }],
+  };
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+  };
+  const barData = {
+    labels: statusEntries.map(([state]) => state),
+    datasets: [{ label: 'Queries', data: statusEntries.map(([, value]) => value), backgroundColor: statusColors }],
+  };
 
   return (
     <div style={{ minHeight: '100%' }}>
@@ -236,11 +255,17 @@ export default function ClientDashboard() {
       </div>
 
       {/* ── My Query Stats ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
         {[
           { label: 'My Queries', value: totalQueries, gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)', state: null },
+          { label: 'Draft', value: counts.Draft || 0, gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', state: 'Draft' },
           { label: 'Submitted', value: counts.Submitted || 0, gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', state: 'Submitted' },
+          { label: 'Submitted to SB', value: counts['Submitted to SB'] || 0, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', state: 'Submitted to SB' },
+          { label: 'Under Review', value: counts['Under Review'] || 0, gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', state: 'Under Review' },
+          { label: 'Returned', value: counts.Returned || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Returned' },
           { label: 'Approved', value: counts.Approved || 0, gradient: 'linear-gradient(135deg, #10b981, #059669)', state: 'Approved' },
+          { label: 'On Hold', value: counts.Hold || 0, gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', state: 'Hold' },
+          { label: 'Doubtful', value: counts.Doubtful || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Doubtful' },
           { label: 'Rejected', value: counts.Rejected || 0, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', state: 'Rejected' },
         ].map((s, i) => (
           <div
@@ -273,6 +298,19 @@ export default function ClientDashboard() {
           </div>
         ))}
       </div>
+
+      {statusEntries.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginBottom: 24 }}>
+          <section style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: '0.95rem', color: '#0f172a' }}>Query Status Distribution</h3>
+            <div style={{ height: 260 }}><Doughnut data={chartData} options={chartOptions} /></div>
+          </section>
+          <section style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: '0.95rem', color: '#0f172a' }}>Queries by Status</h3>
+            <div style={{ height: 260 }}><Bar data={barData} options={{ ...chartOptions, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }} /></div>
+          </section>
+        </div>
+      )}
 
       {/* ── My Recent Queries ── */}
       <div style={{ marginBottom: 24 }}>

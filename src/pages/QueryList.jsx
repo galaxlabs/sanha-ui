@@ -40,7 +40,8 @@ export default function QueryList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const isClient = hasRole('Client') && !isAdmin();
+  const isStaff = isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
+  const isClient = !isStaff && (hasRole('Client') || !!user?.clientName);
 
   const initClient = splitParam(searchParams.get('client') || '');
   const initState  = splitParam(searchParams.get('state')  || '');
@@ -140,7 +141,7 @@ export default function QueryList() {
 
   const buildFilters = useCallback(() => {
     const f = [];
-    if (isClient) f.push(['owner', '=', user.name]);
+    if (isClient) f.push([user?.clientName ? 'client_name' : 'owner', '=', user?.clientName || user.name]);
     if (stateFilter.length)        f.push(['workflow_state', excludeState  ? 'not in' : 'in', stateFilter]);
     if (typeFilter.length)         f.push(['query_types',    excludeType   ? 'not in' : 'in', typeFilter]);
     if (clientFilter.length && !isClient) f.push(['client_name', excludeClient ? 'not in' : 'in', clientFilter]);

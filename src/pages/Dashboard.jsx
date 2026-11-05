@@ -13,19 +13,25 @@ import {
 import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { getStateCounts, getQueries } from '../api/frappe';
+import { useTheme } from '../contexts/ThemeContext';
+import { getClients, getStateCounts, getQueries } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, Filler);
 
 /* ── Stat definitions per role ── */
 const STAT_DEFS_ADMIN = [
+  { state: 'Draft',        icon: FileText,    gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', label: 'Draft' },
   { state: 'Submitted',    icon: FileText,    gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Submitted' },
+  { state: 'Submitted to SB', icon: TrendingUp, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'Submitted to SB' },
   { state: 'Under Review', icon: Clock,       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
+  { state: 'Returned',     icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned' },
+  { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #fb923c, #ea580c)', label: 'Returned to Evaluation' },
   { state: 'Approved',     icon: CheckCircle, gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
   { state: 'Doubtful',     icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Doubtful' },
   { state: 'Hold',         icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
   { state: 'Rejected',     icon: XCircle,     gradient: 'linear-gradient(135deg, #f87171, #ef4444)', label: 'Rejected' },
+  { state: 'Delisted',     icon: XCircle,     gradient: 'linear-gradient(135deg, #64748b, #475569)', label: 'Delisted' },
 ];
 
 const STAT_DEFS_CLIENT = [
@@ -40,6 +46,11 @@ const STAT_DEFS_EVAL = [
   { state: 'Submitted',              icon: FileText,      gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Pending Review' },
   { state: 'Submitted to SB',        icon: TrendingUp,    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'Forwarded to SB' },
   { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned to Eval' },
+  { state: 'Under Review',           icon: Clock,         gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
+  { state: 'Returned',               icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Returned to Client' },
+  { state: 'Approved',               icon: CheckCircle,   gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
+  { state: 'Rejected',               icon: XCircle,       gradient: 'linear-gradient(135deg, #f87171, #ef4444)', label: 'Rejected' },
+  { state: 'Hold',                   icon: Clock,         gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
 ];
 
 const STAT_DEFS_SBU = [
@@ -48,6 +59,8 @@ const STAT_DEFS_SBU = [
   { state: 'Hold',            icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
   { state: 'Approved',        icon: CheckCircle, gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
   { state: 'Rejected',        icon: XCircle,     gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Rejected' },
+  { state: 'Doubtful',        icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Doubtful' },
+  { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned to Evaluation' },
 ];
 
 /* ── Chart colors ── */
@@ -61,15 +74,22 @@ const STATE_COLORS = {
 export default function Dashboard() {
   const { user, hasRole, isAdmin } = useAuth();
   const { error: showError } = useToast();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [counts, setCounts] = useState({});
   const [recent, setRecent] = useState([]);
   const [allQueries, setAllQueries] = useState([]);
+  const [clientTotal, setClientTotal] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const isClientRole = hasRole('Client') && !isAdmin();
+  const isStaffRole = isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
+  const isClientRole = !isStaffRole && (hasRole('Client') || !!user?.clientName);
   const isEvalRole = hasRole('Evaluation') && !isAdmin();
   const isSBRole = hasRole('SB User') && !isAdmin();
+  const isDark = theme === 'dark';
+  const chartTheme = isDark
+    ? { grid: 'rgba(255,255,255,.08)', text: '#a9b2d0', muted: '#74809f', tooltip: '#171b35' }
+    : { grid: 'rgba(81,74,137,.08)', text: '#5d6480', muted: '#8991ac', tooltip: '#25204b' };
 
   let statDefs = STAT_DEFS_ADMIN;
   if (isClientRole) statDefs = STAT_DEFS_CLIENT;
@@ -81,17 +101,21 @@ export default function Dashboard() {
     async function load() {
       setLoading(true);
       try {
-        const extraFilters = isClientRole ? [['owner', '=', user.name]] : [];
-        const [statRows, queries, allData] = await Promise.all([
-          getStateCounts(extraFilters),
-          getQueries(isClientRole ? [['owner', '=', user.name]] : [], 6, 0, controller.signal),
-          getQueries(extraFilters, 9999, 0, controller.signal),
+        const extraFilters = isClientRole
+          ? [[user.clientName ? 'client_name' : 'owner', '=', user.clientName || user.name]]
+          : [];
+        const [statRows, queries, allData, clients] = await Promise.all([
+          getStateCounts(extraFilters, { fresh: true }),
+          getQueries(extraFilters, 6, 0, controller.signal, true),
+          getQueries(extraFilters, 9999, 0, controller.signal, true),
+          isAdmin() ? getClients({ fresh: true }) : Promise.resolve(null),
         ]);
         const map = {};
         statRows.forEach(r => { map[r.state] = r.count; });
         setCounts(map);
         setRecent(queries);
         setAllQueries(allData);
+        setClientTotal(clients?.length ?? null);
       } catch (e) {
         if (e.name !== 'AbortError') {
           console.error(e);
@@ -134,8 +158,8 @@ export default function Dashboard() {
     { state: 'Submitted', color: '#22c55e' },
     { state: 'Submitted to SB', color: '#3b82f6' },
     { state: 'Under Review', color: '#8b5cf6' },
-    { state: 'Approved', color: '#10b981' },
     { state: 'Rejected', color: '#f87171' },
+    { state: 'Approved', color: '#10b981' },
   ].filter(p => counts[p.state] > 0);
 
   const barData = {
@@ -156,8 +180,8 @@ export default function Dashboard() {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#64748b' } },
-      y: { grid: { color: 'rgba(0,0,0,.04)' }, border: { display: false }, ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' } },
+      x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: chartTheme.text } },
+      y: { grid: { color: chartTheme.grid }, border: { display: false }, ticks: { maxTicksLimit: 8, precision: 0, font: { size: 10 }, color: chartTheme.muted } },
     },
   };
 
@@ -165,8 +189,8 @@ export default function Dashboard() {
     ...chartOpts,
     indexAxis: 'y',
     scales: {
-      x: { grid: { color: 'rgba(0,0,0,.04)' }, border: { display: false }, ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' } },
-      y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#64748b' } },
+      x: { grid: { color: chartTheme.grid }, border: { display: false }, ticks: { maxTicksLimit: 8, precision: 0, font: { size: 10 }, color: chartTheme.muted } },
+      y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: chartTheme.text } },
     },
   };
 
@@ -264,19 +288,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100%' }}>
+    <div className="dashboard-page">
       {/* ── Greeting Banner ── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0f766e 0%, #16a34a 50%, #059669 100%)',
-        borderRadius: 20,
-        padding: '28px 32px',
-        marginBottom: 28,
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 8px 32px rgba(16,185,129,.25)',
-      }}>
+      <div className="dashboard-hero">
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: '#fff' }}>
             {greeting()}, {user?.full_name?.split(' ')[0] || 'there'}
@@ -308,7 +322,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Stat Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="dashboard-stat-grid">
         {statDefs.map(s => {
           const Icon = s.icon;
           const value = counts[s.state] ?? 0;
@@ -316,22 +330,7 @@ export default function Dashboard() {
             <div
               key={s.state}
               onClick={() => navigate(`/queries?state=${encodeURIComponent(s.state)}`)}
-              style={{
-                background: '#fff',
-                borderRadius: 16,
-                padding: '20px',
-                cursor: 'pointer',
-                transition: 'all .2s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,.1)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.06)';
-              }}
+              className="dashboard-stat"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
@@ -347,8 +346,8 @@ export default function Dashboard() {
                   <Icon size={22} color="#fff" />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, marginTop: 2 }}>{s.label}</div>
+                  <div className="dashboard-stat-value">{value}</div>
+                  <div className="dashboard-stat-label">{s.label}</div>
                 </div>
               </div>
             </div>
@@ -358,15 +357,10 @@ export default function Dashboard() {
 
       {/* ── Charts Section ── */}
       {(isAdmin() || isSBRole) && doughnutStates.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 20, marginBottom: 28 }}>
+        <div className="dashboard-chart-grid dashboard-chart-grid--wide">
           {/* Doughnut */}
-          <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-          }}>
-            <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 20, color: '#0f172a' }}>
+          <div className="dashboard-panel">
+            <div className="dashboard-panel-title">
               Status Distribution
             </div>
             <div style={{ height: 240, position: 'relative' }}>
@@ -377,8 +371,8 @@ export default function Dashboard() {
                   maintainAspectRatio: false,
                   cutout: '70%',
                   plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 10, weight: '500' }, padding: 12, boxWidth: 12, color: '#64748b' } },
-                    tooltip: { backgroundColor: '#0f172a', titleFont: { size: 12 }, bodyFont: { size: 11 }, padding: 12, cornerRadius: 8 },
+                    legend: { position: 'bottom', labels: { font: { size: 10, weight: '500' }, padding: 12, boxWidth: 12, color: chartTheme.text } },
+                    tooltip: { backgroundColor: chartTheme.tooltip, titleFont: { size: 12 }, bodyFont: { size: 11 }, padding: 12, cornerRadius: 8 },
                   },
                 }}
               />
@@ -386,13 +380,8 @@ export default function Dashboard() {
           </div>
 
           {/* Bar chart */}
-          <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-          }}>
-            <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 20, color: '#0f172a' }}>
+          <div className="dashboard-panel">
+            <div className="dashboard-panel-title">
               Query Pipeline
             </div>
             <div style={{ height: 240 }}>
@@ -541,7 +530,7 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         {[
           { label: 'Total Queries', value: allQueries.length, color: '#2563eb', bg: '#eff6ff' },
-          { label: 'Active Clients', value: Object.keys(clientCounts).length, color: '#16a34a', bg: '#f0fdf4' },
+          { label: 'Clients', value: clientTotal ?? Object.keys(clientCounts).length, color: '#16a34a', bg: '#f0fdf4' },
           { label: 'Unique Materials', value: new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size, color: '#7c3aed', bg: '#f5f3ff' },
           { label: 'Duplicate Rate', value: allQueries.length ? `${Math.round((dupCount / allQueries.length) * 100)}%` : '0%', color: '#f59e0b', bg: '#fffbeb' },
         ].map((stat, i) => (

@@ -190,7 +190,7 @@ export async function getUserRoles(user) {
 }
 
 /* ── Generic DocType CRUD ── */
-export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0, signal = null } = {}) {
+export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0, signal = null, fresh = false } = {}) {
   const params = new URLSearchParams({
     fields: JSON.stringify(fields),
     filters: JSON.stringify(filters),
@@ -198,7 +198,7 @@ export async function getList(doctype, { filters = [], fields = ['name'], orderB
     limit_page_length: limit,
     limit_start: limitStart,
   });
-  const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}?${params}`, null, { signal });
+  const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}?${params}`, null, { signal, cache: !fresh });
   return res.data || [];
 }
 
@@ -266,7 +266,7 @@ export async function runReport(reportName, filters = {}) {
 }
 
 /* ── Queries helpers ── */
-export async function getQueries(filters = [], limit = 50, start = 0, signal = null) {
+export async function getQueries(filters = [], limit = 50, start = 0, signal = null, fresh = false) {
   return getList('Query', {
     filters,
     fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types',
@@ -275,6 +275,7 @@ export async function getQueries(filters = [], limit = 50, start = 0, signal = n
     limit,
     limitStart: start,
     signal,
+    fresh,
   });
 }
 
@@ -282,8 +283,8 @@ export async function getQueryTypes() {
   return getList('Query Types', { fields: ['name', 'query_type_name', 'description'], orderBy: 'name asc', limit: 200 });
 }
 
-export async function getClients() {
-  return getList('Client', { fields: ['name', 'client_name', 'client_code', 'email', 'city'], orderBy: 'name asc', limit: 500 });
+export async function getClients({ fresh = false } = {}) {
+  return getList('Client', { fields: ['name', 'client_name', 'client_code', 'email', 'city', 'creation', 'modified'], orderBy: 'creation desc', limit: 500, fresh });
 }
 
 export async function getDocumentTypes() {
@@ -291,16 +292,18 @@ export async function getDocumentTypes() {
 }
 
 /* ── State counts — single grouped fetch ── */
-export async function getStateCounts(extraFilters = []) {
-  const rows = await getList('Query', {
-    filters: extraFilters,
-    fields: ['workflow_state'],
-    limit: 9999,
-  });
+export async function getStateCounts(extraFilters = [], { fresh = false } = {}) {
+  const res = await request(
+    'GET',
+    `/api/method/sanha.api.dashboard.state_counts?filters=${encodeURIComponent(JSON.stringify(extraFilters))}`,
+    null,
+    { cache: !fresh },
+  );
+  const rows = res.message || [];
   const counts = {};
   rows.forEach(r => {
-    const s = getSummaryStatus(r.workflow_state);
-    counts[s] = (counts[s] || 0) + 1;
+    const s = getSummaryStatus(r.state ?? r.workflow_state);
+    counts[s] = (counts[s] || 0) + Number(r.count || 0);
   });
   return Object.entries(counts).map(([state, count]) => ({ state, count }));
 }
@@ -337,6 +340,11 @@ export async function findSimilarQuery(rawMaterial, manufacturer, excludeName = 
   });
   const res = await request('GET', `/api/method/sanha.sanha.doctype.query.query.find_similar_query?${params}`, null, { cache: false });
   return res.message?.matches || res.matches || [];
+}
+
+export async function getExpiredDocuments() {
+  const res = await request('GET', '/api/method/sanha.api.dashboard.expired_documents', null, { cache: false });
+  return res.message?.data || [];
 }
 
 /* ── Multi-dimensional report: all queries with extra fields ── */
@@ -445,7 +453,7 @@ function getCurrentUserName() {
 
 export async function saveUserTheme(theme) {
   const user = getCurrentUserName();
-  if (!user) return;
+  if (!user || user === 'Guest') return;
   try {
     await request('PUT', `/api/resource/User/${encodeURIComponent(user)}`, { bio: `theme:${theme}` });
   } catch {}
@@ -453,7 +461,7 @@ export async function saveUserTheme(theme) {
 
 export async function loadUserTheme() {
   const user = getCurrentUserName();
-  if (!user) return null;
+  if (!user || user === 'Guest') return null;
   try {
     const doc = await request('GET', `/api/resource/User/${encodeURIComponent(user)}`, null, { cache: false });
     const bio = doc?.data?.bio || '';

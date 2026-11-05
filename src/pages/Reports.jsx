@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText, GitCompare, Check, X } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
@@ -226,6 +226,7 @@ export default function Reports() {
   const { user, isAdmin, hasRole } = useAuth();
   const { error: showError } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const isAdminUser = isAdmin();
   const isStaffUser = isAdminUser || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
@@ -236,7 +237,7 @@ export default function Reports() {
 
   // Allow sidebar to deep-link to a specific tab via ?tab=byState etc.
   const [tab, setTab] = useState(() => {
-    const t = searchParams.get('tab') || 'all';
+    const t = searchParams.get('tab') || location.hash.slice(1) || 'all';
     // Client users can only access basic tabs
     if (!showAdvanced && !CLIENT_TABS.includes(t)) return 'all';
     return t;
@@ -244,13 +245,13 @@ export default function Reports() {
 
   // When URL ?tab= changes (e.g. sidebar navigation), sync to tab state
   useEffect(() => {
-    const t = searchParams.get('tab');
+    const t = searchParams.get('tab') || location.hash.slice(1);
     if (t) {
       // Redirect client users away from restricted tabs
       if (!showAdvanced && !CLIENT_TABS.includes(t)) return;
       setTab(t);
     }
-  }, [searchParams]);
+  }, [searchParams, location.hash, showAdvanced]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -297,8 +298,12 @@ export default function Reports() {
   async function loadScript(reportName, setter, key) {
     setScriptLoading(p => ({ ...p, [key]: true }));
     try {
-      const res = await frappe.runScriptReport(reportName);
-      setter(res.result || []);
+      if (reportName === 'Expired Documents' && isClientUser) {
+        setter(await frappe.getExpiredDocuments());
+      } else {
+        const res = await frappe.runScriptReport(reportName);
+        setter(res.result || []);
+      }
     } catch (e) { showError(`${reportName}: ${e.message}`); }
     finally { setScriptLoading(p => ({ ...p, [key]: false })); }
   }
@@ -590,6 +595,25 @@ export default function Reports() {
         </div>
       )}
 
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, marginBottom: 16 }}>
+        {TABS.filter(item => showAdvanced || CLIENT_TABS.includes(item.id)).map(item => {
+          const Icon = item.icon;
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`btn btn-sm ${active ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => navigate(item.id === 'all' ? '/reports' : `/reports?tab=${item.id}`)}
+              style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            >
+              {Icon && <Icon size={14} />}
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
       {['all','byState','byType','pivot','charts'].includes(tab) && (
         <QueryFilters
           search={search}
@@ -766,9 +790,9 @@ export default function Reports() {
           {/* ─── Expired Docs Tab ─── */}
           {tab === 'expired' && (
             <div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:16, marginBottom:16 }}>
+            <div style={{ display:'grid', gridTemplateColumns: isClientUser ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap:16, marginBottom:16 }}>
               <ChartCard title="Expired by Document Type" data={expiredByDocument} />
-              <ChartCard title="Expired by Client" data={expiredByClient} />
+              {!isClientUser && <ChartCard title="Expired by Client" data={expiredByClient} />}
               <ChartCard title="How Long Expired" data={expiredAgeBuckets} colorKey={{ '0-30 days':'#f59e0b', '31-90 days':'#ef4444', '90+ days':'#991b1b' }} />
             </div>
             <div className="card" style={{ padding:0 }}>
@@ -794,7 +818,15 @@ export default function Reports() {
                     {scopedExpiredData.length === 0 && !scriptLoading.expired && <tr><td colSpan={8} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No expired documents found</td></tr>}
                     {scopedExpiredData.map((r,i) => (
                       <tr key={i} style={{ background:'#fff7ed' }}>
-                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[0]}</td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/queries/${encodeURIComponent(r.query_name || r[0])}`)}
+                            style={{ background:'none', border:0, padding:0, fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600, cursor:'pointer' }}
+                          >
+                            {r.query_name || r[0]}
+                          </button>
+                        </td>
                         <td style={{ fontWeight:500 }}>{r.raw_material || r[1]}</td>
                         <td><StatusBadge state={r.status || r[2]} /></td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.owner_full_name || r[3] || '—'}</td>

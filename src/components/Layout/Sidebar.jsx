@@ -53,11 +53,16 @@ const NAV_GROUPS = {
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
     { label: 'My Queries',    icon: FileText,  to: '/queries' },
     { label: 'Create Query',  icon: Star,      to: '/queries/new' },
-    { label: 'Reports',       icon: BarChart2, to: '/reports', children: [
-      { label: 'All Queries',  to: '/reports#all' },
-      { label: 'By State',     to: '/reports#byState' },
-      { label: 'By Type',      to: '/reports#byType' },
-    ]},
+     { label: 'Reports',       icon: BarChart2, to: '/reports', children: [
+        { label: 'All Queries',  to: '/reports#all' },
+        { label: 'By State',     to: '/reports#byState' },
+        { label: 'By Type',      to: '/reports#byType' },
+        { label: 'Pivot Analysis', to: '/reports#pivot' },
+        { label: 'State Charts', to: '/reports#charts' },
+        { label: 'Expired Docs', to: '/reports?tab=expired' },
+        { label: 'Duplicates', to: '/reports#duplicates' },
+        { label: 'Missing Data', to: '/reports#missing' },
+     ]},
     { label: 'Messages',     icon: MessageSquare, to: '/messages' },
   ],
   'Certificate Manager': [
