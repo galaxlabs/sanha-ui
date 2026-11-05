@@ -347,6 +347,11 @@ export async function getOverviewMetrics(filters = []) {
   return res.message || {};
 }
 
+export async function getPlaylistVideos(url) {
+  const res = await request('GET', `/api/method/sanha.api.dashboard.playlist_videos?url=${encodeURIComponent(url)}`, null, { cache: false });
+  return res.message || [];
+}
+
 export async function getExpiredDocuments() {
   const res = await request('GET', '/api/method/sanha.api.dashboard.expired_documents', null, { cache: false });
   return res.message?.data || [];
