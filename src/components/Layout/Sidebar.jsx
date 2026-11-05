@@ -27,7 +27,7 @@ const NAV_GROUPS = {
     { label: 'All Queries',    icon: FileText,         to: '/queries' },
     { label: 'Clients',        icon: Users,            to: '/clients' },
     { label: 'Query Types',    icon: ClipboardList,    to: '/query-types' },
-    { label: 'Raw Materials',  icon: Package,          to: '/raw-materials' },
+    { label: 'E-Numbers',      icon: Package,          to: '/raw-materials' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
     { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
     { label: 'Settings',       icon: Settings,         to: '/settings' },

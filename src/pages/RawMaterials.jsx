@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { CalendarClock, RefreshCw, Search } from 'lucide-react';
+import { CalendarClock, Plus, RefreshCw, Search } from 'lucide-react';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -16,7 +17,10 @@ export default function RawMaterials() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ code: '', name1: '', alternative_name: '', function: '', status: '' });
   const { error } = useToast();
+  const { isAdmin } = useAuth();
 
   async function load() {
     setLoading(true);
@@ -60,12 +64,13 @@ export default function RawMaterials() {
       <div className="page-heading">
         <div>
           <p className="page-kicker">Reference library</p>
-          <h1>Raw Materials</h1>
+          <h1>E-Numbers</h1>
           <p>Browse E-NUMBERS with their recorded creation and last update dates.</p>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={load}>
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {isAdmin() && <button className="btn btn-primary btn-sm" onClick={() => setAdding(true)}><Plus size={14} /> Add E-Number</button>}
+          <button className="btn btn-outline btn-sm" onClick={load}><RefreshCw size={14} /> Refresh</button>
+        </div>
       </div>
 
       <div className="card filter-card">
@@ -128,6 +133,7 @@ export default function RawMaterials() {
         </div>
       )}
       {selected && <div className="modal-overlay" onClick={() => setSelected(null)}><div className="modal" onClick={event => event.stopPropagation()}><div className="modal-header"><h3>{selected.name1 || selected.name}</h3><button className="btn btn-ghost" onClick={() => setSelected(null)}>Close</button></div><p><strong>Code:</strong> {selected.code || '—'}</p><p><strong>Alternative names:</strong> {selected.alternative_name || '—'}</p><p><strong>Function:</strong> {selected.function || '—'}</p><p><strong>Status:</strong> {selected.status || 'Unknown'}</p><p><strong>Created:</strong> {formatDate(selected.creation)}</p><p><strong>Last updated:</strong> {formatDate(selected.modified)}</p></div></div>}
+      {adding && <div className="modal-overlay" onClick={() => setAdding(false)}><form className="modal" onClick={event => event.stopPropagation()} onSubmit={async event => { event.preventDefault(); try { await frappe.createDoc('E-NUMBERS', form); setAdding(false); setForm({ code: '', name1: '', alternative_name: '', function: '', status: '' }); load(); } catch (e) { error(e.message); } }}><div className="modal-header"><h3>Add E-Number</h3><button type="button" className="btn btn-ghost" onClick={() => setAdding(false)}>Close</button></div>{[['code','Code'],['name1','Name'],['alternative_name','Alternative Names'],['function','Function'],['status','Status']].map(([key,label]) => <input key={key} className="form-control" required={key === 'code' || key === 'name1'} placeholder={label} value={form[key]} onChange={event => setForm({ ...form, [key]: event.target.value })} style={{ marginBottom: 10 }} />)}<button className="btn btn-primary" type="submit">Save E-Number</button></form></div>}
     </div>
   );
 }
