@@ -64,8 +64,6 @@ const NAV_GROUPS = {
     { label: 'E-Numbers',     icon: Package,    to: '/raw-materials' },
     { label: 'Learning',      icon: BookOpen,   to: '/learning' },
     { label: 'Email Templates', icon: FileText, to: '/resources/templates' },
-    { label: 'Record Hub',    icon: ClipboardList, to: '/resources/records' },
-    { label: 'Information Desk', icon: Search, to: '/resources/information' },
     { label: 'Messages',     icon: MessageSquare, to: '/messages' },
   ],
   'Certificate Manager': [
