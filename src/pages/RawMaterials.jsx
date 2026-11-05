@@ -15,6 +15,7 @@ export default function RawMaterials() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
   const { error } = useToast();
 
   async function load() {
@@ -100,7 +101,7 @@ export default function RawMaterials() {
               </thead>
               <tbody>
                 {filtered.map(r => (
-                  <tr key={r.name}>
+                  <tr key={r.name} onClick={() => setSelected(r)} style={{ cursor: 'pointer' }}>
                     <td>
                       <strong>{r.name1 || r.name}</strong>
                       {r.alternative_name && <span className="table-subtext">{r.alternative_name}</span>}
@@ -126,6 +127,7 @@ export default function RawMaterials() {
           </div>
         </div>
       )}
+      {selected && <div className="modal-overlay" onClick={() => setSelected(null)}><div className="modal" onClick={event => event.stopPropagation()}><div className="modal-header"><h3>{selected.name1 || selected.name}</h3><button className="btn btn-ghost" onClick={() => setSelected(null)}>Close</button></div><p><strong>Code:</strong> {selected.code || '—'}</p><p><strong>Alternative names:</strong> {selected.alternative_name || '—'}</p><p><strong>Function:</strong> {selected.function || '—'}</p><p><strong>Status:</strong> {selected.status || 'Unknown'}</p><p><strong>Created:</strong> {formatDate(selected.creation)}</p><p><strong>Last updated:</strong> {formatDate(selected.modified)}</p></div></div>}
     </div>
   );
 }

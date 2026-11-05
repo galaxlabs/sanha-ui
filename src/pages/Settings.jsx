@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { TRANSITIONS } from '../utils/workflow';
 import {
   uploadLogoFile, savePortalLogoUrl, getPortalLogoUrl,
-  adminSetPassword, updatePassword, listUsers, uploadFile, updateClient,
+  adminSetPassword, updatePassword, listUsers, uploadFile, updateClient, getList, createDoc, deleteDoc,
 } from '../api/frappe';
 import { useToast } from '../contexts/ToastContext';
 
@@ -92,6 +92,9 @@ export default function SettingsPage() {
       <SectionCard icon={Users} iconBg="#dcfce7" iconColor="#16a34a" title="User Management" defaultOpen={false}>
         <UserManagementPanel addToast={addToast} />
       </SectionCard>
+      <SectionCard icon={Database} iconBg="#eef2ff" iconColor="#4f46e5" title="Learning Playlists" defaultOpen={false}>
+        <LearningPlaylistPanel addToast={addToast} />
+      </SectionCard>
 
       <SectionCard icon={Shield} iconBg="#fef3c7" iconColor="#d97706" title="Role Permissions" defaultOpen={false}>
         <RolePermissionsTable />
@@ -106,6 +109,15 @@ export default function SettingsPage() {
       </SectionCard>
     </div>
   );
+}
+
+function LearningPlaylistPanel({ addToast }) {
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({ title: '', subject: '', youtube_url: '', description: '', sort_order: 0, published: 1 });
+  const load = () => getList('Learning Playlist', { fields: ['name', 'title', 'subject', 'youtube_url', 'description', 'sort_order', 'published'], orderBy: 'sort_order asc', limit: 200 }).then(setItems);
+  useEffect(() => { load(); }, []);
+  const save = async event => { event.preventDefault(); try { await createDoc('Learning Playlist', form); setForm({ title: '', subject: '', youtube_url: '', description: '', sort_order: 0, published: 1 }); load(); addToast('Playlist saved', 'success'); } catch (error) { addToast(error.message, 'error'); } };
+  return <><form onSubmit={save} style={{ display: 'grid', gap: 10, marginBottom: 16 }}><input className="form-control" required placeholder="Playlist title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /><input className="form-control" required placeholder="Subject" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} /><input className="form-control" required type="url" placeholder="YouTube playlist URL" value={form.youtube_url} onChange={e => setForm({ ...form, youtube_url: e.target.value })} /><textarea className="form-control" placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /><div style={{ display: 'flex', gap: 10 }}><input className="form-control" type="number" placeholder="Order" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: Number(e.target.value) })} /><label><input type="checkbox" checked={!!form.published} onChange={e => setForm({ ...form, published: e.target.checked ? 1 : 0 })} /> Published</label><button className="btn btn-primary" type="submit">Add Playlist</button></div></form><div className="table-wrap"><table><thead><tr><th>Subject</th><th>Title</th><th>Published</th><th /></tr></thead><tbody>{items.map(item => <tr key={item.name}><td>{item.subject}</td><td><a href={item.youtube_url} target="_blank" rel="noreferrer">{item.title}</a></td><td>{item.published ? 'Yes' : 'No'}</td><td><button className="btn btn-ghost btn-sm" onClick={async () => { await deleteDoc('Learning Playlist', item.name); load(); }}>Delete</button></td></tr>)}</tbody></table></div></>;
 }
 
 /* ── Client Logo Panel ── */
