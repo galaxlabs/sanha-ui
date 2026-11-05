@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -21,6 +21,7 @@ import PrintGrouped from './pages/PrintGrouped';
 import PrintReport from './pages/PrintReport';
 import ClientReport from './pages/ClientReport';
 import Learning from './pages/Learning';
+import ClientResources from './pages/ClientResources';
 import { Spinner } from './components/UI/Loaders';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -41,6 +42,11 @@ function DashboardWrapper() {
   const hasClientData = user?.clientData || user?.clientName;
   // Show client dashboard if user has Client role OR has client data linked
   return (isClient || hasClientData) && !isStaff ? <ClientDashboard /> : <Dashboard />;
+}
+
+function ClientResourcesRoute() {
+  const { type } = useParams();
+  return <ClientResources type={type} />;
 }
 
 function AppRoutes() {
@@ -108,6 +114,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/learning" element={<ProtectedRoute><AppLayout><Learning /></AppLayout></ProtectedRoute>} />
+      <Route path="/resources/:type" element={<ProtectedRoute><AppLayout><ClientResourcesRoute /></AppLayout></ProtectedRoute>} />
 
       <Route path="/reports" element={
         <ProtectedRoute>
