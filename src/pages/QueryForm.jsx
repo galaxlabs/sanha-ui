@@ -440,13 +440,10 @@ export default function QueryForm() {
 
       {remoteChanged && <div className="card" role="status" style={{ marginBottom: 16 }}><strong>This Query has newer backend changes.</strong><p>Your unsaved edits have been preserved. Review the latest record before saving; use Reload to replace your local edits.</p><button type="button" className="btn btn-outline" onClick={async () => { const latest = await frappe.getDoc('Query', name, { fresh: true }); setDoc(latest); savedSignature.current = editableSignature(latest); savedChildren.current = childStamp(latest); setRemoteChanged(false); }}>Reload latest record</button></div>}
       {isClient && isDraft && <div className="card" style={{ marginBottom: 16 }}>
-        <p>You can save an incomplete draft and complete it later. A complete draft is automatically submitted five minutes after your last save.</p>
-        {doc.auto_submit_after && <p>Auto-submit check: {new Date(doc.auto_submit_after.replace(' ', 'T')).toLocaleString()}</p>}
-        {doc.auto_submit_error && <p role="status">Draft not submitted: {doc.auto_submit_error}. Complete the missing details and save again.</p>}
+        <p>You can save an incomplete draft and complete it later. Automatic submission starts on 11 November 2026 at 00:00 Pakistan time. Only drafts saved by the Client after activation are checked five minutes after their last save, and submitted if complete. Older untouched drafts remain drafts.</p>
       </div>}
       {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={`${doc.name}:${doc.modified}`} query={doc.name} />}
       {/* Recovered draft banner */}
-      {!!doc.was_auto_submitted && <div className="card" style={{ marginBottom: 16 }}><strong>Auto-submitted / خودکار سبمٹ</strong><p>Last automatic submission: {doc.auto_submitted_at || '—'} · Client user: {doc.auto_submitted_by || '—'}</p><small>Historical marker remains if this Query is later returned or edited. Unmarked older records do not prove manual submission.</small></div>}
       {recoveredDraft && (
         <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:8, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
           <Info size={15} color="#0284c7" />

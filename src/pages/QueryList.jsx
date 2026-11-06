@@ -80,7 +80,6 @@ export default function QueryList() {
 
   /* Pagination */
   const [pageSize, setPageSize] = useState(25);
-  const [onlyAutoSubmitted, setOnlyAutoSubmitted] = useState(false);
   const [sortField, setSortField] = useState('modified');
   const [sortDirection, setSortDirection] = useState('desc');
   const sortOrder = `${sortField} ${sortDirection}`;
@@ -151,7 +150,6 @@ export default function QueryList() {
 
   const buildFilters = useCallback(() => {
     const f = [];
-    if (onlyAutoSubmitted) f.push(['was_auto_submitted', '=', 1]);
     if (isClient) f.push([user?.clientName ? 'client_name' : 'owner', '=', user?.clientName || user.name]);
     if (stateFilter.length) {
       // Match the dashboard's summary aliases when drilling down from cards.
@@ -166,7 +164,7 @@ export default function QueryList() {
     if (fromDate) f.push(['creation', '>=', fromDate]);
     if (toDate)   f.push(['creation', '<=', toDate + ' 23:59:59']);
     return f;
-  }, [isClient, user?.name, user?.clientName, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate, excludeState, excludeType, excludeClient, onlyAutoSubmitted]);
+  }, [isClient, user?.name, user?.clientName, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate, excludeState, excludeType, excludeClient]);
 
   const load = useCallback(async (reset = true, atPage = 0, signal = null, background = false) => {
     if (background && normalLoadPending.current) return;
@@ -438,7 +436,6 @@ export default function QueryList() {
 
       <div className="card" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '12px 16px', marginBottom: 12 }}>
         <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by / ترتیب</label>
-        <label><input type="checkbox" checked={onlyAutoSubmitted} onChange={event => setOnlyAutoSubmitted(event.target.checked)} /> Auto-submitted only (new tracking)</label>
         <select id="query-sort-field" className="form-control" style={{ width: 'auto' }} value={sortField} onChange={event => { const field = event.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
           <option value="raw_material">Raw Material — حروفِ تہجی</option>
           <option value="creation">Created — بننے کی تاریخ</option>
