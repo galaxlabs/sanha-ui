@@ -157,6 +157,23 @@ export async function login(usr, pwd) {
   return json;
 }
 
+export async function refreshCsrfToken() {
+  try {
+    const res = await fetch(BASE + '/api/method/sanha.api.auth.get_csrf_token', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+      mode: 'cors',
+    });
+    const json = await res.json().catch(() => ({}));
+    const token = json?.message?.csrf_token || '';
+    if (token) window.csrf_token = token;
+    return token;
+  } catch (error) {
+    return '';
+  }
+}
+
 export async function logout() {
   try {
     await request('GET', '/api/method/frappe.auth.web_logout');

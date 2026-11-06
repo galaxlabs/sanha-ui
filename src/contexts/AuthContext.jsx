@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { login as apiLogin, logout as apiLogout, getCurrentUser, FRAPPE_URL } from '../api/frappe';
+﻿import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { login as apiLogin, logout as apiLogout, getCurrentUser, refreshCsrfToken, FRAPPE_URL } from '../api/frappe';
 import { configureLiveData, peekLiveDataset, stopLiveData, subscribeDataset } from '../api/liveData';
 
 const AuthContext = createContext(null);
@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
 
   const fetchUser = useCallback(async () => {
     try {
+      await refreshCsrfToken();
       const current = await getCurrentUser();
       if (!current?.is_authenticated || current.message === 'Guest') {
         stopLiveData();
