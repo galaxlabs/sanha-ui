@@ -20,6 +20,7 @@ try {
   const snapshots = new Map(), transfers = [], errors = [], unexpected = [];
   const consoleErrors = [];
   let releaseLate, lateStarted = false;
+  let denyNextQuery = false, accessProofs = 0, authRequests = 0;
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   debug = () => ({ errors, unexpected, transfers, consoleErrors });
   const queries = {
@@ -33,7 +34,8 @@ try {
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const url = new URL(route.request().url());
     const answer = message => route.fulfill({ json: { message }, headers });
-    if (url.pathname.endsWith('sanha.api.auth.get_current_user')) return answer({ is_authenticated: true, message: actor, user: actor, name: actor, full_name: actor, roles: ['Client'], clientName: company(), clientData: { name: company(), client_name: company() } });
+    if (url.pathname.endsWith('sanha.api.auth.get_current_user')) { authRequests++; return answer({ is_authenticated: true, message: actor, user: actor, name: actor, full_name: actor, roles: ['Client'], clientName: company(), clientData: { name: company(), client_name: company() } }); }
+    if (url.pathname.endsWith('sanha.api.live_data.access_status')) { accessProofs++; return answer({ user: actor, allowed: true, scope: `scope-${actor}`, client_scope: company() }); }
     if (url.pathname.endsWith('/api/resource/Query/Query-LATE')) {
       if (actor !== 'client-a') return route.fulfill({ status: 403, json: { message: 'Not available' }, headers });
       lateStarted = true;
@@ -42,6 +44,7 @@ try {
     }
     if (url.pathname.endsWith('sanha.api.live_data.sync')) {
       const type = url.searchParams.get('doctype');
+      if (type === 'Query' && denyNextQuery) { denyNextQuery = false; return route.fulfill({ status: 403, json: { message: 'Transient test denial' }, headers }); }
       const cursor = url.searchParams.get('cursor');
       const prior = snapshots.get(cursor);
       const reset = !prior || prior.actor !== actor || prior.type !== type;
@@ -52,7 +55,7 @@ try {
       const next = reset || upserts.length || deleted.length || url.searchParams.has('fork') ? `mock-${++sequence}` : cursor;
       snapshots.set(next, { actor, type, rows: structuredClone(rows) });
       transfers.push({ actor, type, rows: upserts.length, reset });
-      return answer({ schema: 1, user: actor, doctype: type, scope: `scope-${actor}`, cursor: next, reset, upserts, deleted, total: rows.length, metrics: type === 'Query' ? { total_queries: rows.length, unique_materials: rows.length, duplicate_queries: 0, clients: 1 } : null, meta: null, checked_at: '2026-01-01 10:00:00' });
+      return answer({ schema: 1, user: actor, doctype: type, scope: `scope-${actor}`, client_scope: company(), cursor: next, reset, upserts, deleted, total: rows.length, metrics: type === 'Query' ? { total_queries: rows.length, unique_materials: rows.length, duplicate_queries: 0, clients: 1 } : null, meta: null, checked_at: '2026-01-01 10:00:00' });
     }
     if (decodeURIComponent(url.pathname).endsWith('/api/resource/Query Types')) return route.fulfill({ json: { data: Number(url.searchParams.get('limit_start')) ? [] : [{ name: 'Type1', query_type_name: 'Type 1' }] }, headers });
     unexpected.push(url.pathname);
@@ -63,6 +66,12 @@ try {
   const second = page.locator('tr').filter({ hasText: 'Material A 002' });
   await second.locator('input[type="checkbox"]').check();
   await second.evaluate(element => { element.dataset.retainedRow = 'yes'; });
+  const beforeProofAuth = authRequests;
+  denyNextQuery = true;
+  await page.getByRole('button', { name: /Live data/ }).click();
+  await expect.poll(() => accessProofs).toBe(1);
+  await expect(page.getByRole('button', { name: /Live data/ })).not.toContainText('syncing');
+  assert.equal(authRequests, beforeProofAuth, 'verified transient denial must not restart authentication');
   queries['client-a'][0] = { ...queries['client-a'][0], raw_material: 'Updated A 001', modified: '2026-01-02 10:00:00' };
   await expect(page.getByText('Updated A 001', { exact: true })).toBeVisible({ timeout: 20000 });
   await expect(second.locator('input[type="checkbox"]')).toBeChecked();
@@ -91,7 +100,7 @@ try {
   }));
   assert.equal(cached.user, 'client-b'); assert.equal(cached.rows.length, 1);
   assert.equal(errors.length, 0, errors.join('\n')); assert.equal(unexpected.length, 0, unexpected.join('\n'));
-  console.log(JSON.stringify({ checks: ['automatic delta update', 'unchanged DOM/selection preserved', 'persisted IndexedDB cache validated and reused', 'late previous-session responses rejected', 'account switch purges private cache'], passed: 5, queryTransfers: transfers.filter(item => item.type === 'Query') }, null, 2));
+  console.log(JSON.stringify({ checks: ['verified transient denial retried without full reload', 'automatic delta update', 'unchanged DOM/selection preserved', 'persisted IndexedDB cache validated and reused', 'late previous-session responses rejected', 'account switch purges private cache'], passed: 6, queryTransfers: transfers.filter(item => item.type === 'Query') }, null, 2));
 } catch (error) {
   console.error('Browser diagnostics:', debug?.());
   console.error('Rendered page:', await browserPage?.locator('body').innerText().catch(() => 'unavailable'));

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DatasetClient, mergeDelta, selectRows } from './liveDataset.js';
+import { DatasetClient, mergeDelta, selectRows, syncWithAccessRetry } from './liveDataset.js';
 
 const row = (name, raw_material = name) => ({ name, raw_material, modified: '2026-01-01 10:00:00' });
 const response = (extra = {}) => ({ schema: 1, user: 'client-a', doctype: 'Query', scope: 'scope-a', cursor: 'cursor-1', reset: true, upserts: [row('A'), row('B')], deleted: [], total: 2, metrics: { total_queries: 2 }, meta: null, ...extra });
@@ -84,4 +84,29 @@ test('cached filters and numeric order retain list semantics', () => {
   assert.equal(selectRows(rows, { filters: [['raw_material', 'like', '%[1]%']] })[0].name, 'B');
   assert.deepEqual(selectRows(rows, { orderBy: 'sort_order asc' }).map(r => r.name), ['B', 'A']);
   assert.equal(selectRows(rows, { filters: [['creation', '>=', '2026-02-01']] })[0].name, 'A');
+});
+
+test('transient Query denial retries only after same-user, same-scope access proof', async () => {
+  let calls = 0;
+  const expected = { type: 'Query', user: 'client-a', scope: 's1', clientScope: 'Company A' };
+  const result = await syncWithAccessRetry(async () => ({ status: ++calls === 1 ? 403 : 200 }), async () => ({ allowed: true, user: 'client-a', scope: 's1', client_scope: 'Company A' }), expected);
+  assert.equal(result.status, 200); assert.equal(calls, 2);
+});
+test('denied, foreign-user, changed-tenant or changed-permission proof cannot retry', async () => {
+  const expected = { type: 'Query', user: 'client-a', scope: 's1', clientScope: 'Company A' };
+  for (const altered of [{ allowed: false }, { user: 'client-b' }, { client_scope: 'Company B' }, { scope: 's2' }]) {
+    let calls = 0;
+    const result = await syncWithAccessRetry(async () => { calls++; return { status: 403 }; }, async () => ({ allowed: true, user: 'client-a', scope: 's1', client_scope: 'Company A', ...altered }), expected);
+    assert.equal(result.status, 403); assert.equal(calls, 1);
+  }
+});
+test('access retry is bounded and never applied to unrelated reports', async () => {
+  let calls = 0;
+  const proof = async () => ({ allowed: true, user: 'staff', scope: 's1', client_scope: null });
+  const read = async () => { calls++; return { status: 403 }; };
+  await syncWithAccessRetry(read, proof, { type: 'Query', user: 'staff', scope: 's1', clientScope: null });
+  assert.equal(calls, 2);
+  calls = 0;
+  await syncWithAccessRetry(read, proof, { type: 'Report:Expired Documents', user: 'staff', clientScope: null });
+  assert.equal(calls, 1);
 });

@@ -1,5 +1,12 @@
 export const LIVE_SCHEMA = 1;
 export const recordKey = row => row.__sync_id || row.name;
+export async function syncWithAccessRetry(read, verify, expected) {
+  const first = await read();
+  if (first.status !== 403 || expected.type !== 'Query') return first;
+  const proof = await verify().catch(() => null);
+  if (proof?.allowed && proof.scope && proof.user === expected.user && (proof.client_scope ?? null) === expected.clientScope && (!expected.scope || proof.scope === expected.scope)) return read();
+  return first;
+}
 const equal = (a, b) => !!a && Object.keys(a).length === Object.keys(b).length && Object.keys(b).every(key => a[key] === b[key]);
 
 export function mergeDelta(previous, delta, user) {
@@ -49,7 +56,7 @@ export class DatasetClient {
         const saved = await this.loadCache(type);
         if (saved?.user === this.user && saved.schema === LIVE_SCHEMA) previous = saved;
       }
-      const delta = await this.fetchDelta(type, previous?.cursor, { fork: !this.peek(type)?.ready && !!previous?.cursor });
+      const delta = await this.fetchDelta(type, previous?.cursor, { fork: !this.peek(type)?.ready && !!previous?.cursor, scope: previous?.scope });
       if (this.closed) throw new Error('Live session changed.');
       if (delta.user !== this.user) throw Object.assign(new Error('Authenticated account changed.'), { status: 401 });
       if (delta.doctype !== type) throw new Error('Invalid live dataset type.');

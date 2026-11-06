@@ -1,4 +1,4 @@
-import { DatasetClient, filterEntries, selectRows } from '../utils/liveDataset';
+import { DatasetClient, filterEntries, selectRows, syncWithAccessRetry } from '../utils/liveDataset';
 
 const COLUMNS = {
   Query: 'name raw_material supplier supplier_contact manufacturer manufacturer_contact workflow_state query_types client_name client_code owner creation modified is_duplicate is_master'.split(' '),
@@ -85,17 +85,28 @@ export function configureLiveData(user, baseUrl) {
     localStorage.setItem('sanha-live-owner', next);
   } catch { /* optional storage */ }
   identity = next; actor = user;
+  const staff = user.name === 'Administrator' || user.roles.some(role => ['Admin', 'System Manager', 'Administrator', 'Evaluation', 'SB User', 'Certificate Manager'].includes(role));
+  const clientScope = staff ? null : (user.clientName || null);
   stored('prepare', user.name).catch(() => {});
   const current = new DatasetClient({
     user: user.name,
-    fetchDelta: async (type, cursor, { fork } = {}) => {
+    fetchDelta: async (type, cursor, { fork, scope } = {}) => {
       const params = new URLSearchParams({ doctype: type });
       if (cursor) params.set('cursor', cursor);
       if (fork) params.set('fork', '1');
-      const response = await fetch(`${baseUrl}/api/method/sanha.api.live_data.sync?${params}`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result.exc) throw Object.assign(new Error(result.message || result.exc_type || `Sync HTTP ${response.status}`), { status: result.exc_type === 'AuthenticationError' ? 401 : response.status });
+      const read = async () => {
+        const response = await fetch(`${baseUrl}/api/method/sanha.api.live_data.sync?${params}`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } });
+        return { status: response.status, ok: response.ok, result: await response.json().catch(() => ({})) };
+      };
+      const verify = async () => {
+        const response = await fetch(`${baseUrl}/api/method/sanha.api.live_data.access_status?doctype=Query`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } });
+        const body = await response.json();
+        return response.ok ? body.message : null;
+      };
+      const { status, ok, result } = await syncWithAccessRetry(read, verify, { type, user: user.name, clientScope, scope });
+      if (!ok || result.exc) throw Object.assign(new Error(result.message || result.exc_type || `Sync HTTP ${status}`), { status: result.exc_type === 'AuthenticationError' ? 401 : status });
       if (!result.message || typeof result.message !== 'object') throw Object.assign(new Error('Invalid authenticated sync response.'), { status: 401 });
+      if ((result.message.client_scope ?? null) !== clientScope) throw Object.assign(new Error('Client account access changed.'), { status: 401 });
       return result.message;
     },
     loadCache: type => stored('load', user.name, type),
