@@ -446,6 +446,7 @@ export default function QueryForm() {
       </div>}
       {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={`${doc.name}:${doc.modified}`} query={doc.name} />}
       {/* Recovered draft banner */}
+      {!!doc.was_auto_submitted && <div className="card" style={{ marginBottom: 16 }}><strong>Auto-submitted / خودکار سبمٹ</strong><p>Last automatic submission: {doc.auto_submitted_at || '—'} · Client user: {doc.auto_submitted_by || '—'}</p><small>Historical marker remains if this Query is later returned or edited. Unmarked older records do not prove manual submission.</small></div>}
       {recoveredDraft && (
         <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:8, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
           <Info size={15} color="#0284c7" />
