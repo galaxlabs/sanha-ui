@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLiveRevision } from '../hooks/useLiveData';
+import { ensureLiveDataset, liveDataEnabled } from '../api/liveData';
 import { useNavigate } from 'react-router-dom';
 import {
   Mail, Building, MapPin, Calendar, Shield, Clock,
@@ -50,6 +52,8 @@ function InfoItem({ icon: Icon, label, value, color = '#64748b' }) {
 }
 
 export default function ClientDashboard() {
+  const liveRevision = useLiveRevision('Query');
+  const hasLoaded = useRef(false);
   const { user } = useAuth();
   const { error: showError } = useToast();
   const navigate = useNavigate();
@@ -73,20 +77,21 @@ export default function ClientDashboard() {
       statRows.forEach(r => { map[r.state] = r.count; });
       setCounts(map);
       setRecent(queries);
+      hasLoaded.current = true;
     } catch (e) {
       showError('Failed to load data');
     }
   };
 
   useEffect(() => {
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     loadData().finally(() => setLoading(false));
-  }, [user]);
+  }, [user?.name, user?.clientName, liveRevision]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try { if (liveDataEnabled()) await ensureLiveDataset('Query', true); await loadData(); }
+    finally { setRefreshing(false); }
   };
 
   if (loading) return <Spinner />;

@@ -1,4 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useLiveRevision } from '../hooks/useLiveData';
+import { ensureLiveDataset, liveDataEnabled } from '../api/liveData';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, BarChart2, RefreshCw, Filter, Table, Layers, AlertTriangle, Printer, FileText, GitCompare, Check, X } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
@@ -223,6 +225,8 @@ function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, show
 }
 
 export default function Reports() {
+  const queryRevision = useLiveRevision('Query');
+  const hasLoaded = useRef(false);
   const { user, isAdmin, hasRole } = useAuth();
   const { error: showError } = useToast();
   const navigate = useNavigate();
@@ -253,6 +257,8 @@ export default function Reports() {
     }
   }, [searchParams, location.hash, showAdvanced]);
   const [rows, setRows] = useState([]);
+  const reportTopic = { approved: 'Approved Raw Materials', expired: 'Expired Documents', duplicates: 'Duplicate Queries', missing: 'Missing Supplier Manufacturer', counts: 'Raw Material Counts' }[tab];
+  const reportRevision = useLiveRevision(reportTopic ? `Report:${reportTopic}` : null);
   const [loading, setLoading] = useState(true);
 
   /* Script reports */
@@ -277,7 +283,7 @@ export default function Reports() {
   const [search, setSearch] = useState('');
 
   const loadReportRows = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     try {
       let extraFilters = [];
       if (isClientUser) {
@@ -287,12 +293,14 @@ export default function Reports() {
       }
       const data = await frappe.getQueriesForReport(extraFilters);
       setRows(data);
-      setSelected(new Set());
+      const names = new Set(data.map(row => row.name));
+      setSelected(previous => new Set([...previous].filter(name => names.has(name))));
+      hasLoaded.current = true;
     } catch (e) { showError(e.message); }
     finally { setLoading(false); }
   }, [isClientUser, user?.clientName, user?.name, showError]);
 
-  useEffect(() => { loadReportRows(); }, [loadReportRows]);
+  useEffect(() => { loadReportRows(); }, [loadReportRows, queryRevision]);
 
   /* Load script report */
   async function loadScript(reportName, setter, key) {
@@ -385,16 +393,16 @@ export default function Reports() {
   }
 
   useEffect(() => {
-    if (tab === 'approved' && !approvedData.length) loadScript('Approved Raw Materials', setApprovedData, 'approved');
-    if (tab === 'expired' && !expiredData.length) loadScript('Expired Documents', setExpiredData, 'expired');
-    if (tab === 'duplicates' && !duplicateData.length) loadScript('Duplicate Queries', setDuplicateData, 'duplicates');
-    if (tab === 'missing' && !missingData.length) loadScript('Missing Supplier Manufacturer', setMissingData, 'missing');
-    if (tab === 'counts' && !countsData.length) loadScript('Raw Material Counts', setCountsData, 'counts');
+    if (tab === 'approved') loadScript('Approved Raw Materials', setApprovedData, 'approved');
+    if (tab === 'expired') loadScript('Expired Documents', setExpiredData, 'expired');
+    if (tab === 'duplicates') loadScript('Duplicate Queries', setDuplicateData, 'duplicates');
+    if (tab === 'missing') loadScript('Missing Supplier Manufacturer', setMissingData, 'missing');
+    if (tab === 'counts') loadScript('Raw Material Counts', setCountsData, 'counts');
     if (tab === 'quality' && !qualityData) loadQualityData();
-  }, [tab]);
+  }, [tab, reportRevision]);
 
   /* Filtered rows */
-  const filtered = useMemo(() => rows.filter(r => {
+  const filterReportRows = useCallback(data => data.filter(r => {
     const summaryStatus = getSummaryStatus(r.workflow_state);
     if (stateFilter.length && !stateFilter.includes(summaryStatus)) return false;
     if (typeFilter.length && !typeFilter.includes(r.query_types)) return false;
@@ -409,7 +417,8 @@ export default function Reports() {
              (r.name||'').toLowerCase().includes(q);
     }
     return true;
-  }), [rows, stateFilter, typeFilter, clientFilter, fromDate, toDate, search]);
+  }), [stateFilter, typeFilter, clientFilter, fromDate, toDate, search]);
+  const filtered = useMemo(() => filterReportRows(rows), [rows, filterReportRows]);
   const summaryFiltered = useMemo(() => filtered.map(r => ({ ...r, summary_workflow_state: getSummaryStatus(r.workflow_state) })), [filtered]);
 
   /* Derived data for charts & pivots */
@@ -1066,9 +1075,17 @@ export default function Reports() {
         open={showPrintConfig}
         onClose={() => setShowPrintConfig(false)}
         isClient={isClientUser}
-        onGenerate={(config) => {
+        onGenerate={async (config) => {
+          try {
+          let printRows = filtered;
+          if (liveDataEnabled()) {
+            const snapshot = await ensureLiveDataset('Query', true);
+            if (snapshot.user !== user.name) throw new Error('Account changed. Please regenerate the report.');
+            const scoped = isClientUser ? [[user.clientName ? 'client_name' : 'owner', '=', user.clientName || user.name]] : [];
+            printRows = filterReportRows(await frappe.getQueriesForReport(scoped));
+          }
           setShowPrintConfig(false);
-          sessionStorage.setItem('printReportRows', JSON.stringify(filtered));
+          sessionStorage.setItem('printReportRows', JSON.stringify(printRows));
           const client = allClients.find(c => c === clientFilter);
           if (client) {
             sessionStorage.setItem('printReportClient', JSON.stringify({ client_name: client }));
@@ -1076,6 +1093,7 @@ export default function Reports() {
             sessionStorage.removeItem('printReportClient');
           }
           navigate('/reports/print-custom');
+          } catch (error) { showError(error.message); }
         }}
       />
     </div>

@@ -11,6 +11,8 @@ import QueryFilters from '../components/UI/QueryFilters';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import { STATE_META } from '../utils/workflow';
 import { useHotkeys } from '../utils/useHotkeys';
+import { useLiveRevision } from '../hooks/useLiveData';
+import { ensureLiveDataset, liveDataEnabled } from '../api/liveData';
 
 const ALL_STATES = Object.keys(STATE_META);
 const PAGE_SIZES = [25, 50, 100, 200, 300, 400, 500, 'all'];
@@ -36,6 +38,9 @@ function Tag({ label, onRemove }) {
 }
 
 export default function QueryList() {
+  const liveRevision = useLiveRevision('Query');
+  const hasLoaded = useRef(false);
+  const normalLoadPending = useRef(false);
   const { user, hasRole, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -159,10 +164,12 @@ export default function QueryList() {
     if (fromDate) f.push(['creation', '>=', fromDate]);
     if (toDate)   f.push(['creation', '<=', toDate + ' 23:59:59']);
     return f;
-  }, [isClient, user, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate, excludeState, excludeType, excludeClient]);
+  }, [isClient, user?.name, user?.clientName, stateFilter, typeFilter, clientFilter, mfrFilter, supplierFilter, searchText, fromDate, toDate, excludeState, excludeType, excludeClient]);
 
-  const load = useCallback(async (reset = true, atPage = 0, signal = null) => {
-    setLoading(true);
+  const load = useCallback(async (reset = true, atPage = 0, signal = null, background = false) => {
+    if (background && normalLoadPending.current) return;
+    if (!background) normalLoadPending.current = true;
+    if (!background) setLoading(true);
     setLoadError('');
     try {
       // Collect all permission-filtered pages before calculating selection/totals.
@@ -176,20 +183,31 @@ export default function QueryList() {
         setHasMore(false);
       } else {
         const start = reset ? 0 : atPage * pageSize;
-        const slice = filteredRows.slice(start, start + pageSize);
-        setQueries(reset ? slice : prev => [...prev, ...slice]);
+        setQueries(filteredRows.slice(0, start + Number(pageSize)));
         setHasMore(start + pageSize < filteredRows.length);
       }
       
-      if (reset) {
+      hasLoaded.current = true;
+      if (background) {
+        const available = new Set(filteredRows.map(row => row.name));
+        setSelected(previous => new Set([...previous].filter(name => available.has(name))));
+        setAllMatchingSelected(false);
+      } else if (reset) {
         setPage(0);
         setSelected(new Set());
         setAllMatchingSelected(false);
       }
     } catch (e) {
       if (e.name !== 'AbortError') setLoadError(e.message || 'The complete Query list could not be loaded.');
-    } finally { setLoading(false); }
+    } finally { if (!background && !signal?.aborted) normalLoadPending.current = false; if (!signal?.aborted) setLoading(false); }
   }, [buildFilters, pageSize, sortOrder]);
+
+  const latestLoad = useRef(load);
+  const latestPage = useRef(page);
+  latestLoad.current = load; latestPage.current = page;
+  useEffect(() => {
+    if (hasLoaded.current) latestLoad.current(false, latestPage.current, null, true);
+  }, [liveRevision]);
 
   /* Sync URL → state on navigation */
   useEffect(() => {
@@ -248,6 +266,7 @@ export default function QueryList() {
   const selectAllMatching = async () => {
     setLoading(true);
     try {
+      if (liveDataEnabled()) await ensureLiveDataset('Query', true);
       const all = await getAllQueries(buildFilters(), null, sortOrder);
       setSelected(new Set(all.map(q => q.name)));
       setAllMatchingSelected(true);
@@ -273,6 +292,7 @@ export default function QueryList() {
   const goPrintList = async () => {
     setLoading(true);
     try {
+      if (liveDataEnabled()) await ensureLiveDataset('Query', true);
       let ids;
       if (printLimit === 'loaded') {
         ids = queries.map(q => q.name);

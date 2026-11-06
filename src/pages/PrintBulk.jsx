@@ -4,6 +4,8 @@ import { Printer, ArrowLeft, CheckSquare } from 'lucide-react';
 import { getQueriesByNames, getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
+import { authorizePrintSnapshot } from '../api/liveData';
+import { useLiveRevision } from '../hooks/useLiveData';
 import PrintHeader from './PrintHeader';
 
 const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on information provided at the time of evaluation. It is valid only for the records and materials mentioned herein. Any misuse, alteration, or use beyond its intended purpose is strictly prohibited. SANHA Halal Pakistan reserves the right to revoke any evaluation in case of non-compliance or deviation from Halal standards.';
@@ -230,6 +232,7 @@ function bulkClientValue(fontSize) {
 }
 
 export default function PrintBulk() {
+  const queryRevision = useLiveRevision('Query');
   const navigate     = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, hasRole } = useAuth();
@@ -286,8 +289,7 @@ export default function PrintBulk() {
       try {
         const stored = JSON.parse(sessionStorage.getItem('printBulkRows') || '[]');
         if (stored.length > 0) {
-          setDocs(stored);
-          setLoading(false);
+          authorizePrintSnapshot(stored).then(allowed => setDocs(allowed)).catch(error => { setDocs([]); setErrors([error.message]); }).finally(() => setLoading(false));
           return;
         }
       } catch { /* fallthrough to API fetch */ }
@@ -308,7 +310,7 @@ export default function PrintBulk() {
       })
       .catch(e => setErrors([`Failed to load queries: ${e.message}`]))
       .finally(() => setLoading(false));
-  }, [searchParams]);
+  }, [searchParams, queryRevision]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });

@@ -10,6 +10,11 @@ import { Spinner } from '../components/UI/Loaders';
 import Modal from '../components/UI/Modal';
 import SuggestionDropdown from '../components/UI/SuggestionDropdown';
 import StaffAIReview from '../components/UI/StaffAIReview';
+import { useLiveRecord } from '../hooks/useLiveData';
+import { peekLiveDataset } from '../api/liveData';
+
+const editableSignature = doc => JSON.stringify({ fields: ['raw_material', 'query_types', 'supplier', 'supplier_contact', 'manufacturer', 'manufacturer_contact', 'client_name'].map(field => doc[field] || ''), documents: (doc.documents || []).map(row => [row.name || '', row.documents || '', row.issue_date || '', row.expiry_date || '', row.attachment || '']) });
+const childStamp = doc => `${(doc.documents || []).length}:${(doc.documents || []).map(row => String(row.modified || '')).sort().at(-1) || ''}`;
 
 const DRAFT_KEY = 'sanha_query_draft';
 
@@ -72,6 +77,13 @@ export default function QueryForm() {
   const { success, error: showError } = useToast();
 
   const [doc, setDoc] = useState({ ...BLANK_DOC });
+  const savedSignature = useRef(null);
+  const savedChildren = useRef(null);
+  const liveRecord = useLiveRecord('Query', name);
+  const [remoteChanged, setRemoteChanged] = useState(false);
+  const docRef = useRef(doc);
+  const seenLiveRecord = useRef(null);
+  docRef.current = doc;
   const [queryTypes, setQueryTypes] = useState([]);
   const [docTypes, setDocTypes] = useState([]);
   const [clients, setClients] = useState([]);
@@ -132,11 +144,31 @@ export default function QueryForm() {
             }
           }
           setDoc(d);
+          savedSignature.current = editableSignature(d); savedChildren.current = childStamp(d); setRemoteChanged(false);
         })
         .catch(e => { showError(e.message); navigate('/queries'); })
         .finally(() => setLoading(false));
     }
   }, [name]);
+
+  useEffect(() => {
+    if (isNew || !doc.name || !savedSignature.current) return;
+    if (!liveRecord) {
+      if (seenLiveRecord.current === name && peekLiveDataset('Query')?.ready) { showError('This Query was deleted or is no longer available.'); navigate('/queries'); }
+      return;
+    }
+    seenLiveRecord.current = name;
+    if (liveRecord.modified === doc.modified && liveRecord.__child_stamp === savedChildren.current) return;
+    if (editableSignature(doc) !== savedSignature.current) { setRemoteChanged(true); return; }
+    let active = true;
+    frappe.getDoc('Query', name, { fresh: true }).then(updated => {
+      if (!active) return;
+      if (editableSignature(docRef.current) !== savedSignature.current) { setRemoteChanged(true); return; }
+      if (String(updated.modified || '') < String(docRef.current.modified || '')) return;
+      setDoc(updated); savedSignature.current = editableSignature(updated); savedChildren.current = childStamp(updated); setRemoteChanged(false);
+    }).catch(error => { if (active) showError(error.message); });
+    return () => { active = false; };
+  }, [liveRecord, name, doc.name]);
 
   /* Duplicate check: call after raw_material / manufacturer changes */
   const checkDuplicates = useCallback(async (rawMaterial, manufacturer, docName, supplier = '') => {
@@ -281,6 +313,7 @@ export default function QueryForm() {
       }
       success('Query saved successfully!');
       setDoc(saved);
+      savedSignature.current = editableSignature(saved); savedChildren.current = childStamp(saved); setRemoteChanged(false);
       navigate(`/queries/${saved.name}`);
     } catch (ex) {
       showError(ex.message || 'Save failed.');
@@ -367,6 +400,7 @@ export default function QueryForm() {
       success(`Action "${action}" applied.`);
       const updated = await frappe.getDoc('Query', doc.name);
       setDoc(updated);
+      savedSignature.current = editableSignature(updated); savedChildren.current = childStamp(updated); setRemoteChanged(false);
       setDocWarnings([]);
     } catch (ex) {
       showError(ex.message || 'Workflow action failed.');
@@ -404,12 +438,13 @@ export default function QueryForm() {
         )}
       </div>
 
+      {remoteChanged && <div className="card" role="status" style={{ marginBottom: 16 }}><strong>This Query has newer backend changes.</strong><p>Your unsaved edits have been preserved. Review the latest record before saving; use Reload to replace your local edits.</p><button type="button" className="btn btn-outline" onClick={async () => { const latest = await frappe.getDoc('Query', name, { fresh: true }); setDoc(latest); savedSignature.current = editableSignature(latest); savedChildren.current = childStamp(latest); setRemoteChanged(false); }}>Reload latest record</button></div>}
       {isClient && isDraft && <div className="card" style={{ marginBottom: 16 }}>
         <p>You can save an incomplete draft and complete it later. A complete draft is automatically submitted five minutes after your last save.</p>
         {doc.auto_submit_after && <p>Auto-submit check: {new Date(doc.auto_submit_after.replace(' ', 'T')).toLocaleString()}</p>}
         {doc.auto_submit_error && <p role="status">Draft not submitted: {doc.auto_submit_error}. Complete the missing details and save again.</p>}
       </div>}
-      {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={doc.name} query={doc.name} />}
+      {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={`${doc.name}:${doc.modified}`} query={doc.name} />}
       {/* Recovered draft banner */}
       {recoveredDraft && (
         <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:8, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>

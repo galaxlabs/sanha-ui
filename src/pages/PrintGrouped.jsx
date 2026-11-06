@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import PrintHeader from './PrintHeader';
+import { authorizePrintSnapshot } from '../api/liveData';
+import { useLiveRevision } from '../hooks/useLiveData';
 
 /* ─── Workflow states + colors (keep in sync with Reports.jsx) ─── */
 const ALL_STATES = [
@@ -31,18 +33,25 @@ function fmt(d) {
 }
 
 export default function PrintGrouped() {
+  const queryRevision = useLiveRevision('Query');
   const navigate = useNavigate();
   const [config, setConfig] = useState(null);
   const [logoUrl, setLogoUrl] = useState('/sanha-logo.png');
 
   useEffect(() => {
+    let active = true;
+    (async () => {
     try {
       const raw = sessionStorage.getItem('printGrouped');
       if (!raw) { navigate('/reports'); return; }
-      setConfig(JSON.parse(raw));
-    } catch { navigate('/reports'); }
+      const parsed = JSON.parse(raw);
+      await authorizePrintSnapshot(parsed.rows || []);
+      if (active) setConfig(parsed);
+    } catch { if (active) { setConfig(null); navigate('/reports'); } }
+    })();
     setLogoUrl(getPortalLogoUrl());
-  }, [navigate]);
+    return () => { active = false; };
+  }, [navigate, queryRevision]);
 
   if (!config) return null;
 

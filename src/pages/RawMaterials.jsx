@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLiveRevision } from '../hooks/useLiveData';
 import { CalendarClock, Plus, RefreshCw, Search } from 'lucide-react';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
@@ -13,6 +14,8 @@ function formatDate(value) {
 }
 
 export default function RawMaterials() {
+  const liveRevision = useLiveRevision('E-NUMBERS');
+  const hasLoaded = useRef(false);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -23,13 +26,15 @@ export default function RawMaterials() {
   const { isAdmin } = useAuth();
 
   async function load() {
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     try {
       const data = await frappe.getAllList('E-NUMBERS', {
         fields: ['name', 'code', 'name1', 'alternative_name', 'function', 'status', 'creation', 'modified'],
         orderBy: 'modified desc',
       });
       setRows(data);
+      setSelected(previous => previous ? data.find(row => row.name === previous.name) || null : null);
+      hasLoaded.current = true;
     } catch (e) {
       console.error(e);
       error('Raw materials could not be loaded. Please try again.');
@@ -37,7 +42,7 @@ export default function RawMaterials() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [liveRevision]);
 
   const filtered = search
     ? rows.filter(r =>

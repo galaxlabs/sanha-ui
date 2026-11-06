@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Edit3, Save, X, Users, RefreshCw,
   Clock, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Search
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLiveRecord, useLiveRevision } from '../hooks/useLiveData';
 import { useToast } from '../contexts/ToastContext';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
@@ -271,6 +272,9 @@ function PermissionsBlock({ email }) {
 
 /* ─── Client Detail ─── */
 function ClientDetail({ client: initClient, onBack, onEdit }) {
+  const queryRevision = useLiveRevision('Query');
+  const liveClient = useLiveRecord('Client', initClient.name);
+  const fullyLoaded = useRef(false);
   const [client, setClient] = useState(initClient);
   const [queries, setQueries] = useState([]);
   const [stateCounts, setStateCounts] = useState({});
@@ -281,11 +285,12 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
     async function load() {
       try {
         const [full, qs, sc] = await Promise.all([
-          frappe.getClientDetail(client.name).catch(() => client),
+          (!fullyLoaded.current || liveClient?.modified !== client.modified ? frappe.getClientDetail(client.name).catch(() => client) : Promise.resolve(client)),
           frappe.getAllQueries([['client_name', '=', client.name]]),
           frappe.getStateCounts([['client_name', '=', client.name]]),
         ]);
         setClient(full);
+        fullyLoaded.current = true;
         setQueries(qs);
         const map = {};
         sc.forEach(r => { map[r.state] = r.count; });
@@ -293,7 +298,7 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
       } finally { setLoading(false); }
     }
     load();
-  }, [client.name]);
+  }, [client.name, queryRevision, liveClient]);
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -456,6 +461,8 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
 
 /* ─── Main Page ─── */
 export default function ClientsPage() {
+  const clientRevision = useLiveRevision('Client');
+  const hasLoaded = useRef(false);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { error: showError } = useToast();
@@ -470,18 +477,20 @@ export default function ClientsPage() {
   const [expiringLoading, setExpiringLoading] = useState(false);
 
   const loadClients = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     try {
       const data = await frappe.getAllList('Client', {
         fields: ['name','client_name','client_code','email','city','region','status','certified_expiry','is_active'],
         orderBy: 'client_name asc',
       });
       setClients(data);
+      hasLoaded.current = true;
+      setSelected(previous => previous ? data.find(row => row.name === previous.name) || null : null);
     } catch (e) { showError(e.message); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadClients(); }, [loadClients]);
+  useEffect(() => { loadClients(); }, [loadClients, clientRevision]);
 
   const loadExpiring = async () => {
     setExpiringLoading(true);

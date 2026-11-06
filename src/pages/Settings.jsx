@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useLiveRevision } from '../hooks/useLiveData';
 import {
   Shield, Users, Settings as SettingsIcon, Database,
   Upload, Image, Key, Lock, Eye, EyeOff, Check, X,
@@ -118,6 +119,7 @@ export default function SettingsPage() {
 }
 
 function LearningPlaylistPanel({ addToast }) {
+  const liveRevision = useLiveRevision('Learning Playlist');
   const [items, setItems] = useState([]);
   const empty = { title: '', subject: '', youtube_url: '', description: '', sort_order: 0, published: 1 };
   const [form, setForm] = useState(empty);
@@ -125,7 +127,7 @@ function LearningPlaylistPanel({ addToast }) {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const load = () => getList('Learning Playlist', { fields: ['name', 'title', 'subject', 'youtube_url', 'description', 'sort_order', 'published'], orderBy: 'sort_order asc, title asc', limit: 0, fresh: true }).then(setItems);
-  useEffect(() => { load().catch(error => addToast(error.message, 'error')).finally(() => setLoading(false)); }, []);
+  useEffect(() => { load().catch(error => addToast(error.message, 'error')).finally(() => setLoading(false)); }, [liveRevision]);
   const reset = () => { setEditing(null); setForm(empty); };
   const save = async event => {
     event.preventDefault(); setBusy(true);

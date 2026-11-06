@@ -6,6 +6,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getNotifications } from '../../api/frappe';
 import Breadcrumbs from '../UI/Breadcrumbs';
 import CommandPalette from '../UI/CommandPalette';
+import LiveDataStatus from '../UI/LiveDataStatus';
+import { useLiveRevision } from '../../hooks/useLiveData';
 
 /* ── state badge colors for notification list ── */
 const N_COLORS = {
@@ -31,6 +33,7 @@ const PAGE_TITLES = {
 const THEME_ICONS = { light: Moon, dark: Sun };
 
 export default function Header({ onToggleSidebar }) {
+  const queryRevision = useLiveRevision('Query');
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout, isAdmin } = useAuth();
@@ -68,13 +71,13 @@ export default function Header({ onToggleSidebar }) {
 
   /* Fetch notifications when bell is opened */
   useEffect(() => {
-    if (!bellOpen || !user) return;
+    if (!user) return;
     setNotifsLoading(true);
     getNotifications(user.name, isAdmin?.(), 15)
       .then(setNotifs)
       .catch(e => console.error('Failed to load notifications:', e))
       .finally(() => setNotifsLoading(false));
-  }, [bellOpen]);
+  }, [bellOpen, queryRevision, user?.name]);
 
   const unreadCount = notifs.filter(n => !notifsRead.has(n.id)).length;
 
@@ -153,7 +156,7 @@ export default function Header({ onToggleSidebar }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <Breadcrumbs />
         <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{title}</h2>
-        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>{today}</p>
+        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>{today} · <LiveDataStatus /></p>
       </div>
 
       {/* Right side */}

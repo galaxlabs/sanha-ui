@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLiveRevision } from '../hooks/useLiveData';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Printer, ArrowLeft, Download, FileText } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
@@ -31,6 +32,9 @@ const clientReportValue = {
 };
 
 export default function ClientReport() {
+  const queryRevision = useLiveRevision('Query');
+  const clientRevision = useLiveRevision('Client');
+  const loadedClient = useRef(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const clientName = searchParams.get('client') || '';
@@ -42,10 +46,10 @@ export default function ClientReport() {
   useEffect(() => {
     setLogoUrl(getPortalLogoUrl());
     loadData();
-  }, [clientName]);
+  }, [clientName, queryRevision, clientRevision]);
 
   async function loadData() {
-    setLoading(true);
+    if (loadedClient.current !== clientName) setLoading(true);
     try {
       if (clientName) {
         const clientDoc = await frappe.getDoc('Client', clientName);
@@ -57,6 +61,7 @@ export default function ClientReport() {
           orderBy: 'creation desc',
         });
         setQueries(q);
+        loadedClient.current = clientName;
       }
     } catch (e) {
       console.error(e);

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PlayCircle, RefreshCw } from 'lucide-react';
 import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
+import { useLiveRevision } from '../hooks/useLiveData';
 
 function VideoCard({ video }) {
   const [playing, setPlaying] = useState(false);
@@ -54,6 +55,7 @@ function PlaylistVideos({ item }) {
 }
 
 export default function Learning() {
+  const liveRevision = useLiveRevision('Learning Playlist');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,7 +64,7 @@ export default function Learning() {
     frappe.getList('Learning Playlist', { fields: ['name', 'title', 'subject', 'youtube_url', 'description', 'sort_order'], filters: [['published', '=', 1]], orderBy: 'sort_order asc, title asc', limit: 0, fresh: true })
       .then(data => { if (active) setItems(data); }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [liveRevision]);
   const subjects = useMemo(() => [...new Set(items.map(item => item.subject))], [items]);
   if (loading) return <Spinner />;
   return <div className="page-stack"><div className="page-heading"><div><p className="page-kicker">Learning hub</p><h1>Learning</h1><p>Browse published playlists and play each video here.</p></div></div>{error ? <p role="alert">{error}</p> : !items.length ? <EmptyState message="No learning playlists have been published yet." /> : subjects.map(subject => <section key={subject}><h2 style={{ fontSize: '1.1rem' }}>{subject}</h2>{items.filter(item => item.subject === subject).map(item => <PlaylistVideos key={item.name} item={item} />)}</section>)}</div>;

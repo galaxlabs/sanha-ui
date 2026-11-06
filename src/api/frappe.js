@@ -1,6 +1,7 @@
 /* ── Frappe REST API helper ── */
 import { getSummaryStatus } from '../utils/statusGroups';
 import { collectPages } from '../utils/pagination';
+import { ensureLiveDataset, liveDataEnabled, liveRows, notifyMutation, reportDataset, stopLiveData, supportsLive } from './liveData';
 
 export async function messageApi(method, data = {}, write = false) {
   const params = new URLSearchParams(data);
@@ -32,6 +33,7 @@ const API_SECRET = import.meta.env.VITE_API_SECRET || '';
 // ── Simple Cache Layer ──
 const cache = new Map();
 const CACHE_TTL = 30_000; // 30 seconds
+let requestSessionGeneration = 0;
 
 // ── Track if user logged in via form (session auth) ──
 let userLoggedIn = false;
@@ -55,7 +57,7 @@ function setCache(method, url, data, result) {
   cache.set(key, { data: result, ts: Date.now() });
 }
 
-export function clearCache(pattern) {
+function clearRequestCache(pattern) {
   if (!pattern) {
     cache.clear();
   } else {
@@ -64,6 +66,16 @@ export function clearCache(pattern) {
     }
   }
 }
+
+export function clearCache(pattern) {
+  if (!pattern) requestSessionGeneration += 1;
+  clearRequestCache(pattern);
+  if (pattern) notifyMutation(pattern);
+}
+if (typeof window !== 'undefined') window.addEventListener('portal-dataset-change', event => {
+  clearRequestCache(event.detail.type.startsWith('Report:') ? undefined : event.detail.type);
+});
+if (typeof window !== 'undefined') window.addEventListener('portal-security-changed', () => clearCache());
 
 // ── Request abort controller ──
 let currentController = null;
@@ -89,6 +101,7 @@ function authHeaders() {
 }
 
 async function request(method, url, data = null, { cache: useCache = true, signal = null } = {}) {
+  const generation = requestSessionGeneration;
   // Check cache for GET requests
   if (method === 'GET' && useCache) {
     const cached = getCached(method, url, data);
@@ -109,6 +122,7 @@ async function request(method, url, data = null, { cache: useCache = true, signa
   }
   const res = await fetch(BASE + url, opts);
   const json = await res.json().catch(() => ({}));
+  if (generation !== requestSessionGeneration) throw new Error('Authenticated session changed. Please retry.');
   if (!res.ok) {
     const msg = json?.message || json?._error_message || json?.exc_type || `HTTP ${res.status}`;
     throw new Error(msg);
@@ -125,6 +139,8 @@ async function request(method, url, data = null, { cache: useCache = true, signa
 
 /* ── Auth ── */
 export async function login(usr, pwd) {
+  stopLiveData({ broadcast: true });
+  clearCache();
   const body = new URLSearchParams({ usr, pwd });
   const res = await fetch(BASE + '/api/method/login', {
     method: 'POST',
@@ -149,6 +165,7 @@ export async function logout() {
     if (!/HTTP 417|Authentication|session/i.test(error.message)) throw error;
   } finally {
     userLoggedIn = false;
+    stopLiveData({ broadcast: true });
     clearCache();
   }
 }
@@ -198,6 +215,8 @@ export async function getUserRoles(user) {
 
 /* ── Generic DocType CRUD ── */
 export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0, signal = null, fresh = false } = {}) {
+  const options = { filters, fields, orderBy, limit, limitStart, signal };
+  if (supportsLive(doctype, options)) return liveRows(doctype, options);
   const params = new URLSearchParams({
     fields: JSON.stringify(fields),
     filters: JSON.stringify(filters),
@@ -210,9 +229,10 @@ export async function getList(doctype, { filters = [], fields = ['name'], orderB
 }
 
 export async function getAllList(doctype, options = {}) {
+  if (supportsLive(doctype, options)) return liveRows(doctype, { ...options, limit: 0, limitStart: 0 });
   const orderBy = options.orderBy || 'modified desc';
   const stableOrder = /(^|[,\s])name\s/i.test(orderBy) ? orderBy : `${orderBy}, name asc`;
-  const countQueries = async () => (await getStateCounts(options.filters || [], { fresh: true })).reduce((total, row) => total + Number(row.count), 0);
+  const countQueries = async () => (await getStateCounts(options.filters || [], { fresh: true, server: true })).reduce((total, row) => total + Number(row.count), 0);
   const before = doctype === 'Query' ? await countQueries() : null;
   const rows = await collectPages((offset, limit) => getList(doctype, { ...options, fields: [...new Set(['name', ...(options.fields || [])])], orderBy: stableOrder, limit, limitStart: offset, fresh: true }), { signal: options.signal });
   if (doctype === 'Query' && (before !== rows.length || (await countQueries()) !== rows.length)) {
@@ -230,8 +250,8 @@ export async function getAllQueries(filters = [], signal = null, orderBy = 'modi
   });
 }
 
-export async function getDoc(doctype, name) {
-  const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`);
+export async function getDoc(doctype, name, { fresh = false } = {}) {
+  const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, null, { cache: !fresh });
   return res.data;
 }
 
@@ -320,7 +340,15 @@ export async function getDocumentTypes() {
 }
 
 /* ── State counts — single grouped fetch ── */
-export async function getStateCounts(extraFilters = [], { fresh = false } = {}) {
+export async function getStateCounts(extraFilters = [], { fresh = false, server = false } = {}) {
+  if (!server && supportsLive('Query', { filters: extraFilters })) {
+    const counts = {};
+    for (const row of await liveRows('Query', { filters: extraFilters })) {
+      const state = getSummaryStatus(row.workflow_state);
+      counts[state] = (counts[state] || 0) + 1;
+    }
+    return Object.entries(counts).map(([state, count]) => ({ state, count }));
+  }
   const res = await request(
     'GET',
     `/api/method/sanha.api.dashboard.state_counts?filters=${encodeURIComponent(JSON.stringify(extraFilters))}`,
@@ -371,6 +399,7 @@ export async function findSimilarQuery(rawMaterial, manufacturer, excludeName = 
 }
 
 export async function getOverviewMetrics(filters = []) {
+  if (liveDataEnabled() && (!filters || (Array.isArray(filters) && !filters.length))) return (await ensureLiveDataset('Query')).metrics || {};
   const res = await request('GET', `/api/method/sanha.api.dashboard.overview_metrics?filters=${encodeURIComponent(JSON.stringify(filters))}`, null, { cache: false });
   return res.message || {};
 }
@@ -381,11 +410,13 @@ export async function getPlaylistVideos(url, start = 0) {
 }
 
 export async function getClientResources(kind) {
+  if (kind === 'templates' && liveDataEnabled()) return getAllList('Templates', { fields: ['name', 'title', 'text_template', 'modified'] });
   const res = await request('GET', `/api/method/sanha.api.dashboard.client_resources?kind=${encodeURIComponent(kind)}`, null, { cache: false });
   return res.message || [];
 }
 
 export async function getExpiredDocuments() {
+  if (reportDataset('Expired Documents')) return (await ensureLiveDataset('Report:Expired Documents')).rows;
   const res = await request('GET', '/api/method/sanha.api.dashboard.expired_documents', null, { cache: false });
   return res.message?.data || [];
 }
@@ -405,6 +436,12 @@ export async function getQueriesForReport(extraFilters = []) {
 /* ── Batch fetch multiple queries by name list (used by PrintBulk) ── */
 export async function getQueriesByNames(names) {
   if (!names.length) return [];
+  if (liveDataEnabled()) {
+    const snapshot = await ensureLiveDataset('Query', true);
+    const unique = [...new Set(names)];
+    if (unique.some(name => !snapshot.records.has(name))) throw new Error('Some selected Queries were removed or access changed. Refresh the selection before printing.');
+    return unique.map(name => snapshot.records.get(name));
+  }
   const FIELDS = [
     'name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state',
     'query_types', 'client_name', 'client_code', 'owner', 'creation', 'modified',
@@ -436,6 +473,11 @@ export async function getQueriesByNames(names) {
 
 /* ── Script report with correct endpoint ── */
 export async function runScriptReport(reportName, filters = {}) {
+  const live = reportDataset(reportName);
+  if (live && !Object.keys(filters).length) {
+    const snapshot = await ensureLiveDataset(live);
+    return { columns: snapshot.meta?.columns || [], result: snapshot.rows };
+  }
   const params = new URLSearchParams({
     report_name: reportName,
     filters: JSON.stringify(filters),
@@ -558,7 +600,7 @@ export function savePortalLogoUrl(url) {
 
 /* ── Notifications: recent query activity ── */
 export async function getNotifications(userEmail, isAdminUser = false, limit = 15) {
-  const filters = isAdminUser ? [] : [['owner', '=', userEmail]];
+  const filters = liveDataEnabled() || isAdminUser ? [] : [['owner', '=', userEmail]];
   const rows = await getList('Query', {
     filters,
     fields: ['name', 'raw_material', 'workflow_state', 'owner', 'modified', 'client_name'],

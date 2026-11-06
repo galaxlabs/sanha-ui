@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLiveRevision } from '../hooks/useLiveData';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, CheckCircle, XCircle, Clock, AlertTriangle,
@@ -72,6 +73,8 @@ const STATE_COLORS = {
 };
 
 export default function Dashboard() {
+  const liveRevision = useLiveRevision('Query');
+  const hasLoaded = useRef(false);
   const { user, hasRole, isAdmin } = useAuth();
   const { error: showError } = useToast();
   const { theme } = useTheme();
@@ -101,7 +104,7 @@ export default function Dashboard() {
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
-      setLoading(true);
+      if (!hasLoaded.current) setLoading(true);
       setLoadError('');
       try {
         const extraFilters = isClientRole
@@ -124,6 +127,7 @@ export default function Dashboard() {
         setAllQueries(allData);
         setClientTotal(overview.clients ?? null);
         setMetrics(overview);
+        hasLoaded.current = true;
       } catch (e) {
         if (e.name !== 'AbortError') {
           console.error(e);
@@ -136,7 +140,7 @@ export default function Dashboard() {
     }
     if (user) load();
     return () => controller.abort();
-  }, [user]);
+  }, [user?.name, user?.clientName, liveRevision]);
 
   if (loading) return <Spinner />;
   if (loadError) return <div className="card" role="alert"><h3>Dashboard could not be reconciled</h3><p>{loadError}</p><button className="btn btn-primary" onClick={() => window.location.reload()}>Reload complete data</button></div>;

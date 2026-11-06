@@ -5,6 +5,8 @@ import { getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import PrintHeader from './PrintHeader';
 import { sortReportRows } from '../utils/reportSort';
+import { authorizePrintSnapshot } from '../api/liveData';
+import { useLiveRevision } from '../hooks/useLiveData';
 
 const FONT_SIZES = { xs: 9, s: 10, m: 11, l: 13 };
 const STATE_ORDER = ['Draft','Submitted','Submitted to SB','Under Review','Returned','Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted'];
@@ -22,11 +24,14 @@ function fmt(d) {
 }
 
 export default function PrintReport() {
+  const queryRevision = useLiveRevision('Query');
   const navigate = useNavigate();
   const [config, setConfig] = useState(null);
   const [logoUrl, setLogoUrl] = useState('/sanha-logo.png');
 
   useEffect(() => {
+    let active = true;
+    (async () => {
     try {
       const raw = sessionStorage.getItem('printReportConfig');
       const rowsRaw = sessionStorage.getItem('printReportRows');
@@ -37,10 +42,13 @@ export default function PrintReport() {
         try { config.clientInfo = JSON.parse(clientRaw); } catch { config.clientInfo = { client_name: clientRaw }; }
       }
       config.rows = sortReportRows(JSON.parse(rowsRaw), config.sortField, config.sortDirection);
-      setConfig(config);
-    } catch { navigate('/reports'); }
+      await authorizePrintSnapshot(config.rows);
+      if (active) setConfig(config);
+    } catch { if (active) { setConfig(null); navigate('/reports'); } }
+    })();
     setLogoUrl(getPortalLogoUrl());
-  }, [navigate]);
+    return () => { active = false; };
+  }, [navigate, queryRevision]);
 
   if (!config) return null;
 
