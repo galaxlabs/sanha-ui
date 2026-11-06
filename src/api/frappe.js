@@ -221,11 +221,12 @@ export async function getAllList(doctype, options = {}) {
   return rows;
 }
 
-export async function getAllQueries(filters = [], signal = null) {
+export async function getAllQueries(filters = [], signal = null, orderBy = 'modified desc') {
   return getAllList('Query', {
     filters,
     fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types', 'client_name', 'client_code', 'modified', 'owner', 'creation', 'is_duplicate', 'is_master'],
     signal,
+    orderBy,
   });
 }
 

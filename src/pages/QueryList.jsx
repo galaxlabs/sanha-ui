@@ -75,6 +75,9 @@ export default function QueryList() {
 
   /* Pagination */
   const [pageSize, setPageSize] = useState(25);
+  const [sortField, setSortField] = useState('modified');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const sortOrder = `${sortField} ${sortDirection}`;
 
   /* Column visibility */
   const COLUMNS = [
@@ -163,7 +166,7 @@ export default function QueryList() {
     setLoadError('');
     try {
       // Collect all permission-filtered pages before calculating selection/totals.
-      const allRows = await getAllQueries(buildFilters(), signal);
+      const allRows = await getAllQueries(buildFilters(), signal, sortOrder);
       setAllRows(allRows);
       const filteredRows = allRows;
       setTotalCount(filteredRows.length);
@@ -186,7 +189,7 @@ export default function QueryList() {
     } catch (e) {
       if (e.name !== 'AbortError') setLoadError(e.message || 'The complete Query list could not be loaded.');
     } finally { setLoading(false); }
-  }, [buildFilters, pageSize]);
+  }, [buildFilters, pageSize, sortOrder]);
 
   /* Sync URL → state on navigation */
   useEffect(() => {
@@ -245,7 +248,7 @@ export default function QueryList() {
   const selectAllMatching = async () => {
     setLoading(true);
     try {
-      const all = await getAllQueries(buildFilters());
+      const all = await getAllQueries(buildFilters(), null, sortOrder);
       setSelected(new Set(all.map(q => q.name)));
       setAllMatchingSelected(true);
     } finally { setLoading(false); }
@@ -257,7 +260,8 @@ export default function QueryList() {
     try {
       const { getQueriesByNames } = await import('../api/frappe');
       const rows = await getQueriesByNames(ids);
-      sessionStorage.setItem('printBulkRows', JSON.stringify(rows));
+      const byName = new Map(rows.map(row => [row.name, row]));
+      sessionStorage.setItem('printBulkRows', JSON.stringify(ids.map(id => byName.get(id)).filter(Boolean)));
       navigate('/queries/print-bulk?src=session');
     } catch {
       // Fallback: pass IDs via URL
@@ -273,7 +277,7 @@ export default function QueryList() {
       if (printLimit === 'loaded') {
         ids = queries.map(q => q.name);
       } else {
-        const rows = await getAllQueries(buildFilters());
+        const rows = await getAllQueries(buildFilters(), null, sortOrder);
         const limitedRows = printLimit === 'all' ? rows : rows.slice(0, Number(printLimit));
         ids = limitedRows.map(q => q.name);
       }
@@ -409,6 +413,20 @@ export default function QueryList() {
           </button>
         </div>
       )}
+
+      <div className="card" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '12px 16px', marginBottom: 12 }}>
+        <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by / ترتیب</label>
+        <select id="query-sort-field" className="form-control" style={{ width: 'auto' }} value={sortField} onChange={event => { const field = event.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
+          <option value="raw_material">Raw Material — حروفِ تہجی</option>
+          <option value="creation">Created — بننے کی تاریخ</option>
+          <option value="modified">Last Updated — آخری ترمیم</option>
+        </select>
+        <label htmlFor="query-sort-direction" className="sr-only">Sort direction</label>
+        <select id="query-sort-direction" aria-label="Sort direction" className="form-control" style={{ width: 'auto' }} value={sortDirection} onChange={event => setSortDirection(event.target.value)}>
+          <option value="asc">{sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے'}</option>
+          <option value="desc">{sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے'}</option>
+        </select>
+      </div>
 
       <QueryFilters
         search={searchText}
