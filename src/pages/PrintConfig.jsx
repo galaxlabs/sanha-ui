@@ -32,6 +32,8 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
   const [showClientInfo, setShowClientInfo] = useState(true);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [showPageNos, setShowPageNos] = useState(true);
+  const [sortField, setSortField] = useState('modified');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   if (!open) return null;
 
@@ -50,6 +52,8 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
       columns: isClient ? clientColumns : Object.entries(columns).filter(([, v]) => v).map(([k]) => k),
       groupBy,
       serialMode,
+      sortField,
+      sortDirection,
       showLogo: isClient ? true : showLogo,
       showCompanyInfo: true,
       showClientInfo: isClient ? true : showClientInfo,
@@ -147,6 +151,24 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                 <input type="checkbox" checked={allRecords} onChange={e => setAllRecords(e.target.checked)} style={{ accentColor: '#16a34a' }} />
                 All Records
               </label>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="report-sort-field" style={labelStyle}>Sort By / ترتیب</label>
+              <select id="report-sort-field" className="form-control" value={sortField} onChange={e => { const field = e.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
+                <option value="raw_material">Raw Material — حروفِ تہجی</option>
+                <option value="creation">Created — بننے کی تاریخ</option>
+                <option value="modified">Last Updated — آخری ترمیم</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="report-sort-direction" style={labelStyle}>Direction / ترتیب کی سمت</label>
+              <select id="report-sort-direction" className="form-control" value={sortDirection} onChange={e => setSortDirection(e.target.value)}>
+                <option value="asc">{sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے'}</option>
+                <option value="desc">{sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے'}</option>
+              </select>
             </div>
           </div>
 

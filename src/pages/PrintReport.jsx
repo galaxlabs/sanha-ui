@@ -4,6 +4,7 @@ import { Printer, ArrowLeft } from 'lucide-react';
 import { getPortalLogoUrl } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import PrintHeader from './PrintHeader';
+import { sortReportRows } from '../utils/reportSort';
 
 const FONT_SIZES = { xs: 9, s: 10, m: 11, l: 13 };
 const STATE_ORDER = ['Draft','Submitted','Submitted to SB','Under Review','Returned','Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted'];
@@ -35,7 +36,7 @@ export default function PrintReport() {
       if (clientRaw) {
         try { config.clientInfo = JSON.parse(clientRaw); } catch { config.clientInfo = { client_name: clientRaw }; }
       }
-      config.rows = JSON.parse(rowsRaw);
+      config.rows = sortReportRows(JSON.parse(rowsRaw), config.sortField, config.sortDirection);
       setConfig(config);
     } catch { navigate('/reports'); }
     setLogoUrl(getPortalLogoUrl());
@@ -59,11 +60,11 @@ export default function PrintReport() {
         if (!acc[key]) acc[key] = [];
         acc[key].push(r);
         return acc;
-      }, {})
+      }, Object.create(null))
     : null;
 
   const groupKeys = grouped
-    ? (groupBy === 'workflow_state' ? STATE_ORDER.filter(g => grouped[g]) : Object.keys(grouped).sort())
+    ? (groupBy === 'workflow_state' ? [...STATE_ORDER.filter(g => grouped[g]), ...Object.keys(grouped).filter(g => !STATE_ORDER.includes(g)).sort()] : Object.keys(grouped).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }) * (config.sortField === groupBy && config.sortDirection === 'desc' ? -1 : 1)))
     : [];
 
   const TD = {
