@@ -14,7 +14,7 @@ import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getOverviewMetrics, getStateCounts, getQueries } from '../api/frappe';
+import { getOverviewMetrics, getStateCounts, getQueries, getAllQueries } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, Filler);
@@ -82,6 +82,7 @@ export default function Dashboard() {
   const [clientTotal, setClientTotal] = useState(null);
   const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const isStaffRole = isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
   const isClientRole = !isStaffRole && (hasRole('Client') || !!user?.clientName);
@@ -101,6 +102,7 @@ export default function Dashboard() {
     const controller = new AbortController();
     async function load() {
       setLoading(true);
+      setLoadError('');
       try {
         const extraFilters = isClientRole
           ? [[user.clientName ? 'client_name' : 'owner', '=', user.clientName || user.name]]
@@ -108,9 +110,13 @@ export default function Dashboard() {
         const [statRows, queries, allData, overview] = await Promise.all([
           getStateCounts(extraFilters, { fresh: true }),
           getQueries(extraFilters, 6, 0, controller.signal, true),
-          getQueries(extraFilters, 9999, 0, controller.signal, true),
+          getAllQueries(extraFilters, controller.signal),
           getOverviewMetrics(extraFilters),
         ]);
+        const stateTotal = statRows.reduce((total, row) => total + Number(row.count), 0);
+        if (allData.length !== Number(overview.total_queries) || stateTotal !== allData.length) {
+          throw new Error('Dashboard totals changed during loading. Refresh to reconcile the charts.');
+        }
         const map = {};
         statRows.forEach(r => { map[r.state] = r.count; });
         setCounts(map);
@@ -121,7 +127,8 @@ export default function Dashboard() {
       } catch (e) {
         if (e.name !== 'AbortError') {
           console.error(e);
-          showError('Failed to load dashboard data');
+          setLoadError(e.message || 'Failed to load dashboard data');
+          showError(e.message || 'Failed to load dashboard data');
         }
       } finally {
         setLoading(false);
@@ -132,6 +139,7 @@ export default function Dashboard() {
   }, [user]);
 
   if (loading) return <Spinner />;
+  if (loadError) return <div className="card" role="alert"><h3>Dashboard could not be reconciled</h3><p>{loadError}</p><button className="btn btn-primary" onClick={() => window.location.reload()}>Reload complete data</button></div>;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -276,11 +284,11 @@ export default function Dashboard() {
   };
 
   /* ── Duplicate vs Master ── */
-  const dupCount = allQueries.filter(q => q.is_duplicate).length;
-  const masterCount = allQueries.filter(q => q.is_master).length;
-  const uniqueCount = allQueries.length - dupCount;
+  const dupCount = allQueries.filter(q => Number(q.is_duplicate) === 1).length;
+  const masterCount = allQueries.filter(q => Number(q.is_master) === 1 && Number(q.is_duplicate) !== 1).length;
+  const uniqueCount = allQueries.length - dupCount - masterCount;
   const dupChartData = {
-    labels: ['Unique', 'Duplicates', 'Master'],
+    labels: ['Other non-duplicate Queries', 'Duplicate-marked Queries', 'Non-duplicate master Queries'],
     datasets: [{
       data: [uniqueCount, dupCount, masterCount],
       backgroundColor: ['#22c55e99', '#f59e0b99', '#3b82f699'],
@@ -532,9 +540,9 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         {[
           { label: 'Total Queries', value: totalQueries, color: '#2563eb', bg: '#eff6ff' },
-          { label: 'Clients', value: clientTotal ?? Object.keys(clientCounts).length, color: '#16a34a', bg: '#f0fdf4' },
+          { label: clientTotal === null ? 'Clients with Queries' : 'Clients', value: clientTotal ?? new Set(allQueries.map(q => q.client_name).filter(Boolean)).size, color: '#16a34a', bg: '#f0fdf4' },
           { label: 'Unique Materials', value: Number(metrics.unique_materials ?? new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size), color: '#7c3aed', bg: '#f5f3ff' },
-          { label: 'Duplicate Rate', value: totalQueries ? `${Math.round((Number(metrics.duplicate_queries ?? dupCount) / totalQueries) * 100)}%` : '0%', color: '#f59e0b', bg: '#fffbeb' },
+          { label: 'Duplicate Rate', value: totalQueries ? `${((Number(metrics.duplicate_queries ?? dupCount) / totalQueries) * 100).toFixed(2)}%` : '0%', color: '#f59e0b', bg: '#fffbeb' },
         ].map((stat, i) => (
           <div key={i} style={{ background: stat.bg, borderRadius: 14, padding: '18px 20px' }}>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: stat.color }}>{stat.value}</div>

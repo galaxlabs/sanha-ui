@@ -25,10 +25,9 @@ export default function RawMaterials() {
   async function load() {
     setLoading(true);
     try {
-      const data = await frappe.getList('E-NUMBERS', {
+      const data = await frappe.getAllList('E-NUMBERS', {
         fields: ['name', 'code', 'name1', 'alternative_name', 'function', 'status', 'creation', 'modified'],
         orderBy: 'modified desc',
-        limit: 500,
       });
       setRows(data);
     } catch (e) {

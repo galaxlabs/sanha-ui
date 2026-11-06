@@ -1,5 +1,6 @@
 /* ── Frappe REST API helper ── */
 import { getSummaryStatus } from '../utils/statusGroups';
+import { collectPages } from '../utils/pagination';
 
 export async function messageApi(method, data = {}, write = false) {
   const params = new URLSearchParams(data);
@@ -208,6 +209,26 @@ export async function getList(doctype, { filters = [], fields = ['name'], orderB
   return res.data || [];
 }
 
+export async function getAllList(doctype, options = {}) {
+  const orderBy = options.orderBy || 'modified desc';
+  const stableOrder = /(^|[,\s])name\s/i.test(orderBy) ? orderBy : `${orderBy}, name asc`;
+  const countQueries = async () => (await getStateCounts(options.filters || [], { fresh: true })).reduce((total, row) => total + Number(row.count), 0);
+  const before = doctype === 'Query' ? await countQueries() : null;
+  const rows = await collectPages((offset, limit) => getList(doctype, { ...options, fields: [...new Set(['name', ...(options.fields || [])])], orderBy: stableOrder, limit, limitStart: offset, fresh: true }), { signal: options.signal });
+  if (doctype === 'Query' && (before !== rows.length || (await countQueries()) !== rows.length)) {
+    throw new Error('Query totals changed while loading. Refresh before printing or exporting.');
+  }
+  return rows;
+}
+
+export async function getAllQueries(filters = [], signal = null) {
+  return getAllList('Query', {
+    filters,
+    fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types', 'client_name', 'client_code', 'modified', 'owner', 'creation', 'is_duplicate', 'is_master'],
+    signal,
+  });
+}
+
 export async function getDoc(doctype, name) {
   const res = await request('GET', `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`);
   return res.data;
@@ -286,15 +307,15 @@ export async function getQueries(filters = [], limit = 50, start = 0, signal = n
 }
 
 export async function getQueryTypes() {
-  return getList('Query Types', { fields: ['name', 'query_type_name', 'description'], orderBy: 'name asc', limit: 200 });
+  return getAllList('Query Types', { fields: ['name', 'query_type_name', 'description'], orderBy: 'name asc' });
 }
 
 export async function getClients({ fresh = false } = {}) {
-  return getList('Client', { fields: ['name', 'client_name', 'client_code', 'email', 'city', 'creation', 'modified'], orderBy: 'creation desc', limit: 500, fresh });
+  return getAllList('Client', { fields: ['name', 'client_name', 'client_code', 'email', 'city', 'creation', 'modified'], orderBy: 'creation desc', fresh });
 }
 
 export async function getDocumentTypes() {
-  return getList('Document Types', { fields: ['name'], orderBy: 'name asc', limit: 100 });
+  return getAllList('Document Types', { fields: ['name'], orderBy: 'name asc' });
 }
 
 /* ── State counts — single grouped fetch ── */
@@ -370,14 +391,13 @@ export async function getExpiredDocuments() {
 
 /* ── Multi-dimensional report: all queries with extra fields ── */
 export async function getQueriesForReport(extraFilters = []) {
-  return getList('Query', {
+  return getAllList('Query', {
     filters: extraFilters,
     fields: [
       'name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state',
       'query_types', 'client_name', 'client_code', 'owner', 'creation', 'modified',
     ],
     orderBy: 'creation desc',
-    limit: 5000,
   });
 }
 
@@ -628,9 +648,8 @@ export async function eNumbersLookup(materialName) {
     limit_page_length: 1,
   });
   if (exact.length) return exact.map(r => ({ ...r, match_type: 'Exact' }));
-  const all = await getList('E-NUMBERS', {
+  const all = await getAllList('E-NUMBERS', {
     fields: ['name1', 'alternative_name', 'status', 'source'],
-    limit_page_length: 500,
   });
   for (const row of all) {
     const alt = (row.alternative_name || '').toLowerCase();
@@ -670,9 +689,8 @@ export async function saveAiAgentConfig(data) {
 
 /* ── Data quality: fetch all distinct suppliers, manufacturers, raw materials ── */
 export async function getAllEntities() {
-  const queries = await getList('Query', {
+  const queries = await getAllList('Query', {
     fields: ['supplier', 'manufacturer', 'raw_material', 'manufacturer_contact', 'supplier_contact', 'name'],
-    limit: 10000,
   });
   const seen = { suppliers: {}, manufacturers: {}, rawMaterials: {}, contacts: {} };
   for (const q of queries) {

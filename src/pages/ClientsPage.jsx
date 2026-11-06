@@ -282,7 +282,7 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
       try {
         const [full, qs, sc] = await Promise.all([
           frappe.getClientDetail(client.name).catch(() => client),
-          frappe.getQueries([['client_name', '=', client.name]], 100),
+          frappe.getAllQueries([['client_name', '=', client.name]]),
           frappe.getStateCounts([['client_name', '=', client.name]]),
         ]);
         setClient(full);
@@ -472,9 +472,9 @@ export default function ClientsPage() {
   const loadClients = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await frappe.getList('Client', {
+      const data = await frappe.getAllList('Client', {
         fields: ['name','client_name','client_code','email','city','region','status','certified_expiry','is_active'],
-        orderBy: 'client_name asc', limit: 500,
+        orderBy: 'client_name asc',
       });
       setClients(data);
     } catch (e) { showError(e.message); }

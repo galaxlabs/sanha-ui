@@ -51,11 +51,10 @@ export default function ClientReport() {
         const clientDoc = await frappe.getDoc('Client', clientName);
         setClient(clientDoc);
 
-        const q = await frappe.getList('Query', {
+        const q = await frappe.getAllList('Query', {
           filters: [['client_name', '=', clientName]],
           fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types', 'creation'],
-          order_by: 'creation desc',
-          limit: 200,
+          orderBy: 'creation desc',
         });
         setQueries(q);
       }

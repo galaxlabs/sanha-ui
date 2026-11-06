@@ -4,7 +4,7 @@ import {
   Search, Plus, RefreshCw, LayoutGrid, List, X, Printer, Columns,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getQueries, getQueryTypes } from '../api/frappe';
+import { getAllQueries, getQueryTypes } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
 import QueryCard from '../components/UI/QueryCard';
 import QueryFilters from '../components/UI/QueryFilters';
@@ -50,6 +50,7 @@ export default function QueryList() {
   const [queries,        setQueries]        = useState([]);
   const [allRows,        setAllRows]        = useState([]);
   const [loading,        setLoading]        = useState(true);
+  const [loadError,      setLoadError]      = useState('');
   const [viewMode,       setViewMode]       = useState('table');
   const [searchText,     setSearchText]     = useState(searchParams.get('q') || '');
   const searchTimerRef = useRef(null);
@@ -142,7 +143,11 @@ export default function QueryList() {
   const buildFilters = useCallback(() => {
     const f = [];
     if (isClient) f.push([user?.clientName ? 'client_name' : 'owner', '=', user?.clientName || user.name]);
-    if (stateFilter.length)        f.push(['workflow_state', excludeState  ? 'not in' : 'in', stateFilter]);
+    if (stateFilter.length) {
+      // Match the dashboard's summary aliases when drilling down from cards.
+      const expandedStates = [...new Set(stateFilter.flatMap(state => state === 'Approved' ? ['Approved', 'Halal'] : state === 'Rejected' ? ['Rejected', 'Haram'] : [state]))];
+      f.push(['workflow_state', excludeState ? 'not in' : 'in', expandedStates]);
+    }
     if (typeFilter.length)         f.push(['query_types',    excludeType   ? 'not in' : 'in', typeFilter]);
     if (clientFilter.length && !isClient) f.push(['client_name', excludeClient ? 'not in' : 'in', clientFilter]);
     if (mfrFilter.trim())          f.push(['manufacturer', 'like', `%${mfrFilter.trim()}%`]);
@@ -155,10 +160,10 @@ export default function QueryList() {
 
   const load = useCallback(async (reset = true, atPage = 0, signal = null) => {
     setLoading(true);
+    setLoadError('');
     try {
-      // Always fetch all matching records (up to 9999) in one call
-      // Then paginate client-side to avoid double-fetch
-      const allRows = await getQueries(buildFilters(), 9999, 0, signal);
+      // Collect all permission-filtered pages before calculating selection/totals.
+      const allRows = await getAllQueries(buildFilters(), signal);
       setAllRows(allRows);
       const filteredRows = allRows;
       setTotalCount(filteredRows.length);
@@ -179,7 +184,7 @@ export default function QueryList() {
         setAllMatchingSelected(false);
       }
     } catch (e) {
-      if (e.name !== 'AbortError') throw e;
+      if (e.name !== 'AbortError') setLoadError(e.message || 'The complete Query list could not be loaded.');
     } finally { setLoading(false); }
   }, [buildFilters, pageSize]);
 
@@ -240,7 +245,7 @@ export default function QueryList() {
   const selectAllMatching = async () => {
     setLoading(true);
     try {
-      const all = await getQueries(buildFilters(), 9999, 0);
+      const all = await getAllQueries(buildFilters());
       setSelected(new Set(all.map(q => q.name)));
       setAllMatchingSelected(true);
     } finally { setLoading(false); }
@@ -268,7 +273,7 @@ export default function QueryList() {
       if (printLimit === 'loaded') {
         ids = queries.map(q => q.name);
       } else {
-        const rows = await getQueries(buildFilters(), 9999, 0);
+        const rows = await getAllQueries(buildFilters());
         const limitedRows = printLimit === 'all' ? rows : rows.slice(0, Number(printLimit));
         ids = limitedRows.map(q => q.name);
       }
@@ -290,6 +295,8 @@ export default function QueryList() {
 
   /* ─── Column count (for checkbox + conditional client col) ─── */
   const colCount = isClient ? 8 : 9;
+
+  if (loadError) return <div className="card" role="alert"><h3>Complete Query list unavailable</h3><p>{loadError}</p><button className="btn btn-primary" onClick={() => load(true)}>Retry complete list</button></div>;
 
   return (
     <div>
