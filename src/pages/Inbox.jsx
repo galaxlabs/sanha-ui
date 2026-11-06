@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Search, Send, Smile, AtSign, X, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Search, Send, Smile, AtSign, X, ShieldCheck, History } from 'lucide-react';
 import { messageApi } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
+import QueryTimeline from '../components/UI/QueryTimeline';
 
 const EMOJIS = {
   Faces: ['😀', '😊', '🙂', '😄', '😂', '😍', '🤔', '😌', '😎', '🙁', '😮', '🥳'],
@@ -24,6 +25,9 @@ export default function Inbox() {
   const [query, setQuery] = useState('');
   const [querySearch, setQuerySearch] = useState('');
   const [options, setOptions] = useState([]);
+  const [queryOffset, setQueryOffset] = useState(0);
+  const [moreQueries, setMoreQueries] = useState(false);
+  const [timeline, setTimeline] = useState(null);
   const [picker, setPicker] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [emojiGroup, setEmojiGroup] = useState('Faces');
@@ -37,7 +41,7 @@ export default function Inbox() {
   useEffect(() => {
     if (!contact) return;
     let active = true;
-    setRows([]); setQuery(''); setText(''); setPicker(false); setEmojiOpen(false); setLoading(true);
+    setRows([]); setQuery(''); setText(''); setPicker(false); setEmojiOpen(false); setLoading(true); setOptions([]); setQueryOffset(0); setQuerySearch(''); setTimeline(null);
     const load = () => messageApi('conversation', { contact })
       .then(data => { if (active) { setRows(data); setError(''); } })
       .catch(e => { if (active) setError(e.message); })
@@ -49,15 +53,20 @@ export default function Inbox() {
   useEffect(() => {
     if (!picker) return;
     let active = true;
-    const timer = setTimeout(() => messageApi('query_options', { search: querySearch })
-      .then(data => { if (active) setOptions(data); })
+    const timer = setTimeout(() => messageApi('query_options', { contact, search: querySearch, start: queryOffset })
+      .then(data => { if (active) { setOptions(previous => queryOffset === 0 ? data : [...previous, ...data]); setMoreQueries(data.length === 30); } })
       .catch(e => { if (active) setError(e.message); }), 250);
     return () => { active = false; clearTimeout(timer); };
-  }, [picker, querySearch]);
+  }, [picker, querySearch, contact, queryOffset]);
 
   const departments = [...new Set(contacts.flatMap(item => item.departments))];
   const member = contacts.find(item => item.name === contact);
   const visible = contacts.filter(item => (!department || item.departments.includes(department)) && `${item.full_name} ${item.name}`.toLowerCase().includes(search.toLowerCase()));
+  function openQueryPicker() {
+    setQueryOffset(0);
+    if (!picker) setOptions([]);
+    setPicker(true); setEmojiOpen(false);
+  }
   function insertEmoji(emoji) {
     const input = textarea.current;
     const start = input?.selectionStart ?? text.length;
@@ -90,20 +99,21 @@ export default function Inbox() {
       </aside>
       <section className="messenger-chat" aria-label="Conversation">
         {!contact ? <div className="messenger-empty"><div className="messenger-empty-icon"><MessageCircle size={42} /></div><h2>Your SANHA conversations</h2><p>Select a member to discuss a Query or contact your team.</p><small>Clients can contact staff only. Staff can contact colleagues and Clients.</small></div> : <>
-          <header className="messenger-chat-header"><button type="button" disabled={sending} className="messenger-icon messenger-back" aria-label="Back to members" onClick={() => setContact('')}><ArrowLeft size={20} /></button><div className="messenger-avatar">{initials(member?.full_name || contact)}</div><div><strong>{member?.full_name || contact}</strong><small>{member?.departments.join(' · ')} · Refreshes every 10 seconds</small></div></header>
+          <header className="messenger-chat-header"><button type="button" disabled={sending} className="messenger-icon messenger-back" aria-label="Back to members" onClick={() => setContact('')}><ArrowLeft size={20} /></button><div className="messenger-avatar">{initials(member?.full_name || contact)}</div><div style={{ flex: 1 }}><strong>{member?.full_name || contact}</strong><small>{member?.departments.join(' · ')} · Refreshes every 10 seconds</small></div><button type="button" className="messenger-icon" title="Query Timeline" aria-label="Open Query timeline" onClick={() => setTimeline({ query: query || '' })}><History size={22} /></button></header>
+          {timeline && <QueryTimeline key={`${contact}:${timeline.query}`} contact={contact} initialQuery={timeline.query} onClose={() => setTimeline(null)} />}
           <div className="messenger-history" role="log" aria-label="Messages">
             <div className="messenger-note">Only participants can access this conversation through the portal.</div>
             {loading ? <p className="messenger-muted">Loading messages…</p> : rows.length === 0 ? <p className="messenger-muted">No messages yet. Say hello 👋</p> : rows.map((row, index) => {
               const date = row.creation.split(' ')[0];
               const previousDate = rows[index - 1]?.creation.split(' ')[0];
-              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name ? 'messenger-bubble--sent' : ''}`}><p dir="auto">{row.message}</p>{row.query_reference && <Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link>}<time>{time(row.creation)}</time></article></div>;
+              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name ? 'messenger-bubble--sent' : ''}`}><p dir="auto">{row.message}</p>{row.query_reference && <><Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link><button type="button" className="messenger-icon" title="Query Timeline" onClick={() => setTimeline({ query: row.query_reference })}><History size={14} /> Timeline</button></>}<time>{time(row.creation)}</time></article></div>;
             })}<div ref={bottom} />
           </div>
           <form className="messenger-compose" onSubmit={send}>
             {query && <div className="messenger-query-chip"><AtSign size={15} /> {query}<button type="button" className="messenger-icon" aria-label="Remove Query" onClick={() => setQuery('')}><X size={15} /></button></div>}
-            {picker && <div className="messenger-popover"><div className="messenger-popover-heading"><strong>Attach a Query</strong><button type="button" className="messenger-icon" aria-label="Close Query picker" onClick={() => setPicker(false)}><X size={18} /></button></div><input aria-label="Search accessible Queries" className="form-control" placeholder="Search Query ID or raw material…" value={querySearch} onChange={e => setQuerySearch(e.target.value)} />{options.map(option => <button type="button" className="messenger-query-option" key={option.name} onClick={() => { setQuery(option.name); setPicker(false); }}>{option.name}<small>{option.raw_material}</small></button>)}</div>}
+            {picker && <div className="messenger-popover"><div className="messenger-popover-heading"><strong>Attach a Query</strong><button type="button" className="messenger-icon" aria-label="Close Query picker" onClick={() => setPicker(false)}><X size={18} /></button></div><p className="messenger-muted">Only Queries available to this conversation's participants.</p><input aria-label="Search accessible Queries" className="form-control" placeholder="Search Query ID or raw material…" value={querySearch} onChange={e => { setQuerySearch(e.target.value); setQueryOffset(0); setOptions([]); }} />{options.map(option => <button type="button" className="messenger-query-option" key={option.name} onClick={() => { setQuery(option.name); setPicker(false); }}>{option.name}<small>{option.raw_material}</small></button>)}{moreQueries && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQueryOffset(options.length)}>Load more Queries</button>}</div>}
             {emojiOpen && <div className="messenger-popover messenger-emojis"><div className="messenger-popover-heading"><strong>Emoji</strong><button type="button" className="messenger-icon" aria-label="Close emoji picker" onClick={() => setEmojiOpen(false)}><X size={18} /></button></div><div className="messenger-emoji-tabs">{Object.keys(EMOJIS).map(group => <button type="button" className={emojiGroup === group ? 'is-selected' : ''} key={group} onClick={() => setEmojiGroup(group)}>{group}</button>)}</div><div className="messenger-emoji-grid">{EMOJIS[emojiGroup].map(emoji => <button type="button" aria-label={`Insert ${emoji}`} key={emoji} onMouseDown={e => e.preventDefault()} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div></div>}
-            <div className="messenger-compose-row"><button type="button" className="messenger-icon" aria-label="Emoji picker" aria-expanded={emojiOpen} onClick={() => { setEmojiOpen(!emojiOpen); setPicker(false); }}><Smile size={23} /></button><button type="button" className="messenger-icon" aria-label="Attach Query" aria-expanded={picker} onClick={() => { setPicker(!picker); setEmojiOpen(false); }}><AtSign size={22} /></button><textarea ref={textarea} required maxLength={10000} rows={1} aria-label="Message" value={text} placeholder="Type a message… (@ for Queries)" onChange={e => { setText(e.target.value); if (e.target.value.endsWith('@')) { setPicker(true); setEmojiOpen(false); } }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(e); } }} /><button className="messenger-send" aria-label="Send message" disabled={sending || !text.trim()}><Send size={20} /></button></div>
+            <div className="messenger-compose-row"><button type="button" className="messenger-icon" aria-label="Emoji picker" aria-expanded={emojiOpen} onClick={() => { setEmojiOpen(!emojiOpen); setPicker(false); }}><Smile size={23} /></button><button type="button" className="messenger-icon" aria-label="Attach Query" aria-expanded={picker} onClick={() => picker ? setPicker(false) : openQueryPicker()}><AtSign size={22} /></button><textarea ref={textarea} required maxLength={10000} rows={1} aria-label="Message" value={text} placeholder="Type a message… (@ for Queries)" onChange={e => { setText(e.target.value); if (e.target.value.endsWith('@')) openQueryPicker(); }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(e); } }} /><button className="messenger-send" aria-label="Send message" disabled={sending || !text.trim()}><Send size={20} /></button></div>
           </form>
         </>}
       </section>

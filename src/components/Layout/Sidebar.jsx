@@ -37,7 +37,6 @@ const NAV_GROUPS = {
     { label: 'Queries',        icon: FileText,         to: '/queries' },
     { label: 'Submitted',      icon: CheckCircle,      to: '/queries?state=Submitted' },
     { label: 'Returned to Me', icon: AlertTriangle,    to: '/queries?state=Returned+To+Evaluation' },
-    { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
     { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
   'SB User': [

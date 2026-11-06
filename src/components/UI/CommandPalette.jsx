@@ -7,12 +7,13 @@ export default function CommandPalette({ open, onClose }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isClient = user?.roles?.includes('Client');
+  const hideReports = user?.roles?.includes('Evaluation') && !user?.roles?.some(role => ['Admin', 'System Manager', 'Administrator', 'SB User'].includes(role));
   const PAGES = [
     { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, keywords: 'home main' },
     { label: 'All Queries', to: '/queries', icon: FileText, keywords: 'list queries search' },
     { label: 'New Query', to: '/queries/new', icon: Plus, keywords: 'create add submit' },
     ...(!isClient ? [{ label: 'Clients', to: '/clients', icon: Users, keywords: 'customers companies' }] : []),
-    { label: 'Reports', to: '/reports', icon: BarChart2, keywords: 'analytics charts export' },
+    ...(!hideReports ? [{ label: 'Reports', to: '/reports', icon: BarChart2, keywords: 'analytics charts export' }] : []),
     { label: 'Settings', to: '/settings', icon: Settings, keywords: 'preferences password profile' },
   ];
 
