@@ -1,7 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowLeft, MessageCircle, Search, Send, Smile, AtSign, X, ShieldCheck } from 'lucide-react';
 import { messageApi } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
+
+const EMOJIS = {
+  Faces: ['😀', '😊', '🙂', '😄', '😂', '😍', '🤔', '😌', '😎', '🙁', '😮', '🥳'],
+  Gestures: ['👍', '👎', '👏', '🙌', '🤝', '🙏', '👋', '👌', '💪', '✋', '🫶', '✍️'],
+  Work: ['✅', '❌', '❓', '⚠️', '📌', '📎', '📄', '📋', '📅', '⏰', '💡', '🔍'],
+  Appreciation: ['❤️', '💚', '💙', '✨', '🌟', '🎉', '💯', '🌹', '☀️', '☕', '🌙', '🕊️'],
+};
+const initials = name => (name || '?').split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
+const time = value => new Date(value.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export default function Inbox() {
   const { user } = useAuth();
@@ -15,31 +25,88 @@ export default function Inbox() {
   const [querySearch, setQuerySearch] = useState('');
   const [options, setOptions] = useState([]);
   const [picker, setPicker] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiGroup, setEmojiGroup] = useState('Faces');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const textarea = useRef(null);
+  const bottom = useRef(null);
+
   useEffect(() => { messageApi('contacts').then(setContacts).catch(e => setError(e.message)); }, []);
   useEffect(() => {
     if (!contact) return;
     let active = true;
-    setRows([]); setQuery(''); setText('');
-    const load = () => messageApi('conversation', { contact }).then(data => { if (active) setRows(data); }).catch(e => { if (active) setError(e.message); });
+    setRows([]); setQuery(''); setText(''); setPicker(false); setEmojiOpen(false); setLoading(true);
+    const load = () => messageApi('conversation', { contact })
+      .then(data => { if (active) { setRows(data); setError(''); } })
+      .catch(e => { if (active) setError(e.message); })
+      .finally(() => { if (active) setLoading(false); });
     load(); const timer = setInterval(load, 10000);
     return () => { active = false; clearInterval(timer); };
   }, [contact]);
+  useEffect(() => { bottom.current?.scrollIntoView({ block: 'nearest' }); }, [rows.length, contact]);
   useEffect(() => {
     if (!picker) return;
     let active = true;
-    const timer = setTimeout(() => messageApi('query_options', { search: querySearch }).then(data => { if (active) setOptions(data); }).catch(e => { if (active) setError(e.message); }), 250);
+    const timer = setTimeout(() => messageApi('query_options', { search: querySearch })
+      .then(data => { if (active) setOptions(data); })
+      .catch(e => { if (active) setError(e.message); }), 250);
     return () => { active = false; clearTimeout(timer); };
   }, [picker, querySearch]);
+
   const departments = [...new Set(contacts.flatMap(item => item.departments))];
+  const member = contacts.find(item => item.name === contact);
+  const visible = contacts.filter(item => (!department || item.departments.includes(department)) && `${item.full_name} ${item.name}`.toLowerCase().includes(search.toLowerCase()));
+  function insertEmoji(emoji) {
+    const input = textarea.current;
+    const start = input?.selectionStart ?? text.length;
+    const end = input?.selectionEnd ?? text.length;
+    if (text.length - (end - start) + emoji.length > 10000) return;
+    setText(text.slice(0, start) + emoji + text.slice(end));
+    requestAnimationFrame(() => { input?.focus(); input?.setSelectionRange(start + emoji.length, start + emoji.length); });
+  }
   async function send(event) {
-    event.preventDefault(); setSending(true); setError('');
+    event.preventDefault();
+    if (!text.trim() || sending) return;
+    setSending(true); setError('');
     try {
       await messageApi('send', { contact, message: text, query_reference: query }, true);
-      setText(''); setQuery(''); setPicker(false);
+      setText(''); setQuery(''); setPicker(false); setEmojiOpen(false);
       setRows(await messageApi('conversation', { contact }));
     } catch (e) { setError(e.message); } finally { setSending(false); }
   }
-  return <div className="page-stack"><div className="page-heading"><div><h1>Messages</h1><p>Contact your SANHA team · karachi@sanha.org.pk</p></div></div>{error && <p role="alert">{error}</p>}<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}><section className="card"><h3>Members</h3><input aria-label="Search available members" className="form-control" placeholder="Search members…" value={search} onChange={e => setSearch(e.target.value)} /><select aria-label="Department" className="form-control" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</select>{contacts.filter(item => (!department || item.departments.includes(department)) && `${item.full_name} ${item.name}`.toLowerCase().includes(search.toLowerCase())).map(item => <button className={`btn ${contact === item.name ? 'btn-primary' : 'btn-outline'}`} key={item.name} style={{ display: 'block', width: '100%', marginTop: 8 }} onClick={() => { setContact(item.name); setError(''); }}>{item.full_name || item.name}<small style={{ display: 'block' }}>{item.departments.join(', ')}</small></button>)}</section><section className="card">{!contact ? <p>Select a member to start a conversation.</p> : <><h3>{contacts.find(item => item.name === contact)?.full_name || contact}</h3><div style={{ maxHeight: 420, overflowY: 'auto' }}>{rows.map(row => <article key={row.name} style={{ padding: 12, marginBottom: 8, border: '1px solid var(--border-base)', borderRadius: 10, background: row.sender === user.name ? 'var(--surface-bg)' : 'var(--surface-card)' }}><strong>{row.sender === user.name ? 'You' : contacts.find(item => item.name === row.sender)?.full_name || row.sender}</strong><p style={{ whiteSpace: 'pre-wrap' }}>{row.message}</p>{row.query_reference && <Link to={`/queries/${encodeURIComponent(row.query_reference)}`}>{row.query_reference}</Link>}<small style={{ display: 'block' }}>{row.creation}</small></article>)}</div><form onSubmit={send}><button className="btn btn-outline" type="button" onClick={() => setPicker(!picker)}>@ Attach Query</button>{query && <p>{query} <button type="button" onClick={() => setQuery('')}>Remove</button></p>}{picker && <div><input className="form-control" placeholder="Search accessible Queries…" value={querySearch} onChange={e => setQuerySearch(e.target.value)} />{options.map(option => <button type="button" className="btn btn-ghost" key={option.name} onClick={() => { setQuery(option.name); setPicker(false); }}>{option.name} — {option.raw_material}</button>)}</div>}<textarea required maxLength={10000} aria-label="Message" className="form-control" value={text} placeholder="Write a message; type @ to attach a Query" onChange={e => { setText(e.target.value); if (e.target.value.endsWith('@')) setPicker(true); }} /><button className="btn btn-primary" disabled={sending || !text.trim()}>Send</button></form></>}</section></div></div>;
+
+  return <div className="messenger-page">
+    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span></div>
+    {error && <div className="messenger-error" role="alert">{error}</div>}
+    <div className={`messenger ${contact ? 'messenger--conversation' : ''}`}>
+      <aside className="messenger-members">
+        <header className="messenger-list-header"><div className="messenger-avatar messenger-avatar--brand"><MessageCircle size={22} /></div><div><strong>Conversations</strong><small>{contacts.length} available members</small></div></header>
+        <div className="messenger-search"><Search size={16} /><input aria-label="Search available members" placeholder="Search members" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <select aria-label="Filter members by department" className="messenger-department" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</select>
+        <div className="messenger-member-list">{visible.length === 0 && <p className="messenger-muted">No available members match.</p>}{visible.map(item => <button type="button" disabled={sending} className={`messenger-member ${contact === item.name ? 'is-selected' : ''}`} key={item.name} onClick={() => { setContact(item.name); setError(''); }}><span className="messenger-avatar">{initials(item.full_name || item.name)}</span><span className="messenger-member-text"><strong>{item.full_name || item.name}</strong><small>{item.departments.join(' · ')}</small></span></button>)}</div>
+        <footer className="messenger-list-footer">karachi@sanha.org.pk</footer>
+      </aside>
+      <section className="messenger-chat" aria-label="Conversation">
+        {!contact ? <div className="messenger-empty"><div className="messenger-empty-icon"><MessageCircle size={42} /></div><h2>Your SANHA conversations</h2><p>Select a member to discuss a Query or contact your team.</p><small>Clients can contact staff only. Staff can contact colleagues and Clients.</small></div> : <>
+          <header className="messenger-chat-header"><button type="button" disabled={sending} className="messenger-icon messenger-back" aria-label="Back to members" onClick={() => setContact('')}><ArrowLeft size={20} /></button><div className="messenger-avatar">{initials(member?.full_name || contact)}</div><div><strong>{member?.full_name || contact}</strong><small>{member?.departments.join(' · ')} · Refreshes every 10 seconds</small></div></header>
+          <div className="messenger-history" role="log" aria-label="Messages">
+            <div className="messenger-note">Only participants can access this conversation through the portal.</div>
+            {loading ? <p className="messenger-muted">Loading messages…</p> : rows.length === 0 ? <p className="messenger-muted">No messages yet. Say hello 👋</p> : rows.map((row, index) => {
+              const date = row.creation.split(' ')[0];
+              const previousDate = rows[index - 1]?.creation.split(' ')[0];
+              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name ? 'messenger-bubble--sent' : ''}`}><p dir="auto">{row.message}</p>{row.query_reference && <Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link>}<time>{time(row.creation)}</time></article></div>;
+            })}<div ref={bottom} />
+          </div>
+          <form className="messenger-compose" onSubmit={send}>
+            {query && <div className="messenger-query-chip"><AtSign size={15} /> {query}<button type="button" className="messenger-icon" aria-label="Remove Query" onClick={() => setQuery('')}><X size={15} /></button></div>}
+            {picker && <div className="messenger-popover"><div className="messenger-popover-heading"><strong>Attach a Query</strong><button type="button" className="messenger-icon" aria-label="Close Query picker" onClick={() => setPicker(false)}><X size={18} /></button></div><input aria-label="Search accessible Queries" className="form-control" placeholder="Search Query ID or raw material…" value={querySearch} onChange={e => setQuerySearch(e.target.value)} />{options.map(option => <button type="button" className="messenger-query-option" key={option.name} onClick={() => { setQuery(option.name); setPicker(false); }}>{option.name}<small>{option.raw_material}</small></button>)}</div>}
+            {emojiOpen && <div className="messenger-popover messenger-emojis"><div className="messenger-popover-heading"><strong>Emoji</strong><button type="button" className="messenger-icon" aria-label="Close emoji picker" onClick={() => setEmojiOpen(false)}><X size={18} /></button></div><div className="messenger-emoji-tabs">{Object.keys(EMOJIS).map(group => <button type="button" className={emojiGroup === group ? 'is-selected' : ''} key={group} onClick={() => setEmojiGroup(group)}>{group}</button>)}</div><div className="messenger-emoji-grid">{EMOJIS[emojiGroup].map(emoji => <button type="button" aria-label={`Insert ${emoji}`} key={emoji} onMouseDown={e => e.preventDefault()} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div></div>}
+            <div className="messenger-compose-row"><button type="button" className="messenger-icon" aria-label="Emoji picker" aria-expanded={emojiOpen} onClick={() => { setEmojiOpen(!emojiOpen); setPicker(false); }}><Smile size={23} /></button><button type="button" className="messenger-icon" aria-label="Attach Query" aria-expanded={picker} onClick={() => { setPicker(!picker); setEmojiOpen(false); }}><AtSign size={22} /></button><textarea ref={textarea} required maxLength={10000} rows={1} aria-label="Message" value={text} placeholder="Type a message… (@ for Queries)" onChange={e => { setText(e.target.value); if (e.target.value.endsWith('@')) { setPicker(true); setEmojiOpen(false); } }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(e); } }} /><button className="messenger-send" aria-label="Send message" disabled={sending || !text.trim()}><Send size={20} /></button></div>
+          </form>
+        </>}
+      </section>
+    </div>
+  </div>;
 }
