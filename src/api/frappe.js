@@ -1,6 +1,12 @@
 /* ── Frappe REST API helper ── */
 import { getSummaryStatus } from '../utils/statusGroups';
 
+export async function messageApi(method, data = {}, write = false) {
+  const params = new URLSearchParams(data);
+  const res = await request(write ? 'POST' : 'GET', `/api/method/sanha.api.messaging.${method}${write ? '' : `?${params}`}`, write ? data : null, { cache: false });
+  return res.message;
+}
+
 const DEFAULT_FRAPPE_URL = import.meta.env.PROD ? 'https://evaluation.sanha.org.pk' : '';
 const DEFAULT_PORTAL_URL = import.meta.env.PROD ? 'https://portal.sanha.org.pk' : window.location.origin;
 

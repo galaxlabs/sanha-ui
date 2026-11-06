@@ -83,7 +83,7 @@ export default function PrintReport() {
           <hr style={{ height: 1.5, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
           <div style={{ textAlign: 'center', color: '#555', fontSize: fs - 1, padding: '6px 0' }}>
             <p style={{ margin: '2px 0' }}>Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. phase 5, Karachi, Pakistan</p>
-            <p style={{ margin: '2px 0', fontWeight: 600 }}>Email: evaluation@sanha.org.pk &nbsp;—&nbsp; Phone: +92 21 35295263</p>
+            <p style={{ margin: '2px 0', fontWeight: 600 }}>Email: karachi@sanha.org.pk &nbsp;—&nbsp; Phone: +92 21 35295263</p>
           </div>
           <hr style={{ height: 1.5, borderWidth: 0, color: '#999', backgroundColor: '#999' }} />
         </>
@@ -215,7 +215,7 @@ export default function PrintReport() {
         {showDisclaimer && (
           <div style={{ marginTop: 24, paddingTop: 12, borderTop: '1px solid #e2e8f0', fontSize: fs - 2, color: '#94a3b8', textAlign: 'center' }}>
             This report is computer-generated and does not require a signature.
-            For verification, please contact evaluation@sanha.org.pk.
+            For verification, please contact karachi@sanha.org.pk.
           </div>
         )}
 

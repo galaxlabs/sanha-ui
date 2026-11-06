@@ -14,7 +14,7 @@ import QueryTypes from './pages/QueryTypes';
 import RawMaterials from './pages/RawMaterials';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import Messages from './pages/Messages';
+import Messages from './pages/Inbox';
 import PrintQuery from './pages/PrintQuery';
 import PrintBulk from './pages/PrintBulk';
 import PrintGrouped from './pages/PrintGrouped';

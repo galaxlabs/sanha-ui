@@ -42,7 +42,7 @@ const DEFAULT_OPTS = {
   customRef:         '',
   orgName:           'SANHA HALAL',
   orgAddress:        'Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. Phase 5, Karachi',
-  orgContact:        'Email: evaluation@sanha.org.pk | Ph: +92 21 35295263',
+  orgContact:        'Email: karachi@sanha.org.pk | Ph: +92 21 35295263',
   slogan:            'Eat Halal, Be Healthy.',
   footerLeft:        'Sanha Halal Associates Pakistan PVT. LTD.',
   footerRight:       '',

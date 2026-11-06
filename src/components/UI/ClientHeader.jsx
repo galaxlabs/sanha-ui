@@ -73,7 +73,7 @@ export default function ClientHeader() {
       {/* Address */}
       <div style={{ textAlign: 'center', color: '#555', marginBottom: 16 }}>
         <p style={{ margin: '0 0 4px', fontSize: '0.8rem' }}>Suite 103, 2nd Floor, Plot 11-C, Lane 9, Zamzama D.H.A. Phase 5, Karachi, Pakistan</p>
-        <p style={{ margin: 0, fontSize: '0.8rem' }}><strong>Email: evaluation@sanha.org.pk - Phone: +92 21 35295263</strong></p>
+        <p style={{ margin: 0, fontSize: '0.8rem' }}><strong>Email: karachi@sanha.org.pk - Phone: +92 21 35295263</strong></p>
       </div>
 
       <hr style={{ height: 1, border: 'none', background: '#e2e8f0', marginBottom: 20 }} />
