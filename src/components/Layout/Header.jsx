@@ -21,9 +21,11 @@ const PAGE_TITLES = {
   '/queries/new':   'New Query',
   '/clients':       'Clients',
   '/query-types':   'Query Types',
-  '/raw-materials': 'Raw Materials',
+  '/raw-materials': 'E-Numbers',
   '/reports':       'Reports',
   '/settings':      'Settings',
+  '/ai-review':     'Staff AI Review',
+  '/settings/ai-agent': 'AI Agent Settings',
 };
 
 const THEME_ICONS = { light: Moon, dark: Sun };

@@ -9,6 +9,7 @@ import WorkflowActions from '../components/UI/WorkflowActions';
 import { Spinner } from '../components/UI/Loaders';
 import Modal from '../components/UI/Modal';
 import SuggestionDropdown from '../components/UI/SuggestionDropdown';
+import StaffAIReview from '../components/UI/StaffAIReview';
 
 const DRAFT_KEY = 'sanha_query_draft';
 
@@ -87,7 +88,7 @@ export default function QueryForm() {
   const [entityCandidates, setEntityCandidates] = useState({ suppliers: [], manufacturers: [], rawMaterials: [] });
   const dupTimer = useRef(null);
 
-  const isClient = hasRole('Client') && !isAdmin() && !hasRole('Evaluation') && !hasRole('SB User');
+  const isClient = hasRole('Client') && !isAdmin() && !hasRole('Evaluation') && !hasRole('SB User') && !hasRole('Certificate Manager');
   const isEvaluation = hasRole('Evaluation');
   const isSBUser = hasRole('SB User');
   const canSeeSimilar = isEvaluation || isSBUser;
@@ -408,6 +409,7 @@ export default function QueryForm() {
         {doc.auto_submit_after && <p>Auto-submit check: {new Date(doc.auto_submit_after.replace(' ', 'T')).toLocaleString()}</p>}
         {doc.auto_submit_error && <p role="status">Draft not submitted: {doc.auto_submit_error}. Complete the missing details and save again.</p>}
       </div>}
+      {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={doc.name} query={doc.name} />}
       {/* Recovered draft banner */}
       {recoveredDraft && (
         <div style={{ background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:8, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>

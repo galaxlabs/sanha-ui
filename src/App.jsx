@@ -22,6 +22,8 @@ import PrintReport from './pages/PrintReport';
 import ClientReport from './pages/ClientReport';
 import Learning from './pages/Learning';
 import ClientResources from './pages/ClientResources';
+import StaffReviewPage from './pages/StaffReviewPage';
+import ChatAgentConfig from './pages/ChatAgentConfig';
 import { Spinner } from './components/UI/Loaders';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -157,6 +159,9 @@ function AppRoutes() {
           <AppLayout><Messages /></AppLayout>
         </ProtectedRoute>
       } />
+
+      <Route path="/ai-review" element={<ProtectedRoute allowedRoles={['Evaluation', 'SB User', 'Certificate Manager']}><AppLayout><StaffReviewPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/settings/ai-agent" element={<ProtectedRoute allowedRoles={['Admin', 'System Manager']}><AppLayout><ChatAgentConfig /></AppLayout></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
     </Routes>

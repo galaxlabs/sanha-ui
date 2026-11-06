@@ -18,6 +18,8 @@ const FIELD_MAP = {
   enableQueryLookup: 'enable_query_lookup',
   provider: 'provider',
   apiKey: 'api_key',
+  reviewClauses: 'review_clauses',
+  reviewTerms: 'review_terms',
 };
 
 const REVERSE_MAP = Object.fromEntries(
@@ -28,7 +30,7 @@ const DEFAULTS = {
   agentName: 'SANHA Assistant',
   welcomeMessage: 'Assalam-o-Alaikum! I am the SANHA Halal Query Assistant. How can I help you today?',
   systemPrompt: 'You are a helpful assistant for SANHA (Sanha Halal Associates Pakistan). You help users with halal certification queries, status checks, and general information about the halal certification process. Be professional, courteous, and precise.',
-  model: 'gpt-4o-mini',
+  model: 'GPT-4o Mini',
   provider: 'Open AI',
   apiKey: '',
   temperature: 0.7,
@@ -36,6 +38,8 @@ const DEFAULTS = {
   showSources: true,
   enableFileUpload: false,
   enableQueryLookup: true,
+  reviewClauses: '',
+  reviewTerms: '',
 };
 
 function SectionCard({ icon: Icon, iconBg, iconColor, title, children, defaultOpen = true }) {
@@ -61,20 +65,23 @@ export default function ChatAgentConfig() {
   const [config, setConfig] = useState({ ...DEFAULTS });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [keyConfigured, setKeyConfigured] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     frappe.getAiAgentConfig()
       .then(data => {
+        setKeyConfigured(!!data.key_configured);
         if (data && Object.keys(data).length > 1) {
           const mapped = {};
           Object.keys(data).forEach(key => {
             const uiKey = REVERSE_MAP[key];
-            if (uiKey !== undefined) mapped[uiKey] = data[key];
+            if (uiKey !== undefined && data[key] !== null && data[key] !== '') mapped[uiKey] = data[key];
           });
           setConfig(prev => ({ ...prev, ...mapped }));
         }
       })
-      .catch(() => {})
+      .catch(error => setLoadError(error.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -88,6 +95,7 @@ export default function ChatAgentConfig() {
         payload[backendKey] = config[uiKey];
       });
       await frappe.saveAiAgentConfig(payload);
+      if (config.apiKey) { setKeyConfigured(true); setConfig(prev => ({ ...prev, apiKey: '' })); }
       addToast('Agent configuration saved', 'success');
     } catch (err) {
       addToast(err.message || 'Save failed', 'error');
@@ -99,7 +107,8 @@ export default function ChatAgentConfig() {
   const handleReset = async () => {
     setConfig({ ...DEFAULTS });
     try {
-      await frappe.saveAiAgentConfig(DEFAULTS);
+      const payload = Object.fromEntries(Object.entries(FIELD_MAP).map(([ui, backend]) => [backend, DEFAULTS[ui]]));
+      await frappe.saveAiAgentConfig(payload);
       addToast('Reset to defaults', 'info');
     } catch {}
   };
@@ -111,6 +120,7 @@ export default function ChatAgentConfig() {
       </div>
     );
   }
+  if (loadError) return <div className="card" role="alert">{loadError}</div>;
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -118,8 +128,20 @@ export default function ChatAgentConfig() {
         <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Bot size={22} color="var(--brand-600)" /> Chat Agent Configuration
         </h2>
-        <p className="text-sm text-gray mt-1">Configure the AI chat assistant behavior and appearance</p>
+        <p className="text-sm text-gray mt-1">Existing SANHA agent configuration and staff review policy</p>
       </div>
+
+      <SectionCard icon={Globe} iconBg="#e6fffa" iconColor="#247f7b" title="AI Provider Connection">
+        <label>Provider<select className="form-control" value={config.provider} onChange={e => update('provider', e.target.value)}><option>Open AI</option><option>Claude</option></select></label>
+        <label>API key<input type="password" autoComplete="new-password" className="form-control" value={config.apiKey} placeholder={keyConfigured ? 'Key saved — leave blank to keep it' : 'Enter provider API key'} onChange={e => update('apiKey', e.target.value)} /></label>
+        <p className="text-sm text-gray">{keyConfigured ? 'A key is saved. Its value is never returned to the browser.' : 'No key is configured. Evidence comparison works, but AI summaries and vision require a key.'}</p>
+      </SectionCard>
+
+      <SectionCard icon={Eye} iconBg="#e0e7ff" iconColor="#4338ca" title="Staff Review Clauses and Alert Terms">
+        <label>Authoritative clauses — one clause with its ID/version per line<textarea className="form-control" rows={7} value={config.reviewClauses || ''} onChange={e => update('reviewClauses', e.target.value)} /></label>
+        <label>Document alert terms — one term per line<textarea className="form-control" rows={5} value={config.reviewTerms || ''} onChange={e => update('reviewTerms', e.target.value)} /></label>
+        <p className="text-sm text-gray">No prohibited terms or certification rules are invented by default. Review output cites the configured clauses and document pages.</p>
+      </SectionCard>
 
       <SectionCard icon={Bot} iconBg="#e0e7ff" iconColor="#4338ca" title="Agent Identity">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -144,11 +166,11 @@ export default function ChatAgentConfig() {
             <div>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Model</label>
               <select className="form-input" value={config.model} onChange={e => update('model', e.target.value)} style={{ width: '100%' }}>
-                <option value="gpt-4o">GPT-4o</option>
-                <option value="gpt-4o-mini">GPT-4o Mini</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3-haiku">Claude 3 Haiku</option>
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                <option value="GPT-4o">GPT-4o</option>
+                <option value="GPT-4o Mini">GPT-4o Mini</option>
+                <option value="GPT-3.5 Turbo">GPT-3.5 Turbo</option>
+                <option value="Claude 3 Haiku">Claude 3 Haiku</option>
+                <option value="Claude 3 Sonnet">Claude 3 Sonnet</option>
               </select>
             </div>
             <div>

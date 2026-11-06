@@ -104,7 +104,10 @@ export default function Sidebar({ collapsed, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { group, links } = getRoleLinks(user?.roles || []);
-  const sidebarLinks = uniqueLinks(links);
+  const agentLinks = ['Admin', 'Evaluation', 'SB User', 'Certificate Manager'].includes(group)
+    ? [{ label: 'Staff AI Review', icon: Search, to: '/ai-review' }, ...(group === 'Admin' ? [{ label: 'AI Agent Settings', icon: Settings, to: '/settings/ai-agent' }] : [])]
+    : [];
+  const sidebarLinks = uniqueLinks([...links, ...agentLinks]);
   const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Track which expandable items are open (default: Reports open if on /reports)

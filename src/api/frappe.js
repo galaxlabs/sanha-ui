@@ -670,21 +670,27 @@ export async function eNumbersLookup(materialName) {
 
 /* ── AI Agent Config ── */
 export async function getAiAgentConfig() {
-  try {
-    const res = await call('frappe.client.get', {
-      doctype: 'AI Agent Config',
-      name: 'AI Agent Config',
-    });
-    return res.message || {};
-  } catch { return {}; }
+  const res = await request('GET', '/api/method/sanha.api.staff_review.settings', null, { cache: false });
+  return res.message || {};
 }
 
 export async function saveAiAgentConfig(data) {
-  const res = await call('frappe.client.set_value', {
-    doctype: 'AI Agent Config',
-    name: 'AI Agent Config',
-    fieldname: data,
-  });
+  const res = await request('POST', '/api/method/sanha.api.staff_review.save_settings', { data: JSON.stringify(data) });
+  return res.message;
+}
+
+export async function startStaffReview(query) {
+  const res = await request('POST', '/api/method/sanha.api.staff_review.start', { query });
+  return res.message;
+}
+
+export async function getStaffReviewQueries(search = '') {
+  const res = await request('GET', `/api/method/sanha.api.staff_review.eligible_queries?search=${encodeURIComponent(search)}`, null, { cache: false });
+  return res.message || [];
+}
+
+export async function getStaffReviewStatus(token) {
+  const res = await request('GET', `/api/method/sanha.api.staff_review.status?token=${encodeURIComponent(token)}`, null, { cache: false });
   return res.message;
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Shield, Users, Settings as SettingsIcon, Database,
   Upload, Image, Key, Lock, Eye, EyeOff, Check, X,
@@ -91,6 +92,11 @@ export default function SettingsPage() {
 
       <SectionCard icon={Users} iconBg="#dcfce7" iconColor="#16a34a" title="User Management" defaultOpen={false}>
         <UserManagementPanel addToast={addToast} />
+      </SectionCard>
+
+      <SectionCard icon={SettingsIcon} iconBg="#e6fffa" iconColor="#247f7b" title="Staff AI Agent">
+        <p>Configure the existing provider, API key, institutional clauses and document alert terms.</p>
+        <Link className="btn btn-outline" to="/settings/ai-agent">Open AI Agent Settings</Link>
       </SectionCard>
       <SectionCard icon={Database} iconBg="#eef2ff" iconColor="#4f46e5" title="Learning Playlists" defaultOpen={false}>
         <LearningPlaylistPanel addToast={addToast} />
