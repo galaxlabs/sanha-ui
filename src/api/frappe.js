@@ -347,9 +347,9 @@ export async function getOverviewMetrics(filters = []) {
   return res.message || {};
 }
 
-export async function getPlaylistVideos(url) {
-  const res = await request('GET', `/api/method/sanha.api.dashboard.playlist_videos?url=${encodeURIComponent(url)}`, null, { cache: false });
-  return res.message || [];
+export async function getPlaylistVideos(url, start = 0) {
+  const res = await request('GET', `/api/method/sanha.api.dashboard.playlist_videos?url=${encodeURIComponent(url)}&start=${start}&page_size=50`, null, { cache: false });
+  return res.message || { videos: [], has_more: false };
 }
 
 export async function getClientResources(kind) {

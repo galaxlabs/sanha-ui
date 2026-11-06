@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { TRANSITIONS } from '../utils/workflow';
 import {
   uploadLogoFile, savePortalLogoUrl, getPortalLogoUrl,
-  adminSetPassword, updatePassword, listUsers, uploadFile, updateClient, getList, createDoc, deleteDoc,
+  adminSetPassword, updatePassword, listUsers, uploadFile, updateClient, getList, createDoc, updateDoc, deleteDoc,
 } from '../api/frappe';
 import { useToast } from '../contexts/ToastContext';
 
@@ -113,11 +113,38 @@ export default function SettingsPage() {
 
 function LearningPlaylistPanel({ addToast }) {
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({ title: '', subject: '', youtube_url: '', description: '', sort_order: 0, published: 1 });
-  const load = () => getList('Learning Playlist', { fields: ['name', 'title', 'subject', 'youtube_url', 'description', 'sort_order', 'published'], orderBy: 'sort_order asc', limit: 200 }).then(setItems);
-  useEffect(() => { load(); }, []);
-  const save = async event => { event.preventDefault(); try { await createDoc('Learning Playlist', form); setForm({ title: '', subject: '', youtube_url: '', description: '', sort_order: 0, published: 1 }); load(); addToast('Playlist saved', 'success'); } catch (error) { addToast(error.message, 'error'); } };
-  return <><form onSubmit={save} style={{ display: 'grid', gap: 10, marginBottom: 16 }}><input className="form-control" required placeholder="Playlist title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /><input className="form-control" required placeholder="Subject" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} /><input className="form-control" required type="url" placeholder="YouTube playlist URL" value={form.youtube_url} onChange={e => setForm({ ...form, youtube_url: e.target.value })} /><textarea className="form-control" placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /><div style={{ display: 'flex', gap: 10 }}><input className="form-control" type="number" placeholder="Order" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: Number(e.target.value) })} /><label><input type="checkbox" checked={!!form.published} onChange={e => setForm({ ...form, published: e.target.checked ? 1 : 0 })} /> Published</label><button className="btn btn-primary" type="submit">Add Playlist</button></div></form><div className="table-wrap"><table><thead><tr><th>Subject</th><th>Title</th><th>Published</th><th /></tr></thead><tbody>{items.map(item => <tr key={item.name}><td>{item.subject}</td><td><a href={item.youtube_url} target="_blank" rel="noreferrer">{item.title}</a></td><td>{item.published ? 'Yes' : 'No'}</td><td><button className="btn btn-ghost btn-sm" onClick={async () => { await deleteDoc('Learning Playlist', item.name); load(); }}>Delete</button></td></tr>)}</tbody></table></div></>;
+  const empty = { title: '', subject: '', youtube_url: '', description: '', sort_order: 0, published: 1 };
+  const [form, setForm] = useState(empty);
+  const [editing, setEditing] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const load = () => getList('Learning Playlist', { fields: ['name', 'title', 'subject', 'youtube_url', 'description', 'sort_order', 'published'], orderBy: 'sort_order asc, title asc', limit: 0, fresh: true }).then(setItems);
+  useEffect(() => { load().catch(error => addToast(error.message, 'error')).finally(() => setLoading(false)); }, []);
+  const reset = () => { setEditing(null); setForm(empty); };
+  const save = async event => {
+    event.preventDefault(); setBusy(true);
+    try {
+      if (editing) await updateDoc('Learning Playlist', editing, form);
+      else await createDoc('Learning Playlist', form);
+      reset(); await load(); addToast('Playlist saved', 'success');
+    } catch (error) { addToast(error.message, 'error'); } finally { setBusy(false); }
+  };
+  const remove = async item => {
+    setBusy(true);
+    try { await deleteDoc('Learning Playlist', item.name); if (editing === item.name) reset(); await load(); }
+    catch (error) { addToast(error.message, 'error'); } finally { setBusy(false); }
+  };
+  return <>
+    <h4>{editing ? 'Edit Playlist' : 'Add Playlist'}</h4>
+    <form onSubmit={save} style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
+      {[['title', 'Playlist title'], ['subject', 'Subject'], ['youtube_url', 'YouTube playlist URL']].map(([key, label]) => <label key={key}>{label}<input className="form-control" required type={key === 'youtube_url' ? 'url' : 'text'} value={form[key]} onChange={event => setForm({ ...form, [key]: event.target.value })} /></label>)}
+      <label>Description<textarea className="form-control" value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></label>
+      <label>Sort order<input className="form-control" type="number" step="1" value={form.sort_order} onChange={event => setForm({ ...form, sort_order: Number(event.target.value) })} /></label>
+      <label><input type="checkbox" checked={!!form.published} onChange={event => setForm({ ...form, published: Number(event.target.checked) })} /> Published — visible in Client Learning</label>
+      <div style={{ display: 'flex', gap: 8 }}><button disabled={busy} className="btn btn-primary" type="submit">{busy ? 'Saving…' : editing ? 'Save Changes' : 'Add Playlist'}</button>{editing && <button disabled={busy} className="btn btn-outline" type="button" onClick={reset}>Cancel Edit</button>}</div>
+    </form>
+    {loading ? <div>Loading playlists…</div> : <div className="table-wrap"><table><thead><tr><th>Order</th><th>Subject</th><th>Title</th><th>Published</th><th>Actions</th></tr></thead><tbody>{!items.length && <tr><td colSpan={5}>No playlists yet.</td></tr>}{items.map(item => <tr key={item.name}><td>{item.sort_order}</td><td>{item.subject}</td><td><a href={item.youtube_url} target="_blank" rel="noreferrer">{item.title}</a></td><td>{item.published ? 'Yes' : 'No'}</td><td><button disabled={busy} className="btn btn-outline btn-sm" onClick={() => { setEditing(item.name); setForm(Object.fromEntries(Object.keys(empty).map(key => [key, item[key] ?? empty[key]]))); }}>Edit</button><button disabled={busy} className="btn btn-ghost btn-sm" onClick={() => remove(item)}>Delete</button></td></tr>)}</tbody></table></div>}
+  </>;
 }
 
 /* ── Client Logo Panel ── */
