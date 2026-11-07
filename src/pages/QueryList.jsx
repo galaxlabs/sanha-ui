@@ -360,7 +360,7 @@ export default function QueryList() {
                 <div style={{ padding: '6px 10px 4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>Columns</div>
                 {COLUMNS.filter(c => !c.hideClient || !isClient).map(c => (
                   <label key={c.key} className="dropdown-item" style={{ gap: 8, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={visibleCols.includes(c.key)} onChange={() => toggleCol(c.key)} style={{ accentColor: '#2563eb' }} />
+                    <input type="checkbox" checked={visibleCols.includes(c.key)} onChange={() => toggleCol(c.key)} style={{ accentColor: '#247f7b' }} />
                     {c.label}
                   </label>
                 ))}
@@ -435,7 +435,7 @@ export default function QueryList() {
       )}
 
       <div className="card" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '12px 16px', marginBottom: 12 }}>
-        <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by / ترتیب</label>
+        <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by <span lang="ur" dir="rtl" style={{ marginLeft: 6 }}>ترتیب</span></label>
         <select id="query-sort-field" className="form-control" style={{ width: 'auto' }} value={sortField} onChange={event => { const field = event.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
           <option value="raw_material">Raw Material — حروفِ تہجی</option>
           <option value="creation">Created — بننے کی تاریخ</option>
@@ -504,8 +504,8 @@ export default function QueryList() {
           <button key={sg.value} onClick={() => { const next = sg.value ? [sg.value] : []; setStateFilter(next); pushParams({ state: sg.value }); }}
             style={{
               padding: '5px 13px', borderRadius: 999, fontSize: '0.78rem', cursor: 'pointer', border: '1px solid',
-              borderColor: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#2563eb' : '#e2e8f0',
-              background: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#2563eb' : '#fff',
+              borderColor: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#247f7b' : '#e2e8f0',
+              background: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#247f7b' : '#fff',
               color: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? '#fff' : '#374151',
               fontWeight: (sg.value ? stateFilter.includes(sg.value) : stateFilter.length === 0) ? 700 : 400,
             }}>{sg.label}</button>
@@ -534,7 +534,7 @@ export default function QueryList() {
                       type="checkbox"
                       checked={allChecked}
                       onChange={toggleAll}
-                      style={{ cursor: 'pointer', accentColor: '#2563eb' }}
+                      style={{ cursor: 'pointer', accentColor: '#247f7b' }}
                       title={allChecked ? 'Deselect all' : 'Select all'}
                     />
                   </th>
@@ -558,10 +558,10 @@ export default function QueryList() {
                         checked={selected.has(q.name)}
                         onChange={e => toggleRow(q.name, e)}
                         onClick={e => e.stopPropagation()}
-                        style={{ cursor: 'pointer', accentColor: '#2563eb' }}
+                        style={{ cursor: 'pointer', accentColor: '#247f7b' }}
                       />
                     </td>
-                    {visibleCols.includes('name') && <td style={{ fontWeight: 600, color: '#2563eb', fontFamily: 'monospace', fontSize: '0.8125rem' }}>{q.name}</td>}
+                    {visibleCols.includes('name') && <td style={{ fontWeight: 600, color: '#247f7b', fontFamily: 'monospace', whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>{q.name}</td>}
                     {visibleCols.includes('raw_material') && <td style={{ fontWeight: 500, maxWidth: 200 }}><div className="truncate" title={q.raw_material}>{q.raw_material}</div></td>}
                     {visibleCols.includes('query_types') && <td className="text-sm">{q.query_types || '—'}</td>}
                     {visibleCols.includes('manufacturer') && <td className="text-sm truncate" style={{ maxWidth: 140 }}>{q.manufacturer || '—'}</td>}

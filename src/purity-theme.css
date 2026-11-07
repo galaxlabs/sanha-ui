@@ -1,15 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap');
 /* Purity-inspired palette and surfaces, implemented for SANHA's existing components. */
 :root, [data-theme="light"] {
   --brand-50: #e6fffa; --brand-100: #b2f5ea; --brand-200: #81e6d9;
   --brand-400: #4fd1c5; --brand-500: #38b2ac; --brand-600: #247f7b;
   --brand-700: #1d6563; --brand-800: #234e52; --brand-900: #183b3e;
-  --surface-bg: #f8f9fa; --text-primary: #2d3748; --text-secondary: #4a5568;
-  --text-muted: #718096; --radius-lg: 15px; --radius-xl: 20px;
-  --shadow-md: 0 6px 24px rgba(45,55,72,.045);
+  --surface-bg: #f4f8fb; --surface-card: #ffffff; --text-primary: #1a202c; --text-secondary: #566a80;
+  --text-muted: #8797ab; --border-base: #e6edf4; --radius-lg: 20px; --radius-xl: 24px;
+  --shadow-md: 0 10px 30px rgba(26,32,44,.06);
 }
-body { font-family: "Open Sans", "Segoe UI", Arial, sans-serif; }
-.card, .dashboard-panel, .dashboard-stat { border-radius: 15px; }
+body { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; }
+.card, .dashboard-panel, .dashboard-stat { border-radius: 20px; }
 [data-theme="dark"] {
   --brand-400: #4fd1c5; --brand-500: #38b2ac; --brand-600: #2c7a7b;
   --surface-bg: #0e1424; --surface-card: #172036; --surface-sidebar: #121a2e;
@@ -124,6 +125,22 @@ body { font-family: "Open Sans", "Segoe UI", Arial, sans-serif; }
 [data-theme="dark"] .dashboard-stat-label { color: var(--text-secondary); }
 
 .dashboard-hero {
-  background: linear-gradient(135deg, var(--brand-700), var(--brand-600) 55%, var(--brand-500));
-  box-shadow: 0 14px 34px rgba(36, 127, 123, .28);
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-400) 60%, #7ee3da);
+  box-shadow: 0 14px 34px rgba(79, 209, 197, .3);
 }
+
+button, input, select, textarea { font-family: inherit; }
+
+.text-gray { color: var(--text-secondary); }
+th { position: sticky; top: 0; z-index: 1; background: var(--surface-card); }
+td { padding: 9px 14px; }
+tbody tr:hover td { background: rgba(79, 209, 197, .08); }
+tbody tr:nth-child(even) td { background: #f7fbfb; }
+[data-theme="dark"] tbody tr:nth-child(even) td { background: rgba(79, 209, 197, .03); }
+
+.badge-info { background: #e0f7f5; color: #1d6f6b; }
+.badge-violet { background: #d2f1ed; color: #247f7b; }
+[data-theme="dark"] .badge-info { background: rgba(79, 209, 197, .16); color: #81e6d9; }
+[data-theme="dark"] .badge-violet { background: rgba(79, 209, 197, .22); color: #a7f0ea; }
+
+:lang(ur), [dir="rtl"] { font-family: "Jameel Noori Nastaleeq", "Segoe UI", Arial, Tahoma, sans-serif; line-height: 1.9; }
