@@ -46,7 +46,9 @@ try {
     if (pathname.endsWith('find_similar_query')) return answer({ matches: [approved, draft, pending] });
     if (pathname.endsWith('sanha.api.review_cache.related')) return answer({ rows: [approved, draft, pending], total: 1, historical_file_reads: 0 });
     if (pathname.endsWith('sanha.api.review_cache.latest')) return answer({ status: 'complete', auto_enabled: true, providers_ready: true, query: current.name, current_material: current.raw_material, current_state: current.workflow_state,
-      review: { reviewed_at: stamp, sources: [], summaries: [{ text: 'General guidance, not manufacturer evidence.', sources: ['Q0'] }], findings: [],
+      review: { reviewed_at: stamp,
+        sources: url.searchParams.get('query') === 'Query-DECIDED' ? [{ id: 'D1:T1', url: '/private/files/test.docx', page: null, locator: 'Word text section 1' }] : [],
+        summaries: [{ text: 'General guidance, not manufacturer evidence.', sources: url.searchParams.get('query') === 'Query-DECIDED' ? ['Q0', 'D1:T1'] : ['Q0'] }], findings: [],
         assessment: { missing_evidence: { text: 'Ask the manufacturer for its process and source declaration.', sources: ['Q0'] } },
         follow_up_questions: [{ text: 'Ask whether processing aids were used.', sources: ['Q0'] }],
         research_sources: [{ id: 'Q0', kind: 'query_metadata' }], document_observations: [{ document: 'D1', message: 'Document unavailable; request actual evidence.', sources: [], blocking: false }], documents: [], entity_warnings: [], clauses: [] } });
@@ -85,6 +87,7 @@ try {
   await page.goto('http://127.0.0.1:4181/queries/Query-DECIDED');
   await expect(page.getByPlaceholder('e.g. Soy Lecithin')).toBeDisabled({ timeout: 20000 });
   await expect(page.getByPlaceholder('e.g. Soy Lecithin')).toHaveCSS('background-color', 'rgb(212, 237, 218)');
+  await expect(page.getByRole('link', { name: /D1:T1 · Word text section 1/ })).toHaveAttribute('href', /\/private\/files\/test\.docx$/);
   actorRoles = ['System Manager'];
   await page.goto('http://127.0.0.1:4181/settings/ai-agent');
   await page.getByLabel(/^Provider/).selectOption('Qwen');
@@ -93,7 +96,7 @@ try {
   assert.equal(errors.length, 0, errors.join('\n'));
   assert.equal(mutations.length, 0, mutations.join('\n'));
   assert.equal(unknown.length, 0, unknown.join('\n'));
-  console.log(JSON.stringify({ passed: 7, checks: ['unmatched field yellow', 'E-NUMBERS halal field green', 'old green removed on material change', 'decided references shown first; Draft/pending hidden', 'useful missing-evidence guidance without submission/AI mutation', 'read-only decided field retains E-NUMBERS color', 'Admin Qwen region and ten-Query cleanup status visible'] }));
+  console.log(JSON.stringify({ passed: 8, checks: ['unmatched field yellow', 'E-NUMBERS halal field green', 'old green removed on material change', 'decided references shown first; Draft/pending hidden', 'useful missing-evidence guidance without submission/AI mutation', 'read-only decided field retains E-NUMBERS color', 'Word section citations do not invent PDF page numbers', 'Admin Qwen region and ten-Query cleanup status visible'] }));
 } catch (error) {
   console.error({ errors, mutations, unknown });
   console.error(await page?.locator('body').innerText().catch(() => 'no page'));

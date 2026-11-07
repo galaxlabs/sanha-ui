@@ -69,10 +69,11 @@ export default function StaffAIReview({ query }) {
   const note = review?.department_notes?.[department];
   function reference(id) {
     const source = review?.sources?.find(item => item.id === id);
-    if (source) return <a key={id} href={`${FRAPPE_URL}${source.url}#page=${source.page}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · p.{source.page}</a>;
+    if (source) return <a key={id} href={`${FRAPPE_URL}${source.url}${source.page ? `#page=${source.page}` : ''}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · {source.locator || (source.page ? `p.${source.page}` : 'document section')}</a>;
     const research = review?.research_sources?.find(item => item.id === id);
     if (research?.kind === 'historical_decision') return <Link key={id} to={`/queries/${encodeURIComponent(research.query)}`} style={{ marginRight: 8 }}>{id} · {research.query}</Link>;
     if (research?.kind === 'public_chemistry' && research.url?.startsWith('https://')) return <a key={id} href={research.url} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · {research.title || 'Public chemistry'}</a>;
+    if (research?.kind === 'document_metadata' && (research.url?.startsWith('/files/') || research.url?.startsWith('/private/files/'))) return <a key={id} href={`${FRAPPE_URL}${research.url}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · declared document metadata only</a>;
     if (id === 'Q0') return <span key={id} style={{ marginRight: 8 }}>Q0 · entered Query information</span>;
     const clause = review?.clauses?.find(item => item.id === id);
     return <span key={id} title={clause?.text || ''} style={{ marginRight: 8 }}>{id}</span>;
