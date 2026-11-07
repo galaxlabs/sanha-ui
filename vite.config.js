@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:86'
+
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -21,22 +23,25 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:86',
+        target: proxyTarget,
         changeOrigin: true,
-        secure: false,
+        secure: proxyTarget.startsWith('https'),
+        cookieDomainRewrite: 'localhost',
         configure: (proxy) => {
           proxy.on('error', (err) => console.warn('[proxy error]', err.message));
         },
       },
       '/assets': {
-        target: 'http://localhost:86',
+        target: proxyTarget,
         changeOrigin: true,
-        secure: false,
+        secure: proxyTarget.startsWith('https'),
+        cookieDomainRewrite: 'localhost',
       },
       '/files': {
-        target: 'http://localhost:86',
+        target: proxyTarget,
         changeOrigin: true,
-        secure: false,
+        secure: proxyTarget.startsWith('https'),
+        cookieDomainRewrite: 'localhost',
       },
     },
   },
