@@ -12,6 +12,7 @@ import SuggestionDropdown from '../components/UI/SuggestionDropdown';
 import StaffAIReview from '../components/UI/StaffAIReview';
 import { useLiveRecord } from '../hooks/useLiveData';
 import { peekLiveDataset } from '../api/liveData';
+import { isFinalDecision, materialFieldStyle } from '../utils/materialEvidence';
 
 const editableSignature = doc => JSON.stringify({ fields: ['raw_material', 'query_types', 'supplier', 'supplier_contact', 'manufacturer', 'manufacturer_contact', 'client_name'].map(field => doc[field] || ''), documents: (doc.documents || []).map(row => [row.name || '', row.documents || '', row.issue_date || '', row.expiry_date || '', row.attachment || '']) });
 const childStamp = doc => `${(doc.documents || []).length}:${(doc.documents || []).map(row => String(row.modified || '')).sort().at(-1) || ''}`;
@@ -99,11 +100,14 @@ export default function QueryForm() {
   const [similarBanner, setSimilarBanner] = useState(null); // previous final-state query
   const [entityCandidates, setEntityCandidates] = useState({ suppliers: [], manufacturers: [], rawMaterials: [] });
   const dupTimer = useRef(null);
+  const duplicateRequest = useRef(0);
 
   const isClient = hasRole('Client') && !isAdmin() && !hasRole('Evaluation') && !hasRole('SB User') && !hasRole('Certificate Manager');
   const isEvaluation = hasRole('Evaluation');
   const isSBUser = hasRole('SB User');
-  const canSeeSimilar = isEvaluation || isSBUser;
+  const canSeeSimilar = isAdmin() || isEvaluation || isSBUser || hasRole('Certificate Manager');
+  const materialStatusCode = String(materialStatus?.status || '').trim().toLowerCase();
+  const negativePreviousDecision = ['Rejected', 'Haram'].includes(similarBanner?.workflow_state);
   const isDraft = doc.workflow_state === 'Draft';
   const canEdit = isNew || isAdmin() ||
     (isClient && ['Draft', 'Returned'].includes(doc.workflow_state)) ||
@@ -172,56 +176,54 @@ export default function QueryForm() {
 
   /* Duplicate check: call after raw_material / manufacturer changes */
   const checkDuplicates = useCallback(async (rawMaterial, manufacturer, docName, supplier = '') => {
+    const generation = ++duplicateRequest.current;
     if (!rawMaterial?.trim()) { setDupWarning([]); return; }
     clearTimeout(dupTimer.current);
     dupTimer.current = setTimeout(async () => {
       try {
         const similar = await frappe.findSimilarQuery(rawMaterial.trim(), manufacturer?.trim() || '', docName || '', supplier?.trim() || '');
-        setDupWarning(similar);
-      } catch { setDupWarning([]); }
+        if (generation === duplicateRequest.current) setDupWarning(similar.filter(isFinalDecision));
+      } catch { if (generation === duplicateRequest.current) setDupWarning([]); }
     }, 600);
   }, []);
-
-  const FINAL_STATES = ['Approved', 'Halal', 'Haram', 'Rejected'];
+  useEffect(() => () => { duplicateRequest.current++; clearTimeout(dupTimer.current); }, []);
 
   /* E-NUMBERS + similar query lookups (debounced) */
   const lookupTimer = useRef(null);
   useEffect(() => {
+    let active = true;
     const rm = (doc.raw_material || '').trim().toLowerCase();
-    if (!rm) { setMaterialStatus(null); setSimilarBanner(null); return; }
+    setMaterialStatus(null); setSimilarBanner(null);
+    if (!rm) { setMaterialLookupLoading(false); return; }
     const mf = (doc.manufacturer || '').trim();
 
     clearTimeout(lookupTimer.current);
     lookupTimer.current = setTimeout(async () => {
       setMaterialLookupLoading(true);
       try {
-        const [enumbers, similar] = await Promise.all([
+        const [enumbers, similar] = await Promise.allSettled([
           frappe.eNumbersLookup(rm),
           canSeeSimilar && rm && mf
             ? frappe.findSimilarQuery(rm, mf, doc.name || '', doc.supplier || '')
             : Promise.resolve([]),
         ]);
-        setMaterialStatus(enumbers[0] || null);
-        if (canSeeSimilar && similar.length) {
-          const topFinal = similar.find(s => s.workflow_state && s.workflow_state !== 'Draft');
-          setSimilarBanner(topFinal || null);
-        } else {
-          setSimilarBanner(null);
-        }
+        if (!active) return;
+        setMaterialStatus(enumbers.status === 'fulfilled' ? enumbers.value[0] || null : null);
+        setSimilarBanner(similar.status === 'fulfilled' ? similar.value.find(isFinalDecision) || null : null);
       } catch {
-        setMaterialStatus(null);
-        setSimilarBanner(null);
+        if (active) { setMaterialStatus(null); setSimilarBanner(null); }
       } finally {
-        setMaterialLookupLoading(false);
+        if (active) setMaterialLookupLoading(false);
       }
     }, 400);
-  }, [doc.raw_material, doc.manufacturer]);
+    return () => { active = false; clearTimeout(lookupTimer.current); };
+  }, [doc.raw_material, doc.manufacturer, doc.supplier, doc.name, canSeeSimilar]);
 
   /* Field update helpers */
   const set = (field, val) => {
     setDoc(prev => {
       const next = { ...prev, [field]: val };
-      if (field === 'raw_material' || field === 'manufacturer') {
+      if (field === 'raw_material' || field === 'manufacturer' || field === 'supplier') {
         checkDuplicates(
           field === 'raw_material' ? val : prev.raw_material,
           field === 'manufacturer' ? val : prev.manufacturer,
@@ -508,23 +510,15 @@ export default function QueryForm() {
                   onChange={e => set('raw_material', e.target.value)}
                   placeholder="e.g. Soy Lecithin"
                   disabled={!canEdit}
-                  style={materialStatus ? {
-                    backgroundColor: materialStatus.status === 'Halal' ? '#d4edda' :
-                      materialStatus.status === 'Haram' ? '#f8d7da' :
-                      materialStatus.status === 'Doubtful' ? '#fff3cd' : '#ffeeba',
-                    borderColor: materialStatus.status === 'Halal' ? '#c3e6cb' :
-                      materialStatus.status === 'Haram' ? '#f5c6cb' :
-                      materialStatus.status === 'Doubtful' ? '#ffeeba' : '#ffeeba',
-                    fontWeight: 600,
-                  } : {}}
+                  style={materialFieldStyle(doc.raw_material, materialStatus)}
                 />
                 {materialLookupLoading && (
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', color: '#94a3b8' }}>...</span>
                 )}
                 {materialStatus && (
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>
-                    {materialStatus.status === 'Halal' ? <CheckCircle size={16} color="#16a34a" /> :
-                     materialStatus.status === 'Haram' ? <XCircle size={16} color="#dc2626" /> :
+                    {materialStatusCode === 'halal' ? <CheckCircle size={16} color="#16a34a" /> :
+                     materialStatusCode === 'haram' ? <XCircle size={16} color="#dc2626" /> :
                      <AlertTriangle size={16} color="#d97706" />}
                   </span>
                 )}
@@ -535,25 +529,22 @@ export default function QueryForm() {
               {materialStatus && (
                 <div style={{
                   marginTop: 6, padding: '6px 10px', borderRadius: 6, fontSize: '0.75rem',
-                  backgroundColor: materialStatus.status === 'Halal' ? '#d4edda' :
-                    materialStatus.status === 'Haram' ? '#f8d7da' :
-                    materialStatus.status === 'Doubtful' ? '#fff3cd' : '#ffeeba',
-                  color: materialStatus.status === 'Halal' ? '#155724' :
-                    materialStatus.status === 'Haram' ? '#721c24' :
-                    materialStatus.status === 'Doubtful' ? '#856404' : '#856404',
+                  backgroundColor: materialFieldStyle(doc.raw_material, materialStatus).backgroundColor,
+                  color: materialStatusCode === 'halal' ? '#155724' : materialStatusCode === 'haram' ? '#721c24' : '#856404',
                 }}>
                   <b>{materialStatus.status || 'Unknown'}</b> —
                   matched via <b>{materialStatus.match_type}</b>
                   {materialStatus.source ? ` | Source: ${materialStatus.source}` : ''}
                 </div>
               )}
+              {!!doc.raw_material?.trim() && !materialLookupLoading && !materialStatus && <small>No E-NUMBERS match confirmed. Yellow is an information gap, not a halal decision.</small>}
 
               {/* Similar previous query banner (Evaluation/SB User only) */}
               {canSeeSimilar && similarBanner && (
                 <div style={{
                   marginTop: 8, padding: '10px 12px', borderRadius: 8, fontSize: '0.78rem',
-                  backgroundColor: '#ecfdf5', color: '#14532d',
-                  border: '1px solid #c3e6cb',
+                  backgroundColor: negativePreviousDecision ? '#f8d7da' : '#ecfdf5', color: negativePreviousDecision ? '#721c24' : '#14532d',
+                  border: `1px solid ${negativePreviousDecision ? '#f5c6cb' : '#c3e6cb'}`,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700, marginBottom: 6 }}>
                     <CheckCircle size={14} /> Existing material history may help your review

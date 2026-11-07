@@ -1,6 +1,7 @@
-/* ── Frappe REST API helper ── */
+﻿/* ── Frappe REST API helper ── */
 import { getSummaryStatus } from '../utils/statusGroups';
 import { collectPages } from '../utils/pagination';
+import { frappeErrorMessage } from '../utils/frappeError';
 import { ensureLiveDataset, liveDataEnabled, liveRows, notifyMutation, reportDataset, stopLiveData, supportsLive } from './liveData';
 
 export async function messageApi(method, data = {}, write = false) {
@@ -124,7 +125,7 @@ async function request(method, url, data = null, { cache: useCache = true, signa
   const json = await res.json().catch(() => ({}));
   if (generation !== requestSessionGeneration) throw new Error('Authenticated session changed. Please retry.');
   if (!res.ok) {
-    const msg = json?.message || json?._error_message || json?.exc_type || `HTTP ${res.status}`;
+    const msg = frappeErrorMessage(json, res.status);
     throw new Error(msg);
   }
   if (json.exc) throw new Error(json._error_message || String(json.exc).split('\n').pop() || 'Server error');
@@ -738,6 +739,23 @@ export async function saveAiAgentConfig(data) {
   return res.message;
 }
 
+export async function getProviderProfiles() {
+  const res = await request('GET', '/api/method/sanha.api.ai_providers.list_profiles', null, { cache: false });
+  return res.message || [];
+}
+export async function saveProviderProfile(data, name = null) {
+  const res = await request('POST', '/api/method/sanha.api.ai_providers.save_profile', { data: JSON.stringify(data), name });
+  return res.message;
+}
+export async function testProviderConnection(name) {
+  const res = await request('POST', '/api/method/sanha.api.ai_providers.test_connection', { name });
+  return res.message;
+}
+export async function disableProviderProfile(name) {
+  const res = await request('POST', '/api/method/sanha.api.ai_providers.delete_profile', { name });
+  return res.message;
+}
+
 export async function startStaffReview(query) {
   const res = await request('POST', '/api/method/sanha.api.staff_review.start', { query });
   return res.message;
@@ -750,6 +768,29 @@ export async function getStaffReviewQueries(search = '') {
 
 export async function getStaffReviewStatus(token) {
   const res = await request('GET', `/api/method/sanha.api.staff_review.status?token=${encodeURIComponent(token)}`, null, { cache: false });
+  return res.message;
+}
+
+export async function getQuerySummary(query) {
+  const res = await request('GET', `/api/method/sanha.api.review_cache.latest?query=${encodeURIComponent(query)}`, null, { cache: false });
+  return res.message;
+}
+export async function ensureQuerySummary(query, retry = false) {
+  const res = await request('POST', '/api/method/sanha.api.review_cache.ensure', { query, retry: retry ? 1 : 0 });
+  return res.message;
+}
+export async function getRelatedReviewDecisions(query) {
+  const res = await request('GET', `/api/method/sanha.api.review_cache.related?query=${encodeURIComponent(query)}`, null, { cache: false });
+  return res.message;
+}
+
+export async function getEntityCleanupStatus() {
+  const res = await request('GET', '/api/method/sanha.api.entity_cleanup.status', null, { cache: false });
+  return res.message;
+}
+
+export async function setEntityCleanupEnabled(enabled) {
+  const res = await request('POST', '/api/method/sanha.api.entity_cleanup.set_enabled', { enabled: enabled ? 1 : 0 });
   return res.message;
 }
 

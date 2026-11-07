@@ -1,72 +1,103 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bot, RefreshCw } from 'lucide-react';
-import { FRAPPE_URL, getStaffReviewStatus, startStaffReview } from '../../api/frappe';
+import { FRAPPE_URL, getQuerySummary, ensureQuerySummary, getRelatedReviewDecisions } from '../../api/frappe';
+import { useAuth } from '../../contexts/AuthContext';
+import { isFinalDecision } from '../../utils/materialEvidence';
 
-const STATUS = {
-  not_configured: 'No API key is configured. Evidence/comparisons are available, but AI summaries and vision did not run.',
-  no_readable_text: 'No readable text available; OCR/manual review required. A scanned file is not automatically blank or invalid.',
-  provider_error: 'AI provider returned no valid review. Check key, model availability and quota.',
-  no_cited_output: 'The model returned no usable cited findings. Unreferenced conclusions are not displayed.',
+const ASSESSMENT_LABELS = {
+  identity: 'شناخت اور متعلقہ شعبہ',
+  origin_process: 'ممکنہ ماخذ اور تیاری',
+  chemistry_uses: 'کیمسٹری، processing اور استعمال',
+  halal_questions: 'حلال جانچ کے غور طلب سوالات',
+  missing_evidence: 'مزید درکار معلومات اور documents',
 };
 
 export default function StaffAIReview({ query }) {
-  const [token, setToken] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [review, setReview] = useState(null);
+  const { isAdmin, hasRole } = useAuth();
+  const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState('');
-  const [phase, setPhase] = useState('');
-  useEffect(() => { setReview(null); setError(''); setToken(''); setBusy(false); }, [query]);
+  const [refresh, setRefresh] = useState(0);
+  const [related, setRelated] = useState(null);
+  const [relatedBusy, setRelatedBusy] = useState(false);
+  const currentQuery = useRef(query);
+  currentQuery.current = query;
   useEffect(() => {
-    if (!token) return;
-    let active = true;
-    let timer;
+    let active = true, timer;
+    const requested = new Set();
+    setSnapshot(null); setError(''); setRelated(null);
+    setRelatedBusy(true);
+    getRelatedReviewDecisions(query).then(result => { if (active) setRelated(result); })
+      .catch(e => { if (active) setError(e.message); })
+      .finally(() => { if (active) setRelatedBusy(false); });
     const poll = async () => {
       try {
-        const result = await getStaffReviewStatus(token);
+        const result = await getQuerySummary(query);
         if (!active) return;
-        setPhase(result.status);
-        if (result.status === 'complete') { setReview(result.review); setBusy(false); return; }
-        if (result.status === 'failed') throw new Error(result.error);
-        timer = setTimeout(poll, 2500);
-      } catch (err) { if (active) { setError(err.message); setBusy(false); } }
+        const requestKey = result.request_key || result.fingerprint;
+        if (['missing', 'retry_available'].includes(result.status) && result.auto_enabled && result.providers_ready) {
+          if (!requested.has(requestKey)) {
+            requested.add(requestKey);
+            const queued = await ensureQuerySummary(query);
+            if (!active) return;
+            result.status = queued.status;
+          } else result.status = 'queued';
+        }
+        setSnapshot(result); setError('');
+        timer = setTimeout(poll, ['queued', 'working'].includes(result.status) ? 2500 : 15000);
+      } catch (e) {
+        if (active) { setSnapshot(null); setError(e.message); timer = setTimeout(poll, 30000); }
+      }
     };
     poll();
     return () => { active = false; clearTimeout(timer); };
-  }, [token]);
-  async function run() {
-    setBusy(true); setError(''); setReview(null); setPhase('queued');
-    try { const result = await startStaffReview(query); setToken(result.token); }
-    catch (err) { setError(err.message); setBusy(false); }
+  }, [query, refresh]);
+  async function retry() {
+    try { setError(''); await ensureQuerySummary(query, true); setRefresh(value => value + 1); }
+    catch (e) { setError(e.message); }
   }
+  async function loadRelated() {
+    const requestedQuery = query;
+    setRelatedBusy(true);
+    try { const result = await getRelatedReviewDecisions(requestedQuery); if (currentQuery.current === requestedQuery) setRelated(result); }
+    catch (e) { if (currentQuery.current === requestedQuery) setError(e.message); }
+    finally { if (currentQuery.current === requestedQuery) setRelatedBusy(false); }
+  }
+  const review = snapshot?.review;
+  const summary = review?.summaries?.[0];
+  const department = hasRole('SB User') ? 'SBM' : hasRole('Evaluation') ? 'Evaluation' : hasRole('Certificate Manager') ? 'CM' : null;
+  const note = review?.department_notes?.[department];
   function reference(id) {
-    const source = review.sources.find(item => item.id === id);
-    return source ? <a key={id} href={`${FRAPPE_URL}${source.url}#page=${source.page}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · {source.document}, p.{source.page}</a> : <span key={id} style={{ marginRight: 8 }}>{id}</span>;
+    const source = review?.sources?.find(item => item.id === id);
+    if (source) return <a key={id} href={`${FRAPPE_URL}${source.url}#page=${source.page}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · p.{source.page}</a>;
+    const research = review?.research_sources?.find(item => item.id === id);
+    if (research?.kind === 'historical_decision') return <Link key={id} to={`/queries/${encodeURIComponent(research.query)}`} style={{ marginRight: 8 }}>{id} · {research.query}</Link>;
+    if (research?.kind === 'public_chemistry' && research.url?.startsWith('https://')) return <a key={id} href={research.url} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · {research.title || 'Public chemistry'}</a>;
+    if (id === 'Q0') return <span key={id} style={{ marginRight: 8 }}>Q0 · entered Query information</span>;
+    const clause = review?.clauses?.find(item => item.id === id);
+    return <span key={id} title={clause?.text || ''} style={{ marginRight: 8 }}>{id}</span>;
   }
-  return <section className="card" style={{ marginBottom: 18 }}>
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>Staff AI Review</h3><button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={run}><RefreshCw size={14} /> {busy ? `Review ${phase}…` : 'Review Query evidence'}</button></div>
-    <p className="text-sm text-gray">Read-only decision support. Historical matches do not certify current validity; staff makes the final decision. Running review may use the configured AI provider.</p>
+  return <section className="card" style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
+    <p className="text-sm text-gray">Current Query documents, decided database references and retrieved public chemistry. No historical document files are read. Final decisions remain with staff.</p>
+    <section><h4>پہلے سے فیصلہ شدہ database references</h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
+      {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
+        <div className="table-wrap"><table><thead><tr><th>Query</th><th>Material</th><th>Manufacturer / Supplier</th><th>Decision</th><th>Match</th></tr></thead><tbody>{related.rows.filter(isFinalDecision).map(row => <tr key={row.name}><td><Link to={`/queries/${encodeURIComponent(row.name)}`}>{row.name}</Link></td><td>{row.raw_material}</td><td>{row.manufacturer} / {row.supplier}</td><td>{row.workflow_state}</td><td>{row.same_material && row.same_manufacturer ? 'Same material + manufacturer' : 'Material reference only; identity not established'}</td></tr>)}</tbody></table></div></>}
+    </section>
     {error && <p role="alert">{error}</p>}
-    {review && <>
-      {STATUS[review.ai_status] && <p role="status">{STATUS[review.ai_status]}</p>}
-      <p className="text-sm text-gray">Reviewed {review.reviewed_at} · Query version {review.query_modified} · Policy {review.policy_version}</p>
-      {review.entity_warnings.map((warning, i) => <p key={i}>{warning}</p>)}
-      {!review.clauses.length && <p>No institutional clauses configured yet.</p>}
-      <h4>Document summaries</h4>
-      {!review.summaries.length && <p>No AI document summaries generated in this run.</p>}
-      {review.summaries.map((item, i) => <article key={i}><p dir="auto" style={{ whiteSpace: 'pre-wrap' }}>{item.text}</p><small>{item.sources.map(reference)}</small></article>)}
-      <h4>Review findings and document-type checks</h4>
-      {review.findings.map((item, i) => <article key={i}><p dir="auto" style={{ whiteSpace: 'pre-wrap' }}>{item.text}</p><small>{item.sources.map(reference)}</small></article>)}
-      <h4>Configured term alerts</h4>
-      {!review.configured_terms ? <p>No alert terms have been configured by the institution yet.</p> : !review.alerts.length && <p>No configured terms matched readable text. This is not a certification decision.</p>}
-      {review.alerts.map((item, i) => <p key={i}><strong>{item.term}</strong> — {item.excerpt} {reference(item.source)}</p>)}
-      <h4>Related Queries and previous decisions</h4>
-      <p className="text-sm text-gray">{review.similar_count} similar results; showing up to 100. Historical file checks: {review.prior_document_checks} (maximum 50).</p>
-      <div className="table-wrap"><table><thead><tr><th>Query</th><th>Material</th><th>Manufacturer / Supplier</th><th>Decision</th><th>Match</th></tr></thead><tbody>{review.similar.map(item => <tr key={item.name}><td><Link to={`/queries/${encodeURIComponent(item.name)}`}>{item.name}</Link></td><td>{item.raw_material}<small> {item.similarity}% name similarity</small></td><td>{item.manufacturer || 'Unknown'} / {item.supplier || 'Unknown'}</td><td>{item.workflow_state}</td><td>{item.exact_documents ? 'Exact names + identical files/types/dates' : item.same_entities && item.same_material ? 'Same names; documents not verified identical' : 'Similar material only'}{item.comparison_warning && <p>{item.comparison_warning}</p>}</td></tr>)}</tbody></table></div>
-      <h4>Document evidence</h4>
-      {review.documents.map(item => <div key={item.id}><strong>{item.id}: {item.type || 'Unknown type'}</strong>{item.warning && <p>{item.warning}</p>}<small>{item.pages.map(reference)}</small></div>)}
-      <details><summary>Source text and policy references</summary>{review.sources.map(source => <article key={source.id}><h4>{reference(source.id)}</h4><small>{source.extraction}</small><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }} dir="auto">{source.text}</pre></article>)}{review.clauses.map(clause => <p key={clause.id} dir="auto"><strong>{clause.id}</strong> {clause.text}</p>)}</details>
-      <p className="text-sm text-gray">{review.limits}{review.ai_input_limited ? ' AI input was limited to 60,000 text characters.' : ''}</p>
-    </>}
+    {!snapshot && !error && <p>Checking saved summary…</p>}
+    {snapshot && <p className="text-sm text-gray">{snapshot.query} · {snapshot.current_material} · {snapshot.current_state}</p>}
+    {snapshot?.status === 'needs_configuration' && <p role="status">No enabled compatible text provider is ready. Saved keys alone do not activate a connection. {isAdmin() ? <Link to="/settings/ai-agent">Configure Provider Profiles</Link> : 'Ask an administrator to configure the provider.'}</p>}
+    {snapshot?.status === 'not_applicable' && <p>Automatic review does not run for delisted Queries.</p>}
+    {snapshot && !snapshot.auto_enabled && snapshot.status !== 'complete' && <p>Automatic summaries are disabled in Agent Policy.</p>}
+    {['queued', 'working'].includes(snapshot?.status) && <p role="status">Preparing a concise summary in the background… You can continue working.</p>}
+    {['unavailable', 'failed'].includes(snapshot?.status) && <div role="status"><p>{snapshot.error || 'No valid cited summary is available. Check connection, budget and readable attachments.'}</p><button type="button" className="btn btn-outline btn-sm" onClick={retry}>Retry after correcting the issue</button></div>}
+    {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{summary.text}</p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
+    {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
+    {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{review.assessment[key].text}</p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
+    {!!review?.follow_up_questions?.length && <article><h4>Supplier / Manufacturer سے اگلے سوالات</h4><ol>{review.follow_up_questions.map((item, index) => <li key={index} dir="auto" style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>}
+    {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index}>{item.document}: {item.message} {(item.sources || []).map(reference)}</p>)}</details>}
+    {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto">{item.text} <small>{item.sources.map(reference)}</small></p>)}</div>}
+    {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index}><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
+    {review && <details><summary>References, limits and unreadable-document notices</summary><p className="text-sm text-gray">{review.limits}</p>{review.documents?.filter(item => item.warning).map(item => <p key={item.id}>{item.id} ({item.type}): {item.warning}</p>)}{review.entity_warnings?.map((item, index) => <p key={index}>{item}</p>)}{!review.clauses?.length && <p>No institutional clauses configured yet.</p>}{isAdmin() && review.department_notes && Object.entries(review.department_notes).map(([name, item]) => <p key={name} dir="auto"><strong>{name}:</strong> {item.text} {item.sources.map(reference)}</p>)}</details>}
   </section>;
 }
