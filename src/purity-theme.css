@@ -199,7 +199,9 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
 }
 
 @media (max-width: 768px) {
-  .header p, .header span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+  .header p { display: none; }
+  .header h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .header [style*="text-align: left; display: flex; flex-direction: column"] { display: none !important; }
 }
 
 [style*="gap: 0px"] { gap: 8px !important; }
