@@ -12,14 +12,14 @@ const FRAPPE_BASE = import.meta.env.VITE_FRAPPE_URL || '';
 /* ─── Color schemes ─── */
 const SCHEMES = {
   green:  { accent: '#16a34a', light: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
-  blue:   { accent: '#2563eb', light: '#eff6ff', border: '#bfdbfe', text: '#1e40af' },
+  blue:   { accent: '#247f7b', light: '#e6f7f5', border: '#b2f5ea', text: '#1d6f6b' },
   teal:   { accent: '#0d9488', light: '#f0fdfa', border: '#99f6e4', text: '#0f766e' },
   black:  { accent: '#1e293b', light: '#f8fafc', border: '#e2e8f0', text: '#1e293b' },
 };
 
 const STATE_COLORS = {
   'Halal':'#16a34a','Approved':'#16a34a','Haram':'#dc2626','Rejected':'#ef4444',
-  'Doubtful':'#d97706','Draft':'#64748b','Submitted':'#2563eb','Under Review':'#7c3aed',
+  'Doubtful':'#d97706','Draft':'#64748b','Submitted':'#247f7b','Under Review':'#7c3aed',
   'Hold':'#ea580c','Returned':'#d97706','Returned To Evaluation':'#f97316',
   'Submitted to SB':'#8b5cf6','Delisted':'#1e293b',
 };
@@ -62,7 +62,7 @@ function Toggle({ label, checked, onChange }) {
     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', gap: 8 }}>
       <span style={{ fontSize: '0.8rem', color: '#374151' }}>{label}</span>
       <div onClick={() => onChange(!checked)} style={{
-        width: 36, height: 20, borderRadius: 999, background: checked ? '#2563eb' : '#e2e8f0', transition: 'background .2s',
+        width: 36, height: 20, borderRadius: 999, background: checked ? '#247f7b' : '#e2e8f0', transition: 'background .2s',
         position: 'relative', flexShrink: 0, cursor: 'pointer',
       }}>
         <div style={{
@@ -84,9 +84,9 @@ function SettingsPanel({ opts, setOpts, isClientUser }) {
   const Chip = ({ label, checked, onChange }) => (
     <label style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
-      borderRadius: 6, border: `1px solid ${checked ? '#2563eb' : '#e2e8f0'}`,
-      background: checked ? '#eff6ff' : '#fff', cursor: 'pointer',
-      fontSize: '0.73rem', color: checked ? '#1d4ed8' : '#64748b', userSelect: 'none',
+      borderRadius: 6, border: `1px solid ${checked ? '#247f7b' : '#e2e8f0'}`,
+      background: checked ? '#e6f7f5' : '#fff', cursor: 'pointer',
+      fontSize: '0.73rem', color: checked ? '#1d6f6b' : '#64748b', userSelect: 'none',
       fontWeight: checked ? 600 : 400,
     }}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ display: 'none' }} />
@@ -182,8 +182,8 @@ function SettingsPanel({ opts, setOpts, isClientUser }) {
                 {['portrait','landscape'].map(o => (
                   <button key={o} onClick={() => set('orientation', o)} style={{
                     padding: '3px 9px', borderRadius: 5, fontSize: '0.7rem', cursor: 'pointer', border: '1px solid',
-                    borderColor: opts.orientation === o ? '#60a5fa' : '#334155',
-                    background: opts.orientation === o ? '#1d4ed8' : 'transparent',
+                    borderColor: opts.orientation === o ? '#4fd1c5' : '#334155',
+                    background: opts.orientation === o ? '#1d6f6b' : 'transparent',
                     color: opts.orientation === o ? '#fff' : '#94a3b8',
                     fontWeight: opts.orientation === o ? 700 : 400, textTransform: 'capitalize',
                   }}>{o}</button>
@@ -245,7 +245,7 @@ function queryClientLabel(fontSize) {
     fontSize: fontSize - 2,
     color: '#317eac',
     border: '1px solid #dbeafe',
-    background: '#eff6ff',
+    background: '#e6f7f5',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   };
@@ -478,7 +478,7 @@ export default function PrintQuery() {
                       {opts.visibleColumns.includes('attachment') && (
                         <td style={TD}>
                           {row.attachment
-                            ? <a href={`${FRAPPE_BASE}${row.attachment}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontSize: 12 }}>View File</a>
+                            ? <a href={`${FRAPPE_BASE}${row.attachment}`} target="_blank" rel="noopener noreferrer" style={{ color: '#247f7b', fontSize: 12 }}>View File</a>
                             : <span style={{ color: '#94a3b8' }}>—</span>}
                         </td>
                       )}

@@ -13,7 +13,7 @@ const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on infor
 /* ─── State badge colors ─── */
 const STATE_COLOR = {
   Halal:'#16a34a', Approved:'#16a34a', Haram:'#dc2626', Rejected:'#ef4444',
-  Doubtful:'#d97706', Draft:'#64748b', Submitted:'#2563eb',
+  Doubtful:'#d97706', Draft:'#64748b', Submitted:'#247f7b',
   'Under Review':'#7c3aed', Hold:'#ea580c',
 };
 
@@ -68,8 +68,8 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
       {options.map(([val, label]) => (
         <button key={String(val)} onClick={() => set(k, val)} style={{
           padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
-          borderColor: opts[k] === val ? '#2563eb' : '#e2e8f0',
-          background:  opts[k] === val ? '#2563eb' : '#fff',
+          borderColor: opts[k] === val ? '#247f7b' : '#e2e8f0',
+          background:  opts[k] === val ? '#247f7b' : '#fff',
           color:       opts[k] === val ? '#fff'    : '#374151',
           fontWeight:  opts[k] === val ? 700       : 400,
         }}>{label}</button>
@@ -79,7 +79,7 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
   const Tog = ({ k, label, disabled }) => (
     <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: '#374151', opacity: disabled ? 0.4 : 1 }}>
       <div onClick={() => !disabled && set(k, !opts[k])} style={{
-        width: 34, height: 18, borderRadius: 999, background: opts[k] ? '#2563eb' : '#e2e8f0', transition: 'background .2s', position: 'relative', flexShrink: 0, cursor: disabled ? 'not-allowed' : 'pointer',
+        width: 34, height: 18, borderRadius: 999, background: opts[k] ? '#247f7b' : '#e2e8f0', transition: 'background .2s', position: 'relative', flexShrink: 0, cursor: disabled ? 'not-allowed' : 'pointer',
       }}>
         <div style={{ width: 14, height: 14, borderRadius: 999, background: '#fff', position: 'absolute', top: 2, left: opts[k] ? 18 : 2, transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
       </div>
@@ -149,8 +149,8 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
                     )}
                     style={{
                       padding: '3px 10px', borderRadius: 6, fontSize: '0.74rem', cursor: 'pointer', border: '1px solid',
-                      borderColor: active ? '#2563eb' : '#e2e8f0',
-                      background:  active ? '#2563eb' : '#fff',
+                      borderColor: active ? '#247f7b' : '#e2e8f0',
+                      background:  active ? '#247f7b' : '#fff',
                       color:       active ? '#fff' : '#64748b',
                       fontWeight:  active ? 700 : 400,
                     }}
@@ -394,7 +394,7 @@ export default function PrintBulk() {
   const renderRow = (q, serial, rowIdx) => (
     <tr key={q.name} style={{ borderBottom: '1px solid #e2e8f0', background: rowIdx % 2 === 0 ? '#fff' : '#fafbfc' }}>
       <td style={{ ...TD, color: '#94a3b8', fontSize: 11 }}>{serial}</td>
-      {hasCols('id')     && <td style={{ ...TD, fontWeight: 700, color: '#2563eb', fontFamily: 'monospace', fontSize: opts.fontSize - 1 }}>{q.name}</td>}
+      {hasCols('id')     && <td style={{ ...TD, fontWeight: 700, color: '#247f7b', fontFamily: 'monospace', fontSize: opts.fontSize - 1 }}>{q.name}</td>}
       {hasCols('rm')     && <td style={{ ...TD, fontWeight: 600 }}>{q.raw_material || '—'}</td>}
       {hasCols('type')   && <td style={{ ...TD, color: '#64748b' }}>{q.query_types || '—'}</td>}
       {hasCols('mfr')    && <td style={{ ...TD }}>{q.manufacturer || '—'}</td>}
