@@ -58,6 +58,12 @@ export default function Header({ onToggleSidebar }) {
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
   });
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const clockTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   /* Close on outside click */
   useEffect(() => {
@@ -156,7 +162,10 @@ export default function Header({ onToggleSidebar }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <Breadcrumbs />
         <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{title}</h2>
-        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>{today} · <LiveDataStatus /></p>
+        <p className="header-meta" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>
+          <span className="digital-clock"><span className="clock-date">{today} </span>{clockTime}</span>
+          <span className="header-live"> · <LiveDataStatus /></span>
+        </p>
       </div>
 
       {/* Right side */}
