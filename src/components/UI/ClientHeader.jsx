@@ -63,21 +63,29 @@ export default function ClientHeader() {
               )}
             </div>
           )}
-          <div style={{ overflowX: 'auto' }}>
+          <div className="client-info-desktop" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <tbody>
                 {clientRows.map((row, i) => (
                   <tr key={i} style={{ borderBottom: i < clientRows.length - 1 ? '1px solid var(--border-base)' : 'none' }}>
                     {row.map(([label, value]) => (
                       <Fragment key={label}>
-                        <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', width: '1%' }}>{label}</th>
-                        <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{value || '—'}</td>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--brand-600)', background: 'rgba(79, 209, 197, .16)', width: '1%' }}>{label}</th>
+                        <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)', background: 'rgba(79, 209, 197, .06)', overflowWrap: 'anywhere' }}>{value || '—'}</td>
                       </Fragment>
                     ))}
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="client-info-mobile">
+            {clientRows.flat().map(([label, value]) => (
+              <div key={label} className="client-info-tile">
+                <div className="lbl">{label}</div>
+                <div className="val">{value || '—'}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
