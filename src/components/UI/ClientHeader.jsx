@@ -8,7 +8,7 @@ function getStatusInfo(expiry) {
   const days = Math.ceil((new Date(expiry) - new Date()) / 86400000);
   if (days < 0) return { label: 'Expired', color: '#dc2626', icon: AlertTriangle, days };
   if (days < 30) return { label: 'Expiring', color: '#d97706', icon: Clock, days };
-  if (days < 65) return { label: 'Expiring Soon', color: '#2c9f98', icon: Clock, days };
+  if (days < 65) return { label: 'Expiring Soon', color: '#d97706', icon: Clock, days };
   return { label: 'Valid', color: '#2c9f98', icon: CheckCircle, days };
 }
 
@@ -51,13 +51,18 @@ export default function ClientHeader() {
       {clientData && (
         <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-base)', borderRadius: 18, padding: 20, boxShadow: 'var(--shadow-md)', marginBottom: 20 }}>
           {statusInfo && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', padding: '12px 16px', borderRadius: 14, background: `${statusInfo.color}1f`, marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <StatusIcon size={16} color={statusInfo.color} />
-                <span style={{ fontWeight: 700, fontSize: '0.88rem', color: statusInfo.color }}>Certification Status: {statusInfo.label}</span>
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', padding: '16px 18px', borderRadius: 16, marginBottom: 16, background: `${statusInfo.color}18`, border: `1px solid ${statusInfo.color}55`, borderLeft: `6px solid ${statusInfo.color}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: statusInfo.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 6px 16px ${statusInfo.color}55` }}>
+                  <StatusIcon size={22} color="#fff" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: statusInfo.color }}>Important notice</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Certification Status: {statusInfo.label}</div>
+                </div>
               </div>
               {statusInfo.days != null && (
-                <span style={{ fontSize: '0.82rem', color: statusInfo.color, fontWeight: 600 }}>
+                <span style={{ padding: '8px 14px', borderRadius: 999, background: statusInfo.color, color: '#fff', fontWeight: 800, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
                   {statusInfo.days < 0 ? `${-statusInfo.days} days overdue` : `${statusInfo.days} days remaining`}
                 </span>
               )}
