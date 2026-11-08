@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { getAllQueries, getQueryTypes } from '../api/frappe';
 import StatusBadge from '../components/UI/StatusBadge';
+import SelectField from '../components/UI/SelectField';
 import QueryCard from '../components/UI/QueryCard';
 import QueryFilters from '../components/UI/QueryFilters';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
@@ -30,9 +31,9 @@ const splitParam = (value) => value ? value.split(',').map(v => v.trim()).filter
 /* ─── Active filter tag ─── */
 function Tag({ label, onRemove }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: '#1d4ed8' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#e6f7f5', border: '1px solid #bfdbfe', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: '#1d6f6b' }}>
       {label}
-      <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#93c5fd', padding: 0, lineHeight: 1 }}><X size={11} /></button>
+      <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#81e6d9', padding: 0, lineHeight: 1 }}><X size={11} /></button>
     </span>
   );
 }
@@ -378,14 +379,7 @@ export default function QueryList() {
             >
               <Printer size={14} /> Print
             </button>
-            <select
-              value={printLimit}
-              onChange={e => setPrintLimit(e.target.value === 'all' || e.target.value === 'loaded' ? e.target.value : Number(e.target.value))}
-              style={{ height: 32, fontSize: '0.72rem', border: '1px solid #e2e8f0', borderLeft: '1px solid #e2e8f0', borderRadius: '0 6px 6px 0', padding: '0 4px', background: '#fff', cursor: 'pointer', minWidth: 90 }}
-              title="Records to print"
-            >
-              {PRINT_COUNTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
+            <SelectField value={printLimit} onChange={e => setPrintLimit(e.target.value === 'all' || e.target.value === 'loaded' ? e.target.value : Number(e.target.value))} options={PRINT_COUNTS} title="Records to print" style={{ width: 130 }} />
           </div>
           {(isClient || isAdmin()) && (
             <button className="btn btn-primary btn-sm" onClick={() => navigate('/queries/new')}>
@@ -397,8 +391,8 @@ export default function QueryList() {
 
       {/* ─── Selection action bar ─── */}
       {someChecked && (
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 18px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1d4ed8' }}>
+        <div style={{ background: '#e6f7f5', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 18px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1d6f6b' }}>
             {allMatchingSelected ? `All ${totalCount} records selected` : `${selected.size} of ${queries.length} selected`}
           </span>
           <button className="btn btn-primary btn-sm" onClick={() => goBulkPrint([...selected])} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -415,20 +409,20 @@ export default function QueryList() {
 
       {/* ─── "Select all matching" banner (shown when page rows all checked but more exist) ─── */}
       {allChecked && !allMatchingSelected && totalCount > queries.length && (
-        <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 8, padding: '8px 18px', marginBottom: 12, fontSize: '0.82rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: '#e6f7f5', border: '1px solid #81e6d9', borderRadius: 8, padding: '8px 18px', marginBottom: 12, fontSize: '0.82rem', color: '#1d6f6b', display: 'flex', alignItems: 'center', gap: 10 }}>
           All {queries.length} records on this page are selected.
           <button
             onClick={selectAllMatching}
-            style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#1d4ed8', padding: 0 }}
+            style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#1d6f6b', padding: 0 }}
           >
             Select all {totalCount} matching records
           </button>
         </div>
       )}
       {allMatchingSelected && (
-        <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 8, padding: '8px 18px', marginBottom: 12, fontSize: '0.82rem', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: '#e6f7f5', border: '1px solid #81e6d9', borderRadius: 8, padding: '8px 18px', marginBottom: 12, fontSize: '0.82rem', color: '#1d6f6b', display: 'flex', alignItems: 'center', gap: 10 }}>
           All {totalCount} matching records are selected.
-          <button onClick={clearSel} style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#1d4ed8', padding: 0 }}>
+          <button onClick={clearSel} style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#1d6f6b', padding: 0 }}>
             Clear selection
           </button>
         </div>
@@ -436,16 +430,9 @@ export default function QueryList() {
 
       <div className="card" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '12px 16px', marginBottom: 12 }}>
         <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by <span lang="ur" dir="rtl" style={{ marginLeft: 6 }}>ترتیب</span></label>
-        <select id="query-sort-field" className="form-control" style={{ width: 'auto' }} value={sortField} onChange={event => { const field = event.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
-          <option value="raw_material">Raw Material — حروفِ تہجی</option>
-          <option value="creation">Created — بننے کی تاریخ</option>
-          <option value="modified">Last Updated — آخری ترمیم</option>
-        </select>
+        <SelectField id="query-sort-field" value={sortField} onChange={event => { const field = event.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }} options={[{ value: 'raw_material', label: 'Raw Material — حروفِ تہجی' }, { value: 'creation', label: 'Created — بننے کی تاریخ' }, { value: 'modified', label: 'Last Updated — آخری ترمیم' }]} style={{ width: 240 }} />
         <label htmlFor="query-sort-direction" className="sr-only">Sort direction</label>
-        <select id="query-sort-direction" aria-label="Sort direction" className="form-control" style={{ width: 'auto' }} value={sortDirection} onChange={event => setSortDirection(event.target.value)}>
-          <option value="asc">{sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے'}</option>
-          <option value="desc">{sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے'}</option>
-        </select>
+        <SelectField id="query-sort-direction" aria-label="Sort direction" value={sortDirection} onChange={event => setSortDirection(event.target.value)} options={[{ value: 'asc', label: sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے' }, { value: 'desc', label: sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے' }]} style={{ width: 240 }} />
       </div>
 
       <QueryFilters
@@ -491,9 +478,7 @@ export default function QueryList() {
         pageSizeControl={(
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
             <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>Show:</span>
-            <select className="form-control form-select" style={{ width: 86, fontSize: '0.8rem' }} value={pageSize} onChange={e => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-              {PAGE_SIZES.map(s => <option key={s} value={s}>{s === 'all' ? 'All' : s}</option>)}
-            </select>
+            <SelectField value={pageSize} onChange={e => setPageSize(e.target.value === 'all' ? 'all' : Number(e.target.value))} options={PAGE_SIZES.map(s => ({ value: s, label: s === 'all' ? 'All' : String(s) }))} style={{ width: 100 }} />
           </div>
         )}
       />
@@ -548,7 +533,7 @@ export default function QueryList() {
                 {queries.map(q => (
                   <tr
                     key={q.name}
-                    style={{ cursor: 'pointer', background: selected.has(q.name) ? '#eff6ff' : undefined, transition: 'background 0.1s' }}
+                    style={{ cursor: 'pointer', background: selected.has(q.name) ? '#e6f7f5' : undefined, transition: 'background 0.1s' }}
                     onClick={() => navigate(`/queries/${q.name}`)}
                   >
                     {/* Row checkbox */}
@@ -582,8 +567,8 @@ export default function QueryList() {
 
           {/* Selection footer */}
           {someChecked && (
-            <div style={{ padding: '10px 18px', borderTop: '1px solid #bfdbfe', background: '#eff6ff', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: '#1d4ed8', fontWeight: 600 }}>
+            <div style={{ padding: '10px 18px', borderTop: '1px solid #bfdbfe', background: '#e6f7f5', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: '#1d6f6b', fontWeight: 600 }}>
                 {allMatchingSelected ? `All ${totalCount} records` : `${selected.size} selected`}
               </span>
               <button className="btn btn-primary btn-sm" onClick={() => goBulkPrint([...selected])} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
