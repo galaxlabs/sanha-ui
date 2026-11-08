@@ -33,19 +33,19 @@ const STATE_COLORS = {
 };
 
 /* ── Info Item ── */
-function InfoItem({ icon: Icon, label, value, color = '#64748b' }) {
+function InfoItem({ icon: Icon, label, value }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: '1px solid var(--border-base)', background: 'var(--surface-hover)' }}>
       <div style={{
-        width: 32, height: 32, borderRadius: 8,
-        background: `${color}12`,
+        width: 38, height: 38, borderRadius: 11, background: '#4fd1c5',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        boxShadow: '0 4px 12px rgba(79, 209, 197, .3)',
       }}>
-        <Icon size={14} color={color} />
+        <Icon size={17} color="#fff" />
       </div>
-      <div>
-        <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-        <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500 }}>{value || '—'}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, overflowWrap: 'anywhere' }}>{value || '—'}</div>
       </div>
     </div>
   );
@@ -253,51 +253,45 @@ export default function ClientDashboard() {
           <InfoItem icon={Award} label="Category" value={clientData?.category} color="#2c9f98" />
           <InfoItem icon={Globe} label="Scope" value={clientData?.scope} color="#f59e0b" />
           <InfoItem icon={Shield} label="Standards" value={clientData?.standards} color="#2c9f98" />
-          <InfoItem icon={Calendar} label="Certification" value={certificationWindow || null} color={statusInfo?.color || '#2c9f98'} />
+          <InfoItem icon={Calendar} label="Certification" value={certificationWindow || null} />
           <InfoItem icon={Calendar} label="Extension" value={fmtDate(clientData?.ext)} color="#2c9f98" />
           <InfoItem icon={MapPin} label="Location" value={[clientData?.city, clientData?.region].filter(Boolean).join(', ')} color="#2c9f98" />
         </div>
       </div>
 
       {/* ── My Query Stats ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
+      <div className="dashboard-stat-grid">
         {[
-          { label: 'My Queries', value: totalQueries, gradient: 'linear-gradient(135deg, #247f7b, #1d6f6b)', state: null },
-          { label: 'Draft', value: counts.Draft || 0, gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', state: 'Draft' },
-          { label: 'Submitted', value: counts.Submitted || 0, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', state: 'Submitted' },
-          { label: 'Submitted to SB', value: counts['Submitted to SB'] || 0, gradient: 'linear-gradient(135deg, #2c9f98, #247f7b)', state: 'Submitted to SB' },
-          { label: 'Under Review', value: counts['Under Review'] || 0, gradient: 'linear-gradient(135deg, #2c9f98, #1d6f6b)', state: 'Under Review' },
-          { label: 'Returned', value: counts.Returned || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Returned' },
-          { label: 'Approved', value: counts.Approved || 0, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', state: 'Approved' },
-          { label: 'On Hold', value: counts.Hold || 0, gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', state: 'Hold' },
-          { label: 'Doubtful', value: counts.Doubtful || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Doubtful' },
-          { label: 'Rejected', value: counts.Rejected || 0, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', state: 'Rejected' },
+          { label: 'My Queries', value: totalQueries, state: null },
+          { label: 'Draft', value: counts.Draft || 0, state: 'Draft' },
+          { label: 'Submitted', value: counts.Submitted || 0, state: 'Submitted' },
+          { label: 'Submitted to SB', value: counts['Submitted to SB'] || 0, state: 'Submitted to SB' },
+          { label: 'Under Review', value: counts['Under Review'] || 0, state: 'Under Review' },
+          { label: 'Returned', value: counts.Returned || 0, state: 'Returned' },
+          { label: 'Approved', value: counts.Approved || 0, state: 'Approved' },
+          { label: 'On Hold', value: counts.Hold || 0, state: 'Hold' },
+          { label: 'Doubtful', value: counts.Doubtful || 0, state: 'Doubtful' },
+          { label: 'Rejected', value: counts.Rejected || 0, state: 'Rejected' },
         ].map((s, i) => (
           <div
             key={i}
+            className="dashboard-stat"
             onClick={() => s.state ? navigate(`/queries?state=${s.state}`) : navigate('/queries')}
-            style={{
-              background: '#fff',
-              borderRadius: 14,
-              padding: '16px 18px',
-              cursor: 'pointer',
-              transition: 'all .2s',
-              boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.06)'; }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 42, height: 42, borderRadius: 12,
-                background: s.gradient,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <FileText size={18} color="#fff" />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
               <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500, marginTop: 2 }}>{s.label}</div>
+                <div className="dashboard-stat-label">{s.label}</div>
+                <div className="dashboard-stat-value">{s.value}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                  {totalQueries ? `${Math.round((s.value / totalQueries) * 100)}% of total` : '—'}
+                </div>
+              </div>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, background: '#4fd1c5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 16px rgba(79, 209, 197, .35)', flexShrink: 0,
+              }}>
+                <FileText size={22} color="#fff" />
               </div>
             </div>
           </div>
