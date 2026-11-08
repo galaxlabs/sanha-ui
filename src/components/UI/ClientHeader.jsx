@@ -41,7 +41,7 @@ export default function ClientHeader() {
   return (
     <div style={{ marginBottom: 20 }}>
       {/* Company Header */}
-      <div style={{
+      <div className="client-company-header" style={{
         padding: '20px',
         marginBottom: 20,
         borderBottom: '1px solid #e2e8f0',

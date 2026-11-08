@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 /* Purity-inspired palette and surfaces, implemented for SANHA's existing components. */
 :root, [data-theme="light"] {
   --brand-50: #e6fffa; --brand-100: #b2f5ea; --brand-200: #81e6d9;
@@ -199,7 +200,9 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
 }
 
 @media (max-width: 768px) {
-  .header p, .header span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+  .header .header-meta { display: none; }
+  .header h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .header [style*="text-align: left; display: flex; flex-direction: column"] { display: none !important; }
 }
 
 [style*="gap: 0px"] { gap: 8px !important; }
@@ -240,3 +243,24 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
 .select-field-option.is-active { background: #247f7b; color: #fff; }
 
 .card:has(.select-field-menu), .select-field:has(.select-field-menu) { position: relative; z-index: 60; overflow: visible; }
+
+.digital-clock { font-family: 'Share Tech Mono', ui-monospace, monospace; color: var(--brand-400); letter-spacing: .08em; font-size: .8rem; }
+@media (max-width: 768px) {
+  .client-company-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; padding: 14px !important; }
+  .client-company-header img { width: 72px !important; }
+  .client-company-header h2 { font-size: 1rem !important; }
+  .client-company-header h3 { font-size: .8rem !important; }
+  .client-company-header > div:last-child { text-align: left !important; font-size: .78rem !important; }
+}
+
+.nav-clock-wrap { flex: 1; display: flex; justify-content: center; min-width: 0; }
+.nav-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 18px; border-radius: 12px; border: 1px solid var(--border-base); background: var(--surface-input); line-height: 1.15; }
+.nav-clock .nc-time { font-size: 1.05rem; color: var(--brand-400); }
+.nav-clock .nc-date { font-size: .68rem; color: var(--text-muted); letter-spacing: .04em; }
+@media (max-width: 768px) {
+  .nav-clock { padding: 3px 10px; }
+}
+@media (max-width: 560px) {
+  .nav-clock .nc-time { display: none; }
+  .nav-clock .nc-date { font-size: .72rem; color: var(--brand-400); }
+}
