@@ -12,15 +12,15 @@ const ALL_STATES = [
   'Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted',
 ];
 const STATE_COLORS = {
-  Draft:'#94a3b8', Submitted:'#6366f1', 'Submitted to SB':'#8b5cf6',
+  Draft:'#94a3b8', Submitted:'#2c9f98', 'Submitted to SB':'#2c9f98',
   'Under Review':'#f59e0b', Returned:'#ef4444', 'Returned To Evaluation':'#f97316',
-  Hold:'#475569', Approved:'#059669', Halal:'#065f46', Haram:'#b91c1c',
+  Hold:'#64748b', Approved:'#2c9f98', Halal:'#1d6f6b', Haram:'#b91c1c',
   Doubtful:'#d97706', Rejected:'#64748b', Delisted:'#1e293b',
 };
 
 const TH = {
   padding: '6px 10px', textAlign: 'left', fontWeight: 700, fontSize: 10,
-  color: '#475569', border: '1px solid #e2e8f0', background: '#f8fafc', whiteSpace: 'nowrap',
+  color: '#64748b', border: '1px solid #e2e8f0', background: '#f8fafc', whiteSpace: 'nowrap',
 };
 const TD = {
   padding: '5px 10px', fontSize: 10, color: '#1e293b',
@@ -130,9 +130,9 @@ export default function PrintGrouped() {
         <PrintHeader logoUrl={logoUrl} />
         <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
         <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: 12, marginBottom: 14 }}>Generated: {today}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #2c9f98', paddingBottom: 16, marginBottom: 24 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{reportTitle}</div>
-          <div style={{ textAlign: 'right', fontSize: 11, color: '#475569', minWidth: 200 }}>
+          <div style={{ textAlign: 'right', fontSize: 11, color: '#64748b', minWidth: 200 }}>
             {singleClient && (
               <>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#1e293b' }}>
@@ -160,7 +160,7 @@ export default function PrintGrouped() {
               </div>
             )}
             <div style={{ marginTop: 2 }}>
-              Total: <strong style={{ color: '#16a34a', fontSize: 13 }}>{rows.length}</strong> queries
+              Total: <strong style={{ color: '#2c9f98', fontSize: 13 }}>{rows.length}</strong> queries
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function PrintGrouped() {
         {/* ── Groups ── */}
         {nonEmpty.map(group => {
           const gRows = rows.filter(r => (r[groupBy] || 'Unknown') === group);
-          const color = (isState ? STATE_COLORS[group] : null) || '#475569';
+          const color = (isState ? STATE_COLORS[group] : null) || '#64748b';
 
           return (
             <div key={group} style={{ marginBottom: 20, breakInside: 'avoid' }}>
@@ -209,7 +209,7 @@ export default function PrintGrouped() {
                       style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}
                     >
                       <td style={{ ...TD, color: '#94a3b8', fontSize: 9 }}>{i + 1}</td>
-                      <td style={{ ...TD, fontFamily: 'monospace', color: '#2563eb', fontWeight: 700 }}>
+                      <td style={{ ...TD, fontFamily: 'monospace', color: '#247f7b', fontWeight: 700 }}>
                         {r.name}
                       </td>
                       <td style={{ ...TD, fontWeight: 500 }}>{r.raw_material || '—'}</td>
@@ -264,7 +264,7 @@ export default function PrintGrouped() {
             </thead>
             <tbody>
               {summaryCounts.map(({ group, count }) => {
-                const color = (isState ? STATE_COLORS[group] : null) || '#475569';
+                const color = (isState ? STATE_COLORS[group] : null) || '#64748b';
                 return (
                   <tr key={group} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ ...TD, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -282,7 +282,7 @@ export default function PrintGrouped() {
             <tfoot>
               <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
                 <td style={{ ...TH, fontWeight: 700, color: '#1e293b' }}>Total</td>
-                <td style={{ ...TH, textAlign: 'right', fontWeight: 700, color: '#16a34a', fontSize: 12 }}>
+                <td style={{ ...TH, textAlign: 'right', fontWeight: 700, color: '#2c9f98', fontSize: 12 }}>
                   {rows.length}
                 </td>
                 <td style={{ ...TH, textAlign: 'right' }}>100%</td>

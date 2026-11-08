@@ -45,7 +45,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const STAT_DEFS_ADMIN = [
   { state: 'Draft',        icon: FileText,    gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', label: 'Draft' },
   { state: 'Submitted',    icon: FileText,    gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Submitted' },
-  { state: 'Submitted to SB', icon: TrendingUp, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'Submitted to SB' },
+  { state: 'Submitted to SB', icon: TrendingUp, gradient: 'linear-gradient(135deg, #2c9f98, #247f7b)', label: 'Submitted to SB' },
   { state: 'Under Review', icon: Clock,       gradient: 'linear-gradient(135deg, #38b2ac, #2c9f98)', label: 'Under Review' },
   { state: 'Returned',     icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned' },
   { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #fb923c, #ea580c)', label: 'Returned to Evaluation' },
@@ -66,7 +66,7 @@ const STAT_DEFS_CLIENT = [
 
 const STAT_DEFS_EVAL = [
   { state: 'Submitted',              icon: FileText,      gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Pending Review' },
-  { state: 'Submitted to SB',        icon: TrendingUp,    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'Forwarded to SB' },
+  { state: 'Submitted to SB',        icon: TrendingUp,    gradient: 'linear-gradient(135deg, #2c9f98, #247f7b)', label: 'Forwarded to SB' },
   { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned to Eval' },
   { state: 'Under Review',           icon: Clock,         gradient: 'linear-gradient(135deg, #38b2ac, #2c9f98)', label: 'Under Review' },
   { state: 'Returned',               icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Returned to Client' },
@@ -76,7 +76,7 @@ const STAT_DEFS_EVAL = [
 ];
 
 const STAT_DEFS_SBU = [
-  { state: 'Submitted to SB', icon: FileText,    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'New to Review' },
+  { state: 'Submitted to SB', icon: FileText,    gradient: 'linear-gradient(135deg, #2c9f98, #247f7b)', label: 'New to Review' },
   { state: 'Under Review',    icon: Clock,       gradient: 'linear-gradient(135deg, #38b2ac, #2c9f98)', label: 'Under Review' },
   { state: 'Hold',            icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
   { state: 'Approved',        icon: CheckCircle, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Approved' },
@@ -87,7 +87,7 @@ const STAT_DEFS_SBU = [
 
 /* ── Chart colors ── */
 const STATE_COLORS = {
-  Draft: '#94a3b8', Submitted: '#81e6d9', 'Submitted to SB': '#3b82f6',
+  Draft: '#94a3b8', Submitted: '#81e6d9', 'Submitted to SB': '#2c9f98',
   'Under Review': '#1d6f6b', Returned: '#f59e0b', 'Returned To Evaluation': '#f97316',
   Hold: '#06b6d4', Approved: '#4fd1c5', Halal: '#2c9f98', Haram: '#ef4444',
   Doubtful: '#f59e0b', Rejected: '#f87171', Delisted: '#64748b',
@@ -191,7 +191,7 @@ export default function Dashboard() {
   const pipeline = [
     { state: 'Draft', color: '#94a3b8' },
     { state: 'Submitted', color: '#4fd1c5' },
-    { state: 'Submitted to SB', color: '#3b82f6' },
+    { state: 'Submitted to SB', color: '#2c9f98' },
     { state: 'Under Review', color: '#1d6f6b' },
     { state: 'Rejected', color: '#f87171' },
     { state: 'Approved', color: '#4fd1c5' },
@@ -236,7 +236,7 @@ export default function Dashboard() {
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
   const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const typeColors = ['#4fd1c5', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
+  const typeColors = ['#4fd1c5', '#2c9f98', '#2c9f98', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#2c9f98', '#84cc16'];
   const typeChartData = {
     labels: typeEntries.map(([k]) => k),
     datasets: [{
@@ -295,7 +295,7 @@ export default function Dashboard() {
     docStateCounts[s] = (docStateCounts[s] || 0) + 1;
   });
   const docStates = Object.entries(docStateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const docColors = ['#2c9f98', '#4fd1c5', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#94a3b8'];
+  const docColors = ['#2c9f98', '#4fd1c5', '#2c9f98', '#2c9f98', '#f59e0b', '#ef4444', '#06b6d4', '#94a3b8'];
   const docChartData = {
     labels: docStates.map(([k]) => k),
     datasets: [{
@@ -316,7 +316,7 @@ export default function Dashboard() {
     labels: ['Other non-duplicate Queries', 'Duplicate-marked Queries', 'Non-duplicate master Queries'],
     datasets: [{
       data: [uniqueCount, dupCount, masterCount],
-      backgroundColor: ['#4fd1c599', '#f59e0b99', '#3b82f699'],
+      backgroundColor: ['#4fd1c599', '#f59e0b99', '#2c9f9899'],
       borderWidth: 0,
       hoverOffset: 6,
     }],
@@ -464,7 +464,7 @@ export default function Dashboard() {
       {/* ── Client Mini Chart ── */}
       {isClientRole && Object.keys(counts).length > 0 && (
         <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+          background: 'linear-gradient(135deg, #e6f7f5, #ecfdf5)',
           borderRadius: 16,
           padding: 24,
           marginBottom: 28,
@@ -699,7 +699,7 @@ export default function Dashboard() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 600, color: '#2563eb' }}>{q.name}</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 600, color: '#247f7b' }}>{q.name}</span>
                     <span style={{
                       fontSize: '0.65rem',
                       fontWeight: 600,

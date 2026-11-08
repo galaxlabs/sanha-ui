@@ -8,9 +8,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { getNotifications } from '../api/frappe';
 
 const STATE_COLORS = {
-  Submitted: '#2563eb', Returned: '#f59e0b', 'Returned To Evaluation': '#c2410c',
-  Approved: '#16a34a', Halal: '#16a34a', Haram: '#dc2626', Rejected: '#ef4444',
-  Doubtful: '#d97706', Draft: '#64748b', 'Under Review': '#7c3aed', Hold: '#ea580c',
+  Submitted: '#247f7b', Returned: '#f59e0b', 'Returned To Evaluation': '#c2410c',
+  Approved: '#2c9f98', Halal: '#2c9f98', Haram: '#dc2626', Rejected: '#ef4444',
+  Doubtful: '#d97706', Draft: '#64748b', 'Under Review': '#1d6f6b', Hold: '#ea580c',
   'Submitted to SB': '#0891b2',
 };
 
@@ -271,7 +271,7 @@ export default function Messages() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, justifyContent: 'flex-end' }}>
                   <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>received</span>
                   <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)' }}>You</span>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700, color: '#16a34a' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#d2f1ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700, color: '#2c9f98' }}>
                     {user?.full_name?.[0] || 'U'}
                   </div>
                 </div>

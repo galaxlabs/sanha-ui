@@ -6,8 +6,8 @@ function getStatusInfo(expiry) {
   const days = Math.ceil((new Date(expiry) - new Date()) / 86400000);
   if (days < 0) return { label: 'Expired', color: '#b91c1c', bg: '#fee2e2', icon: XCircle, days };
   if (days < 30) return { label: 'Expiring', color: '#d97706', bg: '#fef3c7', icon: AlertTriangle, days };
-  if (days < 65) return { label: 'Expiring Soon', color: '#2563eb', bg: '#dbeafe', icon: Clock, days };
-  return { label: 'Valid', color: '#059669', bg: '#d1fae5', icon: CheckCircle, days };
+  if (days < 65) return { label: 'Expiring Soon', color: '#247f7b', bg: '#e0f7f5', icon: Clock, days };
+  return { label: 'Valid', color: '#2c9f98', bg: '#d2f1ed', icon: CheckCircle, days };
 }
 
 function InfoItem({ icon: Icon, label, value, color = '#64748b' }) {
@@ -46,7 +46,7 @@ export default function UserInfo() {
     }}>
       {/* Header Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #0f766e 0%, #16a34a 50%, #059669 100%)',
+        background: 'linear-gradient(135deg, #0f766e 0%, #2c9f98 50%, #2c9f98 100%)',
         padding: '24px 28px',
         color: '#fff',
       }}>
@@ -108,12 +108,12 @@ export default function UserInfo() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-            <InfoItem icon={Building} label="Company" value={clientData.client_name || clientData.business_name} color="#2563eb" />
-            <InfoItem icon={Shield} label="Client Code" value={clientData.client_code} color="#7c3aed" />
+            <InfoItem icon={Building} label="Company" value={clientData.client_name || clientData.business_name} color="#247f7b" />
+            <InfoItem icon={Shield} label="Client Code" value={clientData.client_code} color="#1d6f6b" />
             <InfoItem icon={Mail} label="Email" value={clientData.email} color="#06b6d4" />
-            <InfoItem icon={Globe} label="Region" value={clientData.region} color="#16a34a" />
+            <InfoItem icon={Globe} label="Region" value={clientData.region} color="#2c9f98" />
             <InfoItem icon={MapPin} label="City" value={clientData.city} color="#f59e0b" />
-            <InfoItem icon={Shield} label="Category" value={clientData.category} color="#8b5cf6" />
+            <InfoItem icon={Shield} label="Category" value={clientData.category} color="#2c9f98" />
           </div>
 
           <div style={{ 
@@ -121,9 +121,9 @@ export default function UserInfo() {
             borderTop: '1px solid #f1f5f9',
             display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 
           }}>
-            <InfoItem icon={Calendar} label="Certified Since" value={clientData.certified_since ? new Date(clientData.certified_since).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#059669" />
+            <InfoItem icon={Calendar} label="Certified Since" value={clientData.certified_since ? new Date(clientData.certified_since).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#2c9f98" />
             <InfoItem icon={Calendar} label="Expiry Date" value={clientData.certified_expiry ? new Date(clientData.certified_expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color={statusInfo?.color || '#64748b'} />
-            <InfoItem icon={Shield} label="Standards" value={clientData.standards} color="#6366f1" />
+            <InfoItem icon={Shield} label="Standards" value={clientData.standards} color="#2c9f98" />
             <InfoItem icon={MapPin} label="Scope" value={clientData.scope} color="#ec4899" />
           </div>
         </div>
@@ -134,8 +134,8 @@ export default function UserInfo() {
         <div style={{ padding: '20px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
             <InfoItem icon={Mail} label="Email" value={user.email} color="#06b6d4" />
-            <InfoItem icon={Shield} label="User ID" value={user.name} color="#7c3aed" />
-            <InfoItem icon={Building} label="Role" value={user.roles?.join(', ') || 'User'} color="#16a34a" />
+            <InfoItem icon={Shield} label="User ID" value={user.name} color="#1d6f6b" />
+            <InfoItem icon={Building} label="Role" value={user.roles?.join(', ') || 'User'} color="#2c9f98" />
           </div>
         </div>
       )}

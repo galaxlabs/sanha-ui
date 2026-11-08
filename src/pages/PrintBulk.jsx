@@ -12,9 +12,9 @@ const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on infor
 
 /* ─── State badge colors ─── */
 const STATE_COLOR = {
-  Halal:'#16a34a', Approved:'#16a34a', Haram:'#dc2626', Rejected:'#ef4444',
+  Halal:'#2c9f98', Approved:'#2c9f98', Haram:'#dc2626', Rejected:'#ef4444',
   Doubtful:'#d97706', Draft:'#64748b', Submitted:'#247f7b',
-  'Under Review':'#7c3aed', Hold:'#ea580c',
+  'Under Review':'#1d6f6b', Hold:'#f97316',
 };
 
 /* ─── Column definitions ─── */
@@ -212,8 +212,8 @@ function bulkClientLabel(fontSize) {
     fontWeight: 700,
     fontSize: fontSize - 1,
     color: '#317eac',
-    border: '1px solid #dbeafe',
-    background: '#eff6ff',
+    border: '1px solid #e0f7f5',
+    background: '#e6f7f5',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   };
@@ -225,7 +225,7 @@ function bulkClientValue(fontSize) {
     textAlign: 'center',
     fontSize,
     color: '#1e293b',
-    border: '1px solid #dbeafe',
+    border: '1px solid #e0f7f5',
     background: '#fff',
     fontWeight: 600,
   };
@@ -369,7 +369,7 @@ export default function PrintBulk() {
     });
     return [...map.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]))).map(([key, rows]) => ({ key, label: key, rows }));
   })();
-  const groupHeadingColor = (label) => (opts.groupBy === 'state' ? STATE_COLOR[label] || '#475569' : '#475569');
+  const groupHeadingColor = (label) => (opts.groupBy === 'state' ? STATE_COLOR[label] || '#64748b' : '#64748b');
 
   // Shared thead
   const renderThead = () => (
@@ -416,7 +416,7 @@ export default function PrintBulk() {
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 36, height: 36, border: '3px solid #e5e7eb', borderTopColor: '#16a34a', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 12px' }} />
+        <div style={{ width: 36, height: 36, border: '3px solid #e5e7eb', borderTopColor: '#2c9f98', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 12px' }} />
         <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Loading {searchParams.get('ids')?.split(',').length || 0} queries…</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -432,7 +432,7 @@ export default function PrintBulk() {
             <ArrowLeft size={16} /> Back
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-            <CheckSquare size={15} style={{ color: '#16a34a' }} />
+            <CheckSquare size={15} style={{ color: '#2c9f98' }} />
             <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>{printDocs.length} of {docs.length} queries selected for print</span>
             {errors.length > 0 && <span style={{ color: '#f59e0b', fontSize: '0.8rem' }}>({errors.length} errors)</span>}
           </div>
@@ -461,7 +461,7 @@ export default function PrintBulk() {
         <PrintHeader logoUrl={logoUrl} />
         <hr style={{ height: 2, borderWidth: 0, color: '#999', backgroundColor: '#999', margin: '14px 0 8px' }} />
         <div style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b', fontSize: opts.fontSize + 1, marginBottom: 14 }}>Generated: {now}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #16a34a', paddingBottom: 14, marginBottom: 16, gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #2c9f98', paddingBottom: 14, marginBottom: 16, gap: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{opts.reportTitle || ''}</div>
           {opts.showSummary && (
             <div style={{ textAlign: opts.headerAlign === 'center' ? 'center' : 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0, marginTop: opts.headerAlign === 'center' ? 8 : 0 }}>
@@ -481,7 +481,7 @@ export default function PrintBulk() {
         {opts.showClientInfo && clientSummary.length === 1 && (() => {
           const c = clientSummary[0];
           return (
-            <div style={{ marginBottom: 18, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+            <div style={{ marginBottom: 18, border: '1px solid #e0f7f5', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
               <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: opts.fontSize, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
@@ -634,5 +634,5 @@ export default function PrintBulk() {
   );
 }
 
-const TH = { padding: '7px 10px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: '#475569', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' };
+const TH = { padding: '7px 10px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: '#64748b', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' };
 const TD = { padding: '6px 10px', fontSize: 12, color: '#1e293b', border: '1px solid #e2e8f0', verticalAlign: 'top' };

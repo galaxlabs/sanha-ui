@@ -53,7 +53,7 @@ export default function Login() {
 
         {/* Redirect notice */}
         {from !== '/dashboard' && (
-          <div style={{ background: 'rgba(37,99,235,.12)', border: '1px solid rgba(96,165,250,.3)', color: '#93c5fd', padding: '9px 14px', borderRadius: 9, fontSize: '0.8rem', marginBottom: 12, textAlign: 'center', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: 'rgba(37,99,235,.12)', border: '1px solid rgba(96,165,250,.3)', color: '#81e6d9', padding: '9px 14px', borderRadius: 9, fontSize: '0.8rem', marginBottom: 12, textAlign: 'center', backdropFilter: 'blur(8px)' }}>
             Please sign in to continue to <code style={{ fontSize: '0.75rem' }}>{from}</code>
           </div>
         )}

@@ -18,9 +18,9 @@ import PrintConfig from './PrintConfig';
 const ALL_STATES = ['Draft','Submitted','Submitted to SB','Under Review','Returned',
   'Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted'];
 const STATE_COLORS = {
-  Draft:'#94a3b8', Submitted:'#6366f1', 'Submitted to SB':'#8b5cf6',
+  Draft:'#94a3b8', Submitted:'#2c9f98', 'Submitted to SB':'#2c9f98',
   'Under Review':'#f59e0b', Returned:'#ef4444', 'Returned To Evaluation':'#f97316',
-  Hold:'#475569', Approved:'#059669', Halal:'#065f46', Haram:'#b91c1c',
+  Hold:'#475569', Approved:'#2c9f98', Halal:'#1d6f6b', Haram:'#b91c1c',
   Doubtful:'#d97706', Rejected:'#64748b', Delisted:'#1e293b',
 };
 
@@ -47,7 +47,7 @@ function BarChart({ data, colorKey }) {
         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 140, fontSize: '0.78rem', textAlign: 'right', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
           <div style={{ flex: 1, height: 18, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(value/max)*100}%`, background: colorKey?.[label] || '#2563eb', borderRadius: 4, transition: 'width 0.5s', minWidth: value>0?4:0 }} />
+            <div style={{ height: '100%', width: `${(value/max)*100}%`, background: colorKey?.[label] || '#247f7b', borderRadius: 4, transition: 'width 0.5s', minWidth: value>0?4:0 }} />
           </div>
           <div style={{ width: 36, fontSize: '0.78rem', fontWeight: 600, color: '#1e3a5f' }}>{value}</div>
         </div>
@@ -205,7 +205,7 @@ function GroupedQueryView({ rows, groupBy, groups, groupColors, showClient, show
                   {gRows.map((r, i) => (
                     <tr key={r.name}>
                       <td style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{i + 1}</td>
-                      {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>}
+                      {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#247f7b', fontWeight:600 }}>{r.name}</td>}
                       <td style={{ fontWeight:500 }}>{r.raw_material || '—'}</td>
                       {groupBy !== 'query_types' && <td style={{ fontSize:'0.8rem' }}>{r.query_types || '—'}</td>}
                       <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
@@ -655,8 +655,8 @@ export default function Reports() {
           {tab === 'all' && (
             <div className="card" style={{ padding: 0 }}>
               {someChecked && (
-                <div style={{ padding: '10px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1d4ed8' }}>{selected.size} selected</span>
+                <div style={{ padding: '10px 16px', background: '#e6f7f5', borderBottom: '1px solid #b2f5ea', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1d6f6b' }}>{selected.size} selected</span>
                   <button className="btn btn-primary btn-sm" onClick={() => goBulkPrint([...selected])} style={{ display:'flex', alignItems:'center', gap:4 }}>
                     Print Selected
                   </button>
@@ -668,7 +668,7 @@ export default function Reports() {
                   <thead>
                     <tr>
                       <th style={{ width: 40, textAlign: 'center', padding: '8px 12px' }}>
-                        <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'#2563eb' }} title={allChecked ? 'Deselect all' : 'Select all'} />
+                        <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'#247f7b' }} title={allChecked ? 'Deselect all' : 'Select all'} />
                       </th>
                       {showAdvanced && <th>ID</th>}<th>Raw Material</th><th>Supplier</th><th>Manufacturer</th>
                       <th>Type</th><th>Status</th>{showAdvanced && <th>Client</th>}<th>Created</th><th>Updated</th>
@@ -677,11 +677,11 @@ export default function Reports() {
                   <tbody>
                     {filtered.length === 0 && <tr><td colSpan={showAdvanced ? 9 : 7} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No results</td></tr>}
                     {filtered.map(r => (
-                      <tr key={r.name} style={{ background: selected.has(r.name) ? '#eff6ff' : undefined }}>
+                      <tr key={r.name} style={{ background: selected.has(r.name) ? '#e6f7f5' : undefined }}>
                         <td style={{ width: 40, textAlign: 'center' }}>
-                          <input type="checkbox" checked={selected.has(r.name)} onChange={() => toggleRow(r.name)} style={{ cursor:'pointer', accentColor:'#2563eb' }} />
+                          <input type="checkbox" checked={selected.has(r.name)} onChange={() => toggleRow(r.name)} style={{ cursor:'pointer', accentColor:'#247f7b' }} />
                         </td>
-                        {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.name}</td>}
+                        {showAdvanced && <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#247f7b', fontWeight:600 }}>{r.name}</td>}
                         <td style={{ fontWeight:500 }}>{r.raw_material}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || '—'}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || '—'}</td>
@@ -831,7 +831,7 @@ export default function Reports() {
                           <button
                             type="button"
                             onClick={() => navigate(`/queries/${encodeURIComponent(r.query_name || r[0])}`)}
-                            style={{ background:'none', border:0, padding:0, fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600, cursor:'pointer' }}
+                            style={{ background:'none', border:0, padding:0, fontFamily:'monospace', fontSize:'0.78rem', color:'#247f7b', fontWeight:600, cursor:'pointer' }}
                           >
                             {r.query_name || r[0]}
                           </button>
@@ -860,8 +860,8 @@ export default function Reports() {
               <ChartCard title="Duplicates by Client" data={duplicateByClient} />
             </div>
             <div className="card" style={{ padding:0 }}>
-              <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#eff6ff' }}>
-                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#1d4ed8' }}><GitCompare size={14} style={{ marginRight:6 }} />Duplicate Queries ({scopedDuplicateData.length})</span>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#e6f7f5' }}>
+                <span style={{ fontWeight:600, fontSize:'0.875rem', color:'#1d6f6b' }}><GitCompare size={14} style={{ marginRight:6 }} />Duplicate Queries ({scopedDuplicateData.length})</span>
                 <div style={{ display:'flex', gap:8 }}>
                   {scriptLoading.duplicates && <Spinner size={14} />}
                   <button className="btn btn-outline btn-sm" onClick={() => loadScript('Duplicate Queries', setDuplicateData, 'duplicates')}><RefreshCw size={13} /></button>
@@ -880,8 +880,8 @@ export default function Reports() {
                     {scopedDuplicateData.map((r,i) => (
                       <tr key={i}>
                         <td style={{ fontSize:'0.72rem', color:'#64748b', maxWidth:220 }}>{r.duplicate_key || r[0]}</td>
-                        <td style={{ fontWeight:800, color:'#1d4ed8' }}>{r.duplicate_count ?? r[1]}</td>
-                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[2]}</td>
+                        <td style={{ fontWeight:800, color:'#1d6f6b' }}>{r.duplicate_count ?? r[1]}</td>
+                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#247f7b', fontWeight:600 }}>{r.query_name || r[2]}</td>
                         <td style={{ fontWeight:500 }}>{r.raw_material || r[3]}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || r[4] || '—'}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || r[5] || '—'}</td>
@@ -923,7 +923,7 @@ export default function Reports() {
                     {scopedMissingData.length === 0 && !scriptLoading.missing && <tr><td colSpan={7} style={{ textAlign:'center', padding:'24px', color:'#94a3b8' }}>No missing supplier/manufacturer data found</td></tr>}
                     {scopedMissingData.map((r,i) => (
                       <tr key={i}>
-                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#2563eb', fontWeight:600 }}>{r.query_name || r[0]}</td>
+                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#247f7b', fontWeight:600 }}>{r.query_name || r[0]}</td>
                         <td style={{ fontWeight:500 }}>{r.raw_material || r[1]}</td>
                         <td style={{ fontWeight:700, color:'#c2410c' }}>{r.missing_fields || r[2]}</td>
                         <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || r[3] || '—'}</td>
@@ -964,7 +964,7 @@ export default function Reports() {
                           <td style={{ fontWeight:500 }}>{r.raw_material || r[0]}</td>
                           <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.supplier || r[1] || '—'}</td>
                           <td style={{ fontSize:'0.8rem', color:'#64748b' }}>{r.manufacturer || r[2] || '—'}</td>
-                          <td style={{ fontSize:'0.875rem', fontWeight:700, color:'#2563eb' }}>{r.creation_count ?? r[3]}</td>
+                          <td style={{ fontSize:'0.875rem', fontWeight:700, color:'#247f7b' }}>{r.creation_count ?? r[3]}</td>
                           <td><StatusBadge state={r.workflow_state || r[4]} /></td>
                         </tr>
                       ))}
@@ -1003,7 +1003,7 @@ export default function Reports() {
                 <div style={{ display:'grid', gap:20 }}>
                   {/* Fuzzy name matches */}
                   {qualityData.similarGroups.length === 0 && qualityData.contactGroups.length === 0 && (
-                    <div className="card" style={{ padding:'20px', textAlign:'center', color:'#16a34a', fontWeight:500 }}>
+                    <div className="card" style={{ padding:'20px', textAlign:'center', color:'#2c9f98', fontWeight:500 }}>
                       <Check size={24} style={{ display:'block', margin:'0 auto 8px' }} />
                       No data quality issues found. All names appear consistent.
                     </div>
@@ -1036,13 +1036,13 @@ export default function Reports() {
                   {/* Contact-based merge suggestions */}
                   {qualityData.contactGroups.length > 0 && (
                     <div className="card" style={{ padding:0 }}>
-                      <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', fontWeight:600, fontSize:'0.875rem', background:'#eff6ff' }}>
-                        <GitCompare size={14} style={{ marginRight:6, color:'#2563eb' }} />
+                      <div style={{ padding:'14px 18px', borderBottom:'1px solid #f1f5f9', fontWeight:600, fontSize:'0.875rem', background:'#e6f7f5' }}>
+                        <GitCompare size={14} style={{ marginRight:6, color:'#247f7b' }} />
                         Same Contact — Different Names ({qualityData.contactGroups.length})
                       </div>
                       <div style={{ padding:16, display:'grid', gap:12 }}>
                         {qualityData.contactGroups.map((g, i) => (
-                          <div key={i} style={{ border:'1px solid #bfdbfe', borderRadius:8, padding:'10px 14px', background:'#eff6ff' }}>
+                          <div key={i} style={{ border:'1px solid #b2f5ea', borderRadius:8, padding:'10px 14px', background:'#e6f7f5' }}>
                             <div style={{ fontSize:'0.72rem', color:'#1e40af', marginBottom:6 }}>
                               Contact: <b>{g.contact}</b>
                             </div>

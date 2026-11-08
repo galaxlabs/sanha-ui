@@ -15,8 +15,8 @@ const clientReportLabel = {
   fontWeight: 700,
   fontSize: 12,
   color: '#317eac',
-  border: '1px solid #dbeafe',
-  background: '#eff6ff',
+  border: '1px solid #e0f7f5',
+  background: '#e6f7f5',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
 };
@@ -26,7 +26,7 @@ const clientReportValue = {
   textAlign: 'center',
   fontSize: 13,
   color: '#1e293b',
-  border: '1px solid #dbeafe',
+  border: '1px solid #e0f7f5',
   background: '#fff',
   fontWeight: 600,
 };
@@ -109,7 +109,7 @@ export default function ClientReport() {
 
         {/* ─── CLIENT INFO TABLE (only if client selected) ─── */}
         {client && (
-          <div style={{ margin: '18px auto', maxWidth: 680, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+          <div style={{ margin: '18px auto', maxWidth: 680, border: '1px solid #e0f7f5', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
             <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: 12, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>

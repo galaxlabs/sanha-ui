@@ -11,17 +11,17 @@ const FRAPPE_BASE = import.meta.env.VITE_FRAPPE_URL || '';
 
 /* ─── Color schemes ─── */
 const SCHEMES = {
-  green:  { accent: '#16a34a', light: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+  green:  { accent: '#2c9f98', light: '#e6f7f5', border: '#b2f5ea', text: '#1d6f6b' },
   blue:   { accent: '#247f7b', light: '#e6f7f5', border: '#b2f5ea', text: '#1d6f6b' },
   teal:   { accent: '#0d9488', light: '#f0fdfa', border: '#99f6e4', text: '#0f766e' },
   black:  { accent: '#1e293b', light: '#f8fafc', border: '#e2e8f0', text: '#1e293b' },
 };
 
 const STATE_COLORS = {
-  'Halal':'#16a34a','Approved':'#16a34a','Haram':'#dc2626','Rejected':'#ef4444',
-  'Doubtful':'#d97706','Draft':'#64748b','Submitted':'#247f7b','Under Review':'#7c3aed',
-  'Hold':'#ea580c','Returned':'#d97706','Returned To Evaluation':'#f97316',
-  'Submitted to SB':'#8b5cf6','Delisted':'#1e293b',
+  'Halal':'#2c9f98','Approved':'#2c9f98','Haram':'#dc2626','Rejected':'#ef4444',
+  'Doubtful':'#d97706','Draft':'#64748b','Submitted':'#247f7b','Under Review':'#1d6f6b',
+  'Hold':'#f97316','Returned':'#d97706','Returned To Evaluation':'#f97316',
+  'Submitted to SB':'#2c9f98','Delisted':'#1e293b',
 };
 
 /* ─── Default print options ─── */
@@ -217,7 +217,7 @@ function SettingsPanel({ opts, setOpts, isClientUser }) {
 
           {/* Reset */}
           <div>
-            <button style={{ padding: '4px 14px', fontSize: '0.72rem', background: 'transparent', border: '1px solid #475569', borderRadius: 5, color: '#94a3b8', cursor: 'pointer' }} onClick={() => setOpts(DEFAULT_OPTS)}>
+            <button style={{ padding: '4px 14px', fontSize: '0.72rem', background: 'transparent', border: '1px solid #64748b', borderRadius: 5, color: '#94a3b8', cursor: 'pointer' }} onClick={() => setOpts(DEFAULT_OPTS)}>
               Reset to Defaults
             </button>
           </div>
@@ -244,7 +244,7 @@ function queryClientLabel(fontSize) {
     fontWeight: 700,
     fontSize: fontSize - 2,
     color: '#317eac',
-    border: '1px solid #dbeafe',
+    border: '1px solid #e0f7f5',
     background: '#e6f7f5',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
@@ -257,13 +257,13 @@ function queryClientValue(fontSize) {
     textAlign: 'center',
     fontSize: fontSize - 1,
     color: '#1e293b',
-    border: '1px solid #dbeafe',
+    border: '1px solid #e0f7f5',
     background: '#fff',
     fontWeight: 600,
   };
 }
 
-const TH = { padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: '#475569', border: '1px solid #e2e8f0' };
+const TH = { padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: '#64748b', border: '1px solid #e2e8f0' };
 const TD = { padding: '8px 12px', fontSize: 13, color: '#1e293b', border: '1px solid #e2e8f0' };
 
 /* ─── Main component ─── */
@@ -325,7 +325,7 @@ export default function PrintQuery() {
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f0f4f8' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#16a34a', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 12px' }} />
+        <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#2c9f98', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 12px' }} />
         <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Loading query…</p>
       </div>
     </div>
@@ -404,7 +404,7 @@ export default function PrintQuery() {
             <div style={{ background: `${stateColor}12`, border: `1px solid ${stateColor}40`, borderRadius: 8, padding: '10px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontWeight: 700, fontSize: 13, color: stateColor }}>Status: {doc.workflow_state}</span>
               <div style={{ display: 'flex', gap: 12 }}>
-                {doc.is_master    && <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>✓ Master Record</span>}
+                {doc.is_master    && <span style={{ fontSize: 11, color: '#2c9f98', fontWeight: 600 }}>✓ Master Record</span>}
                 {doc.is_duplicate && <span style={{ fontSize: 11, color: '#d97706', fontWeight: 600 }}>⚠ Duplicate</span>}
               </div>
             </div>
@@ -412,7 +412,7 @@ export default function PrintQuery() {
 
           {/* ─── Client Information ─── */}
           {opts.showClientInfo && (
-            <div style={{ marginBottom: 18, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+            <div style={{ marginBottom: 18, border: '1px solid #e0f7f5', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
               <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: opts.fontSize - 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>

@@ -191,7 +191,7 @@ function ClientFormModal({ initial, onSave, onClose }) {
             <input type="checkbox" checked={!!form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked ? 1 : 0 }))} />
             Is Active
           </label>
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginTop: 16, fontSize: '0.8rem', color: '#166534' }}>
+          <div style={{ background: '#e6f7f5', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginTop: 16, fontSize: '0.8rem', color: '#166534' }}>
             <ShieldCheck size={14} style={{ marginRight: 6, display: 'inline' }} />
             Saving will automatically create or update the linked Frappe User with the Client role and assign document permissions.
           </div>

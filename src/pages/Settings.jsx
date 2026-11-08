@@ -91,7 +91,7 @@ export default function SettingsPage() {
         <ChangePasswordForm selfUser={user?.name} addToast={addToast} adminMode={false} />
       </SectionCard>
 
-      <SectionCard icon={Users} iconBg="#dcfce7" iconColor="#16a34a" title="User Management" defaultOpen={false}>
+      <SectionCard icon={Users} iconBg="#d2f1ed" iconColor="#2c9f98" title="User Management" defaultOpen={false}>
         <UserManagementPanel addToast={addToast} />
       </SectionCard>
 
@@ -107,7 +107,7 @@ export default function SettingsPage() {
         <RolePermissionsTable />
       </SectionCard>
 
-      <SectionCard icon={Database} iconBg="#f0fdf4" iconColor="#16a34a" title="System Info" defaultOpen={false}>
+      <SectionCard icon={Database} iconBg="#e6f7f5" iconColor="#2c9f98" title="System Info" defaultOpen={false}>
         <FrappeConnectionInfo user={user} />
       </SectionCard>
 
@@ -386,7 +386,7 @@ function LogoPanel({ addToast }) {
         </div>
         <div style={{ marginTop: 10, fontSize: "0.72rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
           Active: <span style={{ color: "var(--brand-600)" }}>{current}</span>
-          {isDefault && <span style={{ marginLeft: 6, color: "#16a34a", fontWeight: 600 }}>(default)</span>}
+          {isDefault && <span style={{ marginLeft: 6, color: "#2c9f98", fontWeight: 600 }}>(default)</span>}
         </div>
       </div>
     </div>
@@ -490,7 +490,7 @@ function ChangePasswordForm({ selfUser, addToast, adminMode = false, targetUser 
           />
           {confirm && (
             <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-              color: pwdMatch ? "#16a34a" : "#dc2626" }}>
+              color: pwdMatch ? "#2c9f98" : "#dc2626" }}>
               {pwdMatch ? <Check size={16} /> : <X size={16} />}
             </span>
           )}
@@ -498,7 +498,7 @@ function ChangePasswordForm({ selfUser, addToast, adminMode = false, targetUser 
       </div>
 
       {newPwd && (
-        <div style={{ marginBottom: 12, fontSize: "0.75rem", color: pwdStrong ? "#16a34a" : "#d97706" }}>
+        <div style={{ marginBottom: 12, fontSize: "0.75rem", color: pwdStrong ? "#2c9f98" : "#d97706" }}>
           {pwdStrong ? "✓ Password meets minimum length" : "⚠ Password too short (min 8 chars)"}
         </div>
       )}
@@ -548,7 +548,7 @@ function UserManagementPanel({ addToast }) {
           <tbody>
             {users.map(u => (
               <tr key={u.name}
-                style={{ background: pwdTarget === u.name ? "var(--brand-50,#f0fdf4)" : undefined }}>
+                style={{ background: pwdTarget === u.name ? "var(--brand-50,#e6f7f5)" : undefined }}>
                 <td>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{
@@ -611,7 +611,7 @@ function RolePermissionsTable() {
     { role: "Admin",               create: true,  read: true,  write: true,  delete: true,  export: true,  desc: "Full admin access" },
     { role: "System Manager",      create: true,  read: true,  write: true,  delete: true,  export: true,  desc: "System-level full access" },
   ];
-  const C = ({ v }) => <span style={{ color: v ? "#16a34a" : "#d1d5db", fontWeight: 700 }}>{v ? "✓" : "✗"}</span>;
+  const C = ({ v }) => <span style={{ color: v ? "#2c9f98" : "#d1d5db", fontWeight: 700 }}>{v ? "✓" : "✗"}</span>;
 
   return (
     <div className="table-wrap">
@@ -658,7 +658,7 @@ function FrappeConnectionInfo({ user }) {
 
 /* ── Workflow Reference ── */
 function WorkflowReference() {
-  const roleColors = { Client: "#22c55e", Evaluation: "#3b82f6", "SB User": "#8b5cf6", Admin: "#f59e0b" };
+  const roleColors = { Client: "#4fd1c5", Evaluation: "#2c9f98", "SB User": "#2c9f98", Admin: "#f59e0b" };
   return (
     <div className="table-wrap">
       <table>

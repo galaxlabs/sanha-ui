@@ -56,7 +56,7 @@ function AppRoutes() {
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
       <div>
-        <div style={{ width: 48, height: 48, border: '3px solid #e5e7eb', borderTopColor: '#16a34a', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 16px' }} />
+        <div style={{ width: 48, height: 48, border: '3px solid #e5e7eb', borderTopColor: '#2c9f98', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 16px' }} />
         <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>Loading SANHA Portal…</p>
       </div>
     </div>

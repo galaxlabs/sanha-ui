@@ -155,7 +155,7 @@ export default function Sidebar({ collapsed, onClose }) {
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 38, height: 38, background: '#16a34a', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 38, height: 38, background: '#2c9f98', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Shield size={22} color="#fff" />
             </div>
             {!sidebarCollapsed && (
