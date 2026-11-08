@@ -164,16 +164,16 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ThemeProvider>
           <ToastProvider>
             <ErrorBoundary>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               <AppRoutes />
             </ErrorBoundary>
           </ToastProvider>
-        </AuthProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
