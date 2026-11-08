@@ -7,7 +7,6 @@ import { getNotifications } from '../../api/frappe';
 import Breadcrumbs from '../UI/Breadcrumbs';
 import CommandPalette from '../UI/CommandPalette';
 import LiveDataStatus from '../UI/LiveDataStatus';
-import { useLiveRevision } from '../../hooks/useLiveData';
 
 /* ── state badge colors for notification list ── */
 const N_COLORS = {
@@ -33,7 +32,6 @@ const PAGE_TITLES = {
 const THEME_ICONS = { light: Moon, dark: Sun };
 
 export default function Header({ onToggleSidebar }) {
-  const queryRevision = useLiveRevision('Query');
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout, isAdmin } = useAuth();
@@ -83,7 +81,7 @@ export default function Header({ onToggleSidebar }) {
       .then(setNotifs)
       .catch(e => console.error('Failed to load notifications:', e))
       .finally(() => setNotifsLoading(false));
-  }, [bellOpen, queryRevision, user?.name]);
+  }, [bellOpen, user?.name]);
 
   const unreadCount = notifs.filter(n => !notifsRead.has(n.id)).length;
 

@@ -232,9 +232,9 @@ export async function getUserRoles(user) {
 }
 
 /* ── Generic DocType CRUD ── */
-export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0, signal = null, fresh = false } = {}) {
+export async function getList(doctype, { filters = [], fields = ['name'], orderBy = 'modified desc', limit = 100, limitStart = 0, signal = null, fresh = false, server = false } = {}) {
   const options = { filters, fields, orderBy, limit, limitStart, signal };
-  if (supportsLive(doctype, options)) return liveRows(doctype, options);
+  if (!server && supportsLive(doctype, options)) return liveRows(doctype, options);
   const params = new URLSearchParams({
     fields: JSON.stringify(fields),
     filters: JSON.stringify(filters),
@@ -332,7 +332,7 @@ export async function runReport(reportName, filters = {}) {
 }
 
 /* ── Queries helpers ── */
-export async function getQueries(filters = [], limit = 50, start = 0, signal = null, fresh = false) {
+export async function getQueries(filters = [], limit = 50, start = 0, signal = null, fresh = false, server = false) {
   return getList('Query', {
     filters,
     fields: ['name', 'raw_material', 'supplier', 'manufacturer', 'workflow_state', 'query_types',
@@ -342,6 +342,7 @@ export async function getQueries(filters = [], limit = 50, start = 0, signal = n
     limitStart: start,
     signal,
     fresh,
+    server,
   });
 }
 
@@ -417,7 +418,6 @@ export async function findSimilarQuery(rawMaterial, manufacturer, excludeName = 
 }
 
 export async function getOverviewMetrics(filters = []) {
-  if (liveDataEnabled() && (!filters || (Array.isArray(filters) && !filters.length))) return (await ensureLiveDataset('Query')).metrics || {};
   const res = await request('GET', `/api/method/sanha.api.dashboard.overview_metrics?filters=${encodeURIComponent(JSON.stringify(filters))}`, null, { cache: false });
   return res.message || {};
 }
@@ -624,6 +624,8 @@ export async function getNotifications(userEmail, isAdminUser = false, limit = 1
     fields: ['name', 'raw_material', 'workflow_state', 'owner', 'modified', 'client_name'],
     orderBy: 'modified desc',
     limit,
+ 
+    server: true,
   });
   // Return as notification-style items
   return rows.map(q => ({

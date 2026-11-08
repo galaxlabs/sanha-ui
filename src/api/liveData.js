@@ -124,7 +124,6 @@ export function configureLiveData(user, baseUrl) {
   });
   engine = current;
   authChannel?.postMessage({ type: 'account', user: user.name });
-  ensureLiveDataset('Query').catch(() => {});
   if (user.clientName) ensureLiveDataset('Client').catch(() => {});
   timer = setInterval(() => { if (!document.hidden) refreshActiveDatasets(); }, 10000);
   updateStatus();
@@ -165,8 +164,8 @@ export function subscribeLiveStatus(listener) { statusListeners.add(listener); r
 export const getLiveStatus = () => statusSnapshot;
 export function refreshActiveDatasets() {
   if (!liveDataEnabled()) return;
-  const types = new Set(['Query', ...[...listeners].filter(([, group]) => group.size).map(([type]) => type)]);
-  if (actor?.clientName) types.add('Client');
+  const types = new Set([...listeners].filter(([, group]) => group.size).map(([type]) => type));
+  if (actor?.clientName) { types.add('Client'); types.add('Query'); }
   for (const type of types) ensureLiveDataset(type, true).catch(() => {});
 }
 export function notifyMutation(type) {
