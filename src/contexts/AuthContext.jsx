@@ -71,7 +71,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await apiLogout(); } catch { /* ignore – token auth has no server session */ }
+    try { await apiLogout(); }
+    catch (e) { console.warn('[Auth] Server logout failed:', e?.message || e); }
     setUser(null);
   };
 
