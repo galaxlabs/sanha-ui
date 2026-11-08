@@ -10,8 +10,8 @@ export function AuthProvider({ children }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      await refreshCsrfToken();
-      const current = await getCurrentUser();
+      // CSRF is only needed for POST, so fetch it alongside the GET user check instead of before it.
+      const [, current] = await Promise.all([refreshCsrfToken(), getCurrentUser()]);
       if (!current?.is_authenticated || current.message === 'Guest') {
         stopLiveData();
         setUser(null);

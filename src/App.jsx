@@ -24,12 +24,12 @@ import Learning from './pages/Learning';
 import ClientResources from './pages/ClientResources';
 import StaffReviewPage from './pages/StaffReviewPage';
 import ChatAgentConfig from './pages/ChatAgentConfig';
-import { Spinner } from './components/UI/Loaders';
+import { AppSkeleton } from './components/UI/AppSkeleton';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading, hasRole, isAdmin } = useAuth();
   const location = useLocation();
-  if (loading) return <Spinner />;
+  if (loading) return <AppSkeleton />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   if (allowedRoles && !isAdmin() && !allowedRoles.some(r => hasRole(r))) {
     return <Navigate to="/dashboard" replace />;
@@ -53,14 +53,7 @@ function ClientResourcesRoute() {
 
 function AppRoutes() {
   const { user, loading } = useAuth();
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
-      <div>
-        <div style={{ width: 48, height: 48, border: '3px solid #e5e7eb', borderTopColor: '#2c9f98', borderRadius: '50%', animation: 'spin .7s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>Loading SANHA Portal…</p>
-      </div>
-    </div>
-  );
+  if (loading) return <AppSkeleton />;
 
   return (
     <Routes>
