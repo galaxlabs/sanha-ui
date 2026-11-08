@@ -273,3 +273,8 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
   .client-info-tile .lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; color: var(--brand-600); font-weight: 700; }
   .client-info-tile .val { font-size: .85rem; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; margin-top: 2px; }
 }
+
+.ci-label { color: #1d6f6b; }
+[data-theme="dark"] .ci-label { color: #81e6d9; }
+.client-info-tile .lbl.ci-label { color: #1d6f6b; }
+[data-theme="dark"] .client-info-tile .lbl.ci-label { color: #81e6d9; }

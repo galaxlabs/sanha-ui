@@ -70,7 +70,7 @@ export default function ClientHeader() {
                   <tr key={i} style={{ borderBottom: i < clientRows.length - 1 ? '1px solid var(--border-base)' : 'none' }}>
                     {row.map(([label, value]) => (
                       <Fragment key={label}>
-                        <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--brand-600)', background: 'rgba(79, 209, 197, .16)', width: '1%' }}>{label}</th>
+                        <th className="ci-label" style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', background: 'rgba(79, 209, 197, .18)', width: '1%' }}>{label}</th>
                         <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)', background: 'rgba(79, 209, 197, .06)', overflowWrap: 'anywhere' }}>{value || '—'}</td>
                       </Fragment>
                     ))}
@@ -82,7 +82,7 @@ export default function ClientHeader() {
           <div className="client-info-mobile">
             {clientRows.flat().map(([label, value]) => (
               <div key={label} className="client-info-tile">
-                <div className="lbl">{label}</div>
+                <div className="lbl ci-label">{label}</div>
                 <div className="val">{value || '—'}</div>
               </div>
             ))}
