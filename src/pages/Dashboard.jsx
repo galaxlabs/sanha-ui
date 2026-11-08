@@ -357,73 +357,73 @@ export default function Dashboard() {
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="dashboard-stat-grid">
-        {statDefs.map(s => {
-          const Icon = s.icon;
-          const value = counts[s.state] ?? 0;
-          return (
-            <div
-              key={s.state}
-              onClick={() => navigate(`/queries?state=${encodeURIComponent(s.state)}`)}
-              className="dashboard-stat"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-                <div>
-                  <div className="dashboard-stat-label">{s.label}</div>
-                  <div className="dashboard-stat-value">{value}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
-                    {totalQueries ? `${Math.round((value / totalQueries) * 100)}% of total` : '—'}
-                  </div>
+            <div className="dashboard-body">
+        <div className="dashboard-main">
+          <div className="dashboard-stat-grid">
+                  {statDefs.map(s => {
+                    const Icon = s.icon;
+                    const value = counts[s.state] ?? 0;
+                    return (
+                      <div
+                        key={s.state}
+                        onClick={() => navigate(`/queries?state=${encodeURIComponent(s.state)}`)}
+                        className="dashboard-stat"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                          <div>
+                            <div className="dashboard-stat-label">{s.label}</div>
+                            <div className="dashboard-stat-value">{value}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                              {totalQueries ? `${Math.round((value / totalQueries) * 100)}% of total` : '—'}
+                            </div>
+                          </div>
+                          <div style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 14,
+                            background: '#4fd1c5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 6px 16px rgba(79, 209, 197, .35)',
+                            flexShrink: 0,
+                          }}>
+                            <Icon size={22} color="#fff" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
-                  background: '#4fd1c5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 6px 16px rgba(79, 209, 197, .35)',
-                  flexShrink: 0,
-                }}>
-                  <Icon size={22} color="#fff" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {allQueries.length > 0 && (() => {
-        const byClient = {};
-        allQueries.forEach(q => {
-          const c = q.client_name || 'Unknown';
-          if (!byClient[c]) byClient[c] = { total: 0, approved: 0 };
-          byClient[c].total += 1;
-          if (q.workflow_state === 'Approved') byClient[c].approved += 1;
-        });
-        const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
-        return (
-          <div className="dashboard-panel" style={{ marginBottom: 28 }}>
-            <div className="dashboard-panel-title">Top Clients</div>
-            <table style={{ width: '100%' }}>
-              <thead>
-                <tr><th>Client</th><th>Queries</th><th>Share</th><th>Approved</th></tr>
-              </thead>
-              <tbody>
+        </div>
+        <aside className="dashboard-side">
+          {allQueries.length > 0 && (() => {
+            const byClient = {};
+            allQueries.forEach(q => {
+              const c = q.client_name || 'Unknown';
+              if (!byClient[c]) byClient[c] = { total: 0, approved: 0 };
+              byClient[c].total += 1;
+              if (q.workflow_state === 'Approved') byClient[c].approved += 1;
+            });
+            const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
+            return (
+              <div className="dashboard-panel">
+                <div className="dashboard-panel-title">Top Clients</div>
                 {rows.map(([name, r]) => (
-                  <tr key={name}>
-                    <td>{name}</td>
-                    <td>{r.total}</td>
-                    <td>{Math.round((r.total / allQueries.length) * 100)}%</td>
-                    <td>{r.approved}</td>
-                  </tr>
+                  <div key={name} className="dashboard-list-row">
+                    <div className="dashboard-list-chip">{name.charAt(0).toUpperCase()}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="dashboard-list-title">{name}</div>
+                      <div className="dashboard-list-sub">{r.approved} approved · {Math.round((r.total / allQueries.length) * 100)}% share</div>
+                    </div>
+                    <div className="dashboard-list-value">{r.total}</div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      })()}
+              </div>
+            );
+          })()}
+        </aside>
+      </div>
 
       {/* ── Charts Section ── */}
       {(isAdmin() || isSBRole) && doughnutStates.length > 0 && (
