@@ -15,7 +15,7 @@ import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getOverviewMetrics, getStateCounts, getQueries, getAllQueries } from '../api/frappe';
+import { getOverviewMetrics, getStateCounts, getQueries, getAllQueries, getDashboardBreakdowns } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 
 const tealGlow = {
@@ -103,6 +103,7 @@ export default function Dashboard() {
   const [counts, setCounts] = useState({});
   const [recent, setRecent] = useState([]);
   const [allQueries, setAllQueries] = useState([]);
+  const [breakdown, setBreakdown] = useState(null);
   const [clientTotal, setClientTotal] = useState(null);
   const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(true);
@@ -148,6 +149,7 @@ export default function Dashboard() {
         setAllQueries(allData);
         setClientTotal(overview.clients ?? null);
         setMetrics(overview);
+        getDashboardBreakdowns(extraFilters).then(b => { if (!controller.signal.aborted) setBreakdown(b); }).catch(() => {});
         hasLoaded.current = true;
       } catch (e) {
         if (e.name !== 'AbortError') {
@@ -235,7 +237,7 @@ export default function Dashboard() {
     const t = q.query_types || 'Unknown';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
-  const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const typeEntries = breakdown ? breakdown.types.slice(0, 10).map(t => [t.name, t.total]) : Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const typeColors = ['#4fd1c5', '#2c9f98', '#2c9f98', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#2c9f98', '#84cc16'];
   const typeChartData = {
     labels: typeEntries.map(([k]) => k),
@@ -255,7 +257,7 @@ export default function Dashboard() {
     const c = q.client_name || 'Unknown';
     clientCounts[c] = (clientCounts[c] || 0) + 1;
   });
-  const clientEntries = Object.entries(clientCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const clientEntries = breakdown ? breakdown.clients.slice(0, 10).map(c => [c.name, c.total]) : Object.entries(clientCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const clientColors = ['#4fd1c5', '#5ed9cf', '#6fdfd6', '#81e6d9', '#4fd1c5', '#7ee3da', '#94ebe3', '#a7f0ea', '#b2f5ef', '#c6f6ef'];
   const clientChartData = {
     labels: clientEntries.map(([k]) => k.length > 20 ? k.slice(0, 18) + '…' : k),
@@ -274,7 +276,7 @@ export default function Dashboard() {
   allQueries.forEach(q => {
     if (q.manufacturer) mfrCounts[q.manufacturer] = (mfrCounts[q.manufacturer] || 0) + 1;
   });
-  const mfrEntries = Object.entries(mfrCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const mfrEntries = breakdown ? breakdown.manufacturers.slice(0, 10).map(m => [m.name, m.total]) : Object.entries(mfrCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const mfrColors = ['#2c9f98', '#4fd1c5', '#1d6f6b', '#81e6d9', '#38b2ac', '#a7f0ea', '#247f7b', '#5ed9cf', '#2c7a7b', '#c6f6ef'];
   const mfrChartData = {
     labels: mfrEntries.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k),
@@ -405,7 +407,7 @@ export default function Dashboard() {
               byClient[c].total += 1;
               if (q.workflow_state === 'Approved') byClient[c].approved += 1;
             });
-            const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
+            const rows = breakdown ? breakdown.clients.slice(0, 6).map(c => [c.name, { total: c.total, approved: c.approved }]) : Object.entries(byClient).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
             return (
               <div className="dashboard-panel">
                 <div className="dashboard-panel-title">Top Clients</div>
@@ -414,7 +416,7 @@ export default function Dashboard() {
                     <div className="dashboard-list-chip">{name.charAt(0).toUpperCase()}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="dashboard-list-title">{name}</div>
-                      <div className="dashboard-list-sub">{r.approved} approved · {Math.round((r.total / allQueries.length) * 100)}% share</div>
+                      <div className="dashboard-list-sub">{r.approved} approved · {Math.round((r.total / (totalQueries || 1)) * 100)}% share</div>
                     </div>
                     <div className="dashboard-list-value">{r.total}</div>
                   </div>
