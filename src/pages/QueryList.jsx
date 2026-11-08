@@ -14,6 +14,7 @@ import { STATE_META } from '../utils/workflow';
 import { useHotkeys } from '../utils/useHotkeys';
 import { useLiveRevision } from '../hooks/useLiveData';
 import { ensureLiveDataset, liveDataEnabled } from '../api/liveData';
+import Bilingual from '../components/UI/Bilingual';
 
 const ALL_STATES = Object.keys(STATE_META);
 const PAGE_SIZES = [25, 50, 100, 200, 300, 400, 500, 'all'];
@@ -429,7 +430,7 @@ export default function QueryList() {
       )}
 
       <div className="card" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '12px 16px', marginBottom: 12 }}>
-        <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by <span lang="ur" dir="rtl" style={{ marginLeft: 6 }}>ترتیب</span></label>
+        <label htmlFor="query-sort-field" style={{ fontWeight: 600 }}>Sort by <span lang="ur" dir="rtl" style={{ marginLeft: 6 }}><Bilingual text={"ترتیب"} /></span></label>
         <SelectField id="query-sort-field" value={sortField} onChange={event => { const field = event.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }} options={[{ value: 'raw_material', label: 'Raw Material — حروفِ تہجی' }, { value: 'creation', label: 'Created — بننے کی تاریخ' }, { value: 'modified', label: 'Last Updated — آخری ترمیم' }]} style={{ width: 240 }} />
         <label htmlFor="query-sort-direction" className="sr-only">Sort direction</label>
         <SelectField id="query-sort-direction" aria-label="Sort direction" value={sortDirection} onChange={event => setSortDirection(event.target.value)} options={[{ value: 'asc', label: sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے' }, { value: 'desc', label: sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے' }]} style={{ width: 240 }} />

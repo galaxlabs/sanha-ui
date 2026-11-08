@@ -4,6 +4,7 @@ import { Bot, RefreshCw } from 'lucide-react';
 import { FRAPPE_URL, getQuerySummary, ensureQuerySummary, getRelatedReviewDecisions } from '../../api/frappe';
 import { useAuth } from '../../contexts/AuthContext';
 import { isFinalDecision } from '../../utils/materialEvidence';
+import Bilingual from './Bilingual';
 
 const ASSESSMENT_LABELS = {
   identity: 'شناخت اور متعلقہ شعبہ',
@@ -80,7 +81,7 @@ export default function StaffAIReview({ query }) {
   }
   return <section className="card" style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
     <p className="text-sm text-gray">Current Query documents, decided database references and retrieved public chemistry. No historical document files are read. Final decisions remain with staff.</p>
-    <section><h4>پہلے سے فیصلہ شدہ database references</h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
+    <section><h4><Bilingual text={"پہلے سے فیصلہ شدہ database references"} /></h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
       {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
         <div className="table-wrap"><table><thead><tr><th>Query</th><th>Material</th><th>Manufacturer / Supplier</th><th>Decision</th><th>Match</th></tr></thead><tbody>{related.rows.filter(isFinalDecision).map(row => <tr key={row.name}><td><Link to={`/queries/${encodeURIComponent(row.name)}`}>{row.name}</Link></td><td>{row.raw_material}</td><td>{row.manufacturer} / {row.supplier}</td><td>{row.workflow_state}</td><td>{row.same_material && row.same_manufacturer ? 'Same material + manufacturer' : 'Material reference only; identity not established'}</td></tr>)}</tbody></table></div></>}
     </section>
@@ -95,7 +96,7 @@ export default function StaffAIReview({ query }) {
     {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{summary.text}</p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
     {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
     {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{review.assessment[key].text}</p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
-    {!!review?.follow_up_questions?.length && <article><h4>Supplier / Manufacturer سے اگلے سوالات</h4><ol>{review.follow_up_questions.map((item, index) => <li key={index} dir="auto" style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>}
+    {!!review?.follow_up_questions?.length && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol>{review.follow_up_questions.map((item, index) => <li key={index} dir="auto" style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>}
     {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index}>{item.document}: {item.message} {(item.sources || []).map(reference)}</p>)}</details>}
     {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto">{item.text} <small>{item.sources.map(reference)}</small></p>)}</div>}
     {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index}><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
