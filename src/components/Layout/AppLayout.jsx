@@ -13,7 +13,7 @@ export default function AppLayout({ children }) {
 
   const isClient = hasRole('Client') && !isAdmin();
   const hasClientData = user?.clientData || user?.clientName;
-  const showClientHeader = isClient || hasClientData;
+  const showClientHeader = (isClient || hasClientData) && location.pathname === '/dashboard';
 
   const toggleSidebar = () => setSidebarOpen(v => !v);
   const closeSidebar = () => setSidebarOpen(false);

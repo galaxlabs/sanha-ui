@@ -117,10 +117,19 @@ export default function ClientDashboard() {
 
   return (
     <div style={{ minHeight: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>My Queries</h3>
-        <button className="btn btn-primary btn-sm" onClick={() => navigate('/queries/new')}>+ New Query</button>
+      <div style={{ background: 'linear-gradient(135deg, #0f766e 0%, #2c9f98 100%)', borderRadius: 20, padding: '22px 26px', marginBottom: 20, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, boxShadow: '0 14px 34px rgba(79, 209, 197, .25)' }}>
+        <div>
+          <div style={{ fontSize: '0.72rem', opacity: 0.8, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700 }}>Welcome back</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: 4 }}>
+            {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}, {(user?.full_name || user?.name || '').split(' ')[0]}
+          </div>
+          <div style={{ fontSize: '0.85rem', opacity: 0.9, marginTop: 4 }}>
+            {clientData?.client_name || clientData?.business_name || ''} · {totalQueries} queries{statusInfo ? ` · ${statusInfo.label}` : ''}
+          </div>
+        </div>
+        <button onClick={() => navigate('/queries/new')} style={{ background: '#fff', color: '#0f766e', border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>+ New Query</button>
       </div>
+      <h3 style={{ margin: '0 0 14px', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>My Queries</h3>
       {/* ── My Query Stats ── */}
       <div className="dashboard-stat-grid">
         {[
