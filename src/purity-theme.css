@@ -280,8 +280,14 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
 [data-theme="dark"] .client-info-tile .lbl.ci-label { color: #81e6d9; }
 
 thead th { background: #e0f7f5; color: var(--brand-600); }
+/* Keep every header cell the same light teal, including cells without inline styles (line 137 would make them white). */
+thead th:not([style]) { background: #e0f7f5; }
 [data-theme="dark"] thead th { background: #1f3a45; color: #81e6d9; }
 table { background: transparent; }
+
+/* Toolbar controls share one height and corner radius (filter chips keep their pill shape). */
+.form-control, .select-field-trigger, .btn-outline.btn-sm, .btn-primary.btn-sm { height: 40px; border-radius: 12px !important; }
+input.form-control, select.form-control, button.form-control { border-radius: 12px !important; }
 input[type="checkbox"] {
   appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin: 0;
   border: 1.5px solid var(--border-input); border-radius: 5px; background: var(--surface-input);
