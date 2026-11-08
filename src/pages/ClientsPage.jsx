@@ -43,8 +43,8 @@ function ClientStatusBadge({ client }) {
   const days = Math.floor((new Date(expiry) - new Date()) / 86400000);
   if (days < 0)  return <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', background: '#fee2e2', color: '#b91c1c', fontWeight: 600 }}>Expired</span>;
   if (days < 30) return <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', background: '#fef3c7', color: '#92400e', fontWeight: 600 }}>Expiring ({days}d)</span>;
-  if (days < 65) return <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', background: '#dbeafe', color: '#1d4ed8', fontWeight: 600 }}>Soon ({days}d)</span>;
-  return <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', background: '#d1fae5', color: '#065f46', fontWeight: 600 }}>Valid</span>;
+  if (days < 65) return <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', background: '#e0f7f5', color: '#1d6f6b', fontWeight: 600 }}>Soon ({days}d)</span>;
+  return <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', background: '#d2f1ed', color: '#1d6f6b', fontWeight: 600 }}>Valid</span>;
 }
 
 /* ─── Field input helper ─── */
@@ -208,13 +208,15 @@ function ClientFormModal({ initial, onSave, onClose }) {
 }
 
 /* ─── Stat Card ─── */
-function StatCard({ label, value, color = '#2563eb' }) {
+function StatCard({ label, value, color = '#247f7b' }) {
   return (
-    <div style={{ 
-      background: `${color}10`, 
-      borderRadius: 14, 
+    <div style={{
+      background: 'var(--surface-card)',
+      borderRadius: 14,
       padding: '16px 20px',
-      border: 'none',
+      border: '1px solid var(--border-base)',
+      borderLeft: `4px solid ${color}`,
+      boxShadow: 'var(--shadow-md)',
     }}>
       <div style={{ fontWeight: 800, fontSize: '1.5rem', color, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, fontWeight: 500 }}>{label}</div>
@@ -258,7 +260,7 @@ function PermissionsBlock({ email }) {
               {perms.map((p, i) => (
                 <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '8px 12px', fontWeight: 600 }}>{p.allow}</td>
-                  <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#2563eb' }}>{p.for_value}</td>
+                  <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#247f7b' }}>{p.for_value}</td>
                   <td style={{ padding: '8px 12px' }}>{p.is_default ? '✓' : ''}</td>
                 </tr>
               ))}
@@ -321,7 +323,7 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
   if (loading) return <Spinner />;
 
   const STAT_CARDS = [
-    ['Submitted','#6366f1'],['Approved','#059669'],['Halal','#065f46'],
+    ['Submitted','#4fd1c5'],['Approved','#2c9f98'],['Halal','#1d6f6b'],
     ['Haram','#b91c1c'],['Doubtful','#d97706'],['Rejected','#64748b'],
   ];
 
@@ -421,7 +423,7 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
                 <span style={{ fontWeight: 500 }}>{name}</span><span style={{ color: '#64748b' }}>{count}</span>
               </div>
               <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: '#2563eb', borderRadius: 4, width: `${(count / maxMf) * 100}%`, transition: 'width 0.5s' }} />
+                <div style={{ height: '100%', background: '#247f7b', borderRadius: 4, width: `${(count / maxMf) * 100}%`, transition: 'width 0.5s' }} />
               </div>
             </div>
           ))}
@@ -443,7 +445,7 @@ function ClientDetail({ client: initClient, onBack, onEdit }) {
               {queries.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>No queries</td></tr>}
               {queries.map(q => (
                 <tr key={q.name} style={{ cursor: 'pointer' }} onClick={() => navigate(`/queries/${q.name}`)}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#2563eb', fontWeight: 600 }}>{q.name}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#247f7b', fontWeight: 600 }}>{q.name}</td>
                   <td style={{ fontWeight: 500 }}>{q.raw_material}</td>
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{q.query_types || '—'}</td>
                   <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{q.manufacturer || '—'}</td>
@@ -561,8 +563,8 @@ export default function ClientsPage() {
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-        <StatCard label="Total Clients" value={stats.total} color="#2563eb" />
-        <StatCard label="Valid" value={stats.valid} color="#059669" />
+        <StatCard label="Total Clients" value={stats.total} color="#247f7b" />
+        <StatCard label="Valid" value={stats.valid} color="#2c9f98" />
         <StatCard label="Expiring Soon" value={stats.expiring} color="#d97706" />
         <StatCard label="Expired" value={stats.expired} color="#b91c1c" />
       </div>
@@ -577,8 +579,8 @@ export default function ClientsPage() {
           {['All','Valid','Expiring','Expiring Soon','Expired'].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)} style={{
               padding: '5px 12px', borderRadius: 999, fontSize: '0.78rem', cursor: 'pointer', border: '1px solid',
-              borderColor: statusFilter === s ? '#2563eb' : '#e2e8f0',
-              background: statusFilter === s ? '#2563eb' : '#fff',
+              borderColor: statusFilter === s ? '#247f7b' : '#e2e8f0',
+              background: statusFilter === s ? '#247f7b' : '#fff',
               color: statusFilter === s ? '#fff' : '#374151',
               fontWeight: statusFilter === s ? 600 : 400,
             }}>{s}</button>
@@ -599,7 +601,7 @@ export default function ClientsPage() {
               <tbody>
                 {expiringList.map(c => (
                   <tr key={c.name} style={{ cursor: 'pointer' }} onClick={() => { setShowExpiring(false); setSelected(c); }}>
-                    <td style={{ fontWeight: 600, color: '#2563eb' }}>{c.client_name}</td>
+                    <td style={{ fontWeight: 600, color: '#247f7b' }}>{c.client_name}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{c.client_code || '—'}</td>
                     <td style={{ fontSize: '0.8rem' }}>{c.certified_expiry ? new Date(c.certified_expiry).toLocaleDateString('en-GB') : '—'}</td>
                     <td style={{ fontSize: '0.8rem', fontWeight: 600, color: c.days_left < 0 ? '#b91c1c' : c.days_left < 30 ? '#d97706' : '#374151' }}>
@@ -640,11 +642,11 @@ export default function ClientsPage() {
                   return (
                     <tr key={c.name} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background .1s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '0.78rem' }}>{idx + 1}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, cursor: 'pointer', color: '#2563eb' }} onClick={() => setSelected(c)}>{c.client_name || c.name}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, cursor: 'pointer', color: '#247f7b' }} onClick={() => setSelected(c)}>{c.client_name || c.name}</td>
                       <td style={{ padding: '12px 16px', fontSize: '0.8rem', fontFamily: 'monospace', color: '#64748b' }}>{c.client_code || '—'}</td>
                       <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{c.email || '—'}</td>
                       <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{c.region || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '0.85rem', fontWeight: 600, color: daysLeft != null ? (daysLeft < 0 ? '#b91c1c' : daysLeft < 30 ? '#d97706' : daysLeft < 65 ? '#2563eb' : '#059669') : '#94a3b8' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '0.85rem', fontWeight: 600, color: daysLeft != null ? (daysLeft < 0 ? '#b91c1c' : daysLeft < 30 ? '#d97706' : daysLeft < 65 ? '#247f7b' : '#2c9f98') : '#94a3b8' }}>
                         {daysLeft != null ? (daysLeft < 0 ? `${-daysLeft}d overdue` : `${daysLeft}d`) : '—'}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '0.8rem' }}>{c.certified_expiry ? new Date(c.certified_expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
