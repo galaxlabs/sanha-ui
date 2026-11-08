@@ -125,7 +125,7 @@ export default function ClientDashboard() {
             {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}, {(user?.full_name || user?.name || '').split(' ')[0]}
           </div>
           <div style={{ fontSize: '0.85rem', opacity: 0.9, marginTop: 4 }}>
-            {clientData?.client_name || clientData?.business_name || ''} · {totalQueries} queries{statusInfo ? ` · ${statusInfo.label}` : ''}
+            {clientData?.client_name || clientData?.business_name || ''} · {totalQueries} queries
           </div>
         </div>
         <button onClick={() => navigate('/queries/new')} style={{ background: '#fff', color: '#0f766e', border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>+ New Query</button>
