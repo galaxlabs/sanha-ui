@@ -264,3 +264,41 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
   .nav-clock .nc-time { display: none; }
   .nav-clock .nc-date { font-size: .72rem; color: var(--brand-400); }
 }
+
+.client-info-mobile { display: none; }
+@media (max-width: 768px) {
+  .client-info-desktop { display: none; }
+  .client-info-mobile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .client-info-tile { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-base); background: rgba(79, 209, 197, .10); }
+  .client-info-tile .lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; color: var(--brand-600); font-weight: 700; }
+  .client-info-tile .val { font-size: .85rem; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; margin-top: 2px; }
+}
+
+.ci-label { color: #1d6f6b; }
+[data-theme="dark"] .ci-label { color: #81e6d9; }
+.client-info-tile .lbl.ci-label { color: #1d6f6b; }
+[data-theme="dark"] .client-info-tile .lbl.ci-label { color: #81e6d9; }
+
+thead th { background: #e0f7f5; color: var(--brand-600); }
+[data-theme="dark"] thead th { background: #1f3a45; color: #81e6d9; }
+table { background: transparent; }
+input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin: 0;
+  border: 1.5px solid var(--border-input); border-radius: 5px; background: var(--surface-input);
+  display: inline-grid; place-content: center; cursor: pointer; vertical-align: middle;
+}
+input[type="checkbox"]:checked {
+  background-color: #2c9f98; border-color: #2c9f98;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.5l2.5 2.5L10 3.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 12px 12px; background-position: center; background-repeat: no-repeat;
+}
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand-400); outline-offset: 2px; }
+
+.page-body .flex.gap-2 .btn, .page-body .flex.gap-2 .select-field-trigger,
+.card:not(:has(table)) .btn, .card:not(:has(table)) .select-field-trigger,
+.card:not(:has(table)) .form-control, .card:not(:has(table)) input.form-control {
+  height: 40px !important; min-height: 40px; box-sizing: border-box; align-items: center;
+}
+.page-body .flex.gap-2 .btn { display: inline-flex; justify-content: center; }
+
+[style*="border-radius: 6px 0px 0px 6px"] { border-right-style: solid !important; border-right-width: 1.2px !important; border-right-color: var(--border-input) !important; border-radius: 14px !important; }
