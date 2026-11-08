@@ -771,6 +771,14 @@ export async function getStaffReviewStatus(token) {
   return res.message;
 }
 
+export async function getDashboardQuality(filters = []) {
+  const res = await request('GET', `/api/method/sanha.api.dashboard.quality?filters=${encodeURIComponent(JSON.stringify(filters))}`, null, { cache: false });
+  return res.message || { total: 0, duplicates: 0, masters: 0, unique: 0, materials: 0, clients: 0 };
+}
+export async function getDashboardBreakdowns(filters = []) {
+  const res = await request('GET', `/api/method/sanha.api.dashboard.breakdowns?filters=${encodeURIComponent(JSON.stringify(filters))}`, null, { cache: false });
+  return res.message || { clients: [], manufacturers: [], types: [] };
+}
 export async function getQuerySummary(query, language = 'ur') {
   const res = await request('GET', `/api/method/sanha.api.review_cache.latest?query=${encodeURIComponent(query)}&language=${language}`, null, { cache: false });
   return res.message;

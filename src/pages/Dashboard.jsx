@@ -15,7 +15,7 @@ import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { getOverviewMetrics, getStateCounts, getQueries, getAllQueries } from '../api/frappe';
+import { getOverviewMetrics, getStateCounts, getQueries, getDashboardBreakdowns, getDashboardQuality } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 
 const tealGlow = {
@@ -102,7 +102,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [counts, setCounts] = useState({});
   const [recent, setRecent] = useState([]);
-  const [allQueries, setAllQueries] = useState([]);
+  const [quality, setQuality] = useState(null);
+  const [breakdown, setBreakdown] = useState(null);
   const [clientTotal, setClientTotal] = useState(null);
   const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(true);
@@ -131,23 +132,24 @@ export default function Dashboard() {
         const extraFilters = isClientRole
           ? [[user.clientName ? 'client_name' : 'owner', '=', user.clientName || user.name]]
           : [];
-        const [statRows, queries, allData, overview] = await Promise.all([
+        const [statRows, queries, qualityData, overview] = await Promise.all([
           getStateCounts(extraFilters, { fresh: true }),
           getQueries(extraFilters, 6, 0, controller.signal, true),
-          getAllQueries(extraFilters, controller.signal),
+          getDashboardQuality(extraFilters),
           getOverviewMetrics(extraFilters),
         ]);
         const stateTotal = statRows.reduce((total, row) => total + Number(row.count), 0);
-        if (allData.length !== Number(overview.total_queries) || stateTotal !== allData.length) {
+        if (qualityData.total !== Number(overview.total_queries) || stateTotal !== qualityData.total) {
           throw new Error('Dashboard totals changed during loading. Refresh to reconcile the charts.');
         }
         const map = {};
         statRows.forEach(r => { map[r.state] = r.count; });
         setCounts(map);
         setRecent(queries);
-        setAllQueries(allData);
+        setQuality(qualityData);
         setClientTotal(overview.clients ?? null);
         setMetrics(overview);
+        getDashboardBreakdowns(extraFilters).then(b => { if (!controller.signal.aborted) setBreakdown(b); }).catch(() => {});
         hasLoaded.current = true;
       } catch (e) {
         if (e.name !== 'AbortError') {
@@ -230,12 +232,7 @@ export default function Dashboard() {
   };
 
   /* ── By Query Type ── */
-  const typeCounts = {};
-  allQueries.forEach(q => {
-    const t = q.query_types || 'Unknown';
-    typeCounts[t] = (typeCounts[t] || 0) + 1;
-  });
-  const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const typeEntries = breakdown ? breakdown.types.slice(0, 10).map(t => [t.name, t.total]) : [];
   const typeColors = ['#4fd1c5', '#2c9f98', '#2c9f98', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#2c9f98', '#84cc16'];
   const typeChartData = {
     labels: typeEntries.map(([k]) => k),
@@ -250,12 +247,7 @@ export default function Dashboard() {
   };
 
   /* ── By Client ── */
-  const clientCounts = {};
-  allQueries.forEach(q => {
-    const c = q.client_name || 'Unknown';
-    clientCounts[c] = (clientCounts[c] || 0) + 1;
-  });
-  const clientEntries = Object.entries(clientCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const clientEntries = breakdown ? breakdown.clients.slice(0, 10).map(c => [c.name, c.total]) : [];
   const clientColors = ['#4fd1c5', '#5ed9cf', '#6fdfd6', '#81e6d9', '#4fd1c5', '#7ee3da', '#94ebe3', '#a7f0ea', '#b2f5ef', '#c6f6ef'];
   const clientChartData = {
     labels: clientEntries.map(([k]) => k.length > 20 ? k.slice(0, 18) + '…' : k),
@@ -270,11 +262,7 @@ export default function Dashboard() {
   };
 
   /* ── By Manufacturer ── */
-  const mfrCounts = {};
-  allQueries.forEach(q => {
-    if (q.manufacturer) mfrCounts[q.manufacturer] = (mfrCounts[q.manufacturer] || 0) + 1;
-  });
-  const mfrEntries = Object.entries(mfrCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const mfrEntries = breakdown ? breakdown.manufacturers.slice(0, 10).map(m => [m.name, m.total]) : [];
   const mfrColors = ['#2c9f98', '#4fd1c5', '#1d6f6b', '#81e6d9', '#38b2ac', '#a7f0ea', '#247f7b', '#5ed9cf', '#2c7a7b', '#c6f6ef'];
   const mfrChartData = {
     labels: mfrEntries.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k),
@@ -289,12 +277,7 @@ export default function Dashboard() {
   };
 
   /* ── Queries with Documents Count ── */
-  const docStateCounts = {};
-  allQueries.forEach(q => {
-    const s = q.workflow_state || 'Draft';
-    docStateCounts[s] = (docStateCounts[s] || 0) + 1;
-  });
-  const docStates = Object.entries(docStateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const docStates = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const docColors = ['#2c9f98', '#4fd1c5', '#2c9f98', '#2c9f98', '#f59e0b', '#ef4444', '#06b6d4', '#94a3b8'];
   const docChartData = {
     labels: docStates.map(([k]) => k),
@@ -309,9 +292,9 @@ export default function Dashboard() {
   };
 
   /* ── Duplicate vs Master ── */
-  const dupCount = allQueries.filter(q => Number(q.is_duplicate) === 1).length;
-  const masterCount = allQueries.filter(q => Number(q.is_master) === 1 && Number(q.is_duplicate) !== 1).length;
-  const uniqueCount = allQueries.length - dupCount - masterCount;
+  const dupCount = quality?.duplicates ?? 0;
+  const masterCount = quality?.masters ?? 0;
+  const uniqueCount = quality?.unique ?? 0;
   const dupChartData = {
     labels: ['Other non-duplicate Queries', 'Duplicate-marked Queries', 'Non-duplicate master Queries'],
     datasets: [{
@@ -397,15 +380,8 @@ export default function Dashboard() {
                 </div>
         </div>
         <aside className="dashboard-side">
-          {allQueries.length > 0 && (() => {
-            const byClient = {};
-            allQueries.forEach(q => {
-              const c = q.client_name || 'Unknown';
-              if (!byClient[c]) byClient[c] = { total: 0, approved: 0 };
-              byClient[c].total += 1;
-              if (q.workflow_state === 'Approved') byClient[c].approved += 1;
-            });
-            const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
+          {breakdown && (() => {
+            const rows = breakdown.clients.slice(0, 6).map(c => [c.name, { total: c.total, approved: c.approved }]);
             return (
               <div className="dashboard-panel">
                 <div className="dashboard-panel-title">Top Clients</div>
@@ -414,7 +390,7 @@ export default function Dashboard() {
                     <div className="dashboard-list-chip">{name.charAt(0).toUpperCase()}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="dashboard-list-title">{name}</div>
-                      <div className="dashboard-list-sub">{r.approved} approved · {Math.round((r.total / allQueries.length) * 100)}% share</div>
+                      <div className="dashboard-list-sub">{r.approved} approved · {Math.round((r.total / (totalQueries || 1)) * 100)}% share</div>
                     </div>
                     <div className="dashboard-list-value">{r.total}</div>
                   </div>
@@ -491,7 +467,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Dynamic Dimension Charts ── */}
-      {allQueries.length > 0 && (
+      {breakdown && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
           {/* By Query Type */}
           {typeEntries.length > 0 && (
@@ -600,8 +576,8 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         {[
           { label: 'Total Queries', value: totalQueries, accent: '#4fd1c5' },
-          { label: clientTotal === null ? 'Clients with Queries' : 'Clients', value: clientTotal ?? new Set(allQueries.map(q => q.client_name).filter(Boolean)).size, accent: '#4fd1c5' },
-          { label: 'Unique Materials', value: Number(metrics.unique_materials ?? new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size), accent: '#4fd1c5' },
+          { label: clientTotal === null ? 'Clients with Queries' : 'Clients', value: clientTotal ?? quality?.clients ?? 0, accent: '#4fd1c5' },
+          { label: 'Unique Materials', value: Number(metrics.unique_materials ?? quality?.materials ?? 0), accent: '#4fd1c5' },
           { label: 'Duplicate Rate', value: totalQueries ? `${((Number(metrics.duplicate_queries ?? dupCount) / totalQueries) * 100).toFixed(2)}%` : '0%', accent: '#4fd1c5' },
         ].map((stat, i) => (
           <div key={i} style={{ background: 'var(--surface-card)', border: '1px solid var(--border-base)', borderLeft: `4px solid ${stat.accent}`, borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--shadow-md)' }}>
