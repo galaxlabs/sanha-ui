@@ -10,7 +10,8 @@ export async function messageApi(method, data = {}, write = false) {
   return res.message;
 }
 
-const DEFAULT_FRAPPE_URL = import.meta.env.PROD ? 'https://evaluation.sanha.org.pk' : '';
+// Empty by default in every environment: API calls stay same-origin and vercel.json rewrites /api to the backend, which avoids CORS on preview deployments.
+const DEFAULT_FRAPPE_URL = '';
 const DEFAULT_PORTAL_URL = import.meta.env.PROD ? 'https://portal.sanha.org.pk' : window.location.origin;
 
 // Frappe backend/API origin. In local dev this can stay empty for the Vite proxy.
