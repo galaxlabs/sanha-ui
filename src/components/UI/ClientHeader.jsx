@@ -33,6 +33,7 @@ export default function ClientHeader() {
   const statusInfo = clientData ? getStatusInfo(clientData.certified_expiry) : null;
   const logoUrl = getPortalLogoUrl();
   const StatusIcon = statusInfo?.icon || Shield;
+  const daysLabel = statusInfo?.days == null ? null : statusInfo.days < 0 ? `${-statusInfo.days} overdue` : `${statusInfo.days} days`;
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -79,7 +80,7 @@ export default function ClientHeader() {
             <InfoTile icon={Shield} label="Standards" value={clientData.standards} />
             <InfoTile icon={Calendar} label="Certified Since" value={fmt(clientData.certified_since)} />
             <InfoTile icon={Calendar} label="Expiry" value={fmt(clientData.certified_expiry)} />
-            <InfoTile icon={Clock} label="Days Left" value={statusInfo?.days != null ? (statusInfo.days < 0 ? `${-statusInfo.days} overdue` : `${statusInfo.days} days`) : null} />
+            <InfoTile icon={Clock} label="Days Left" value={daysLabel} />
             <InfoTile icon={Calendar} label="Extension" value={fmt(clientData.ext)} />
             <InfoTile icon={MapPin} label="Region" value={clientData.region} />
             <InfoTile icon={MapPin} label="City" value={clientData.city} />
