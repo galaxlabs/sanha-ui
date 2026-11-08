@@ -304,3 +304,6 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand-400); outl
 [style*="border-radius: 6px 0px 0px 6px"] { border-right-style: solid !important; border-right-width: 1.2px !important; border-right-color: var(--border-input) !important; border-radius: 14px !important; }
 
 .urdu { unicode-bidi: isolate; font-family: "Jameel Noori Nastaleeq", "Segoe UI", Arial, Tahoma, sans-serif; }
+
+.urdu { line-height: 1.5 !important; display: inline-block; }
+h4 .urdu, h3 .urdu { line-height: 1.4 !important; }
