@@ -159,13 +159,16 @@ export default function Header({ onToggleSidebar }) {
       )}
 
       {/* Page title + breadcrumbs */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: '0 1 auto', minWidth: 0 }}>
         <Breadcrumbs />
         <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{title}</h2>
-        <p className="header-meta" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>
-          <span className="digital-clock"><span className="clock-date">{today} </span>{clockTime}</span>
-          <span className="header-live"> · <LiveDataStatus /></span>
-        </p>
+        <p className="header-meta" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}><LiveDataStatus /></p>
+      </div>
+      <div className="nav-clock-wrap">
+        <div className="nav-clock digital-clock">
+          <span className="nc-date">{today}</span>
+          <span className="nc-time">{clockTime}</span>
+        </div>
       </div>
 
       {/* Right side */}
