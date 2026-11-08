@@ -257,10 +257,8 @@ tbody tr:nth-child(even) td { background: #f7fbfb; }
 .nav-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 18px; border-radius: 12px; border: 1px solid var(--border-base); background: var(--surface-input); line-height: 1.15; }
 .nav-clock .nc-time { font-size: 1.05rem; color: var(--brand-400); }
 .nav-clock .nc-date { font-size: .68rem; color: var(--text-muted); letter-spacing: .04em; }
-@media (max-width: 560px) {
-  .nav-clock .nc-date { display: none; }
-}
 @media (max-width: 768px) {
   .nav-clock { padding: 3px 10px; }
-  .nav-clock .nc-time { font-size: .85rem; }
+  .nav-clock .nc-time { display: none; }
+  .nav-clock .nc-date { font-size: .72rem; color: var(--brand-400); }
 }
