@@ -3,7 +3,7 @@ import { peekLiveDataset, subscribeDataset } from '../api/liveData';
 
 export function useLiveRevision(type) {
   const subscribe = useCallback(listener => subscribeDataset(type, listener), [type]);
-  const snapshot = useCallback(() => peekLiveDataset(type)?.revision || 0, [type]);
+  const snapshot = useCallback(() => (type ? peekLiveDataset(type)?.revision || 0 : 0), [type]);
   return useSyncExternalStore(subscribe, snapshot, () => 0);
 }
 

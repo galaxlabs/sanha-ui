@@ -94,7 +94,6 @@ const STATE_COLORS = {
 };
 
 export default function Dashboard() {
-  const liveRevision = useLiveRevision('Query');
   const hasLoaded = useRef(false);
   const { user, hasRole, isAdmin } = useAuth();
   const { error: showError } = useToast();
@@ -111,6 +110,8 @@ export default function Dashboard() {
 
   const isStaffRole = isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager');
   const isClientRole = !isStaffRole && (hasRole('Client') || !!user?.clientName);
+  // Only client users follow the live Query dataset; staff reload on demand so admin does not trigger a full sync.
+  const liveRevision = useLiveRevision(isClientRole ? 'Query' : null);
   const isEvalRole = hasRole('Evaluation') && !isAdmin();
   const isSBRole = hasRole('SB User') && !isAdmin();
   const isDark = theme === 'dark';
@@ -133,8 +134,8 @@ export default function Dashboard() {
           ? [[user.clientName ? 'client_name' : 'owner', '=', user.clientName || user.name]]
           : [];
         const [statRows, queries, qualityData, overview] = await Promise.all([
-          getStateCounts(extraFilters, { fresh: true }),
-          getQueries(extraFilters, 6, 0, controller.signal, true),
+          getStateCounts(extraFilters, { fresh: true, server: true }),
+          getQueries(extraFilters, 6, 0, controller.signal, true, true),
           getDashboardQuality(extraFilters),
           getOverviewMetrics(extraFilters),
         ]);
