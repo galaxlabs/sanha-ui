@@ -1,4 +1,4 @@
-export const FINAL_DECISION_STATES = new Set(['approved', 'halal', 'rejected', 'haram']);
+export const FINAL_DECISION_STATES = new Set(['approved', 'halal', 'rejected', 'haram', 'doubtful']);
 
 export function isFinalDecision(row) {
   return FINAL_DECISION_STATES.has(String(row?.workflow_state || '').trim().toLowerCase());
