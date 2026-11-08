@@ -13,11 +13,11 @@ body { font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif; }
 .card, .dashboard-panel, .dashboard-stat { border-radius: 20px; }
 [data-theme="dark"] {
   --brand-400: #4fd1c5; --brand-500: #38b2ac; --brand-600: #2c7a7b;
-  --surface-bg: #0e1424; --surface-card: #172036; --surface-sidebar: #121a2e;
-  --surface-header: #121a2e; --surface-input: #1e2844; --surface-hover: #1e2844;
-  --border-base: #2a3558; --border-input: #3a4670;
-  --text-primary: #f1f5f9; --text-secondary: #c3cce0; --text-muted: #94a3c0;
-  --surface-active: #1f3a4a;
+  --surface-bg: #171d2c; --surface-card: #1f2737; --surface-sidebar: #1a2131;
+  --surface-header: #171d2c; --surface-input: #283146; --surface-hover: #283146;
+  --border-base: #2d3748; --border-input: #3c4860;
+  --text-primary: #f7fafc; --text-secondary: #cbd5e0; --text-muted: #a0aec0;
+  --surface-active: #1f3a47;
 }
 .messenger-page { max-width: 1500px; margin: auto; }
 .messenger-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
