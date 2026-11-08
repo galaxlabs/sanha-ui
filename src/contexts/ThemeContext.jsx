@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { saveUserTheme, loadUserTheme } from '../api/frappe';
+import { useAuth } from './AuthContext';
 
 const THEMES = [
   { id: 'light', label: 'Light', icon: 'Sun' },
@@ -23,16 +24,23 @@ export function ThemeProvider({ children }) {
     setThemeRaw(t);
   }, []);
 
-  /* Load theme from server on mount */
+  /* Load theme from server only after auth has resolved a real user (never as Guest) */
+  const { user, loading: authLoading } = useAuth();
+  const userName = user?.name || null;
   useEffect(() => {
-    loadUserTheme().then(serverTheme => {
+    if (authLoading) return;
+    if (!userName) { setThemeLoaded(true); return; }
+    let active = true;
+    loadUserTheme(userName).then(serverTheme => {
+      if (!active) return;
       if (serverTheme && THEMES.some(t => t.id === serverTheme)) {
         setThemeRaw(serverTheme);
         document.documentElement.setAttribute('data-theme', serverTheme);
         localStorage.setItem('ui_theme', serverTheme);
       }
-    }).finally(() => setThemeLoaded(true));
-  }, []);
+    }).finally(() => { if (active) setThemeLoaded(true); });
+    return () => { active = false; };
+  }, [authLoading, userName]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, THEMES }}>

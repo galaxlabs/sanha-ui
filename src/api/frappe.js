@@ -562,8 +562,8 @@ export async function saveUserTheme(theme) {
   } catch {}
 }
 
-export async function loadUserTheme() {
-  const user = getCurrentUserName();
+export async function loadUserTheme(userName = getCurrentUserName()) {
+  const user = userName;
   if (!user || user === 'Guest') return null;
   try {
     const doc = await request('GET', `/api/resource/User/${encodeURIComponent(user)}`, null, { cache: false });
