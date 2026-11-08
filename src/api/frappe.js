@@ -178,10 +178,14 @@ export async function refreshCsrfToken() {
 
 export async function logout() {
   try {
-    await request('GET', '/api/method/frappe.auth.web_logout');
-  } catch (error) {
-    // An expired server session is already logged out from the portal's perspective.
-    if (!/HTTP 417|Authentication|session/i.test(error.message)) throw error;
+    // Frappe's JSON logout endpoint: deletes the server session and clears cookies.
+    // (web_logout returns an HTML page and frappe.auth.web_logout does not exist.)
+    await request('GET', '/api/method/logout', null, { cache: false });
+    // Confirm the server session really ended before the UI treats the user as signed out.
+    const check = await getCurrentUser();
+    if (check?.is_authenticated && check.message !== 'Guest') {
+      throw new Error('Server session is still active after logout');
+    }
   } finally {
     userLoggedIn = false;
     stopLiveData({ broadcast: true });
