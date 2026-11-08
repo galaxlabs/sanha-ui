@@ -307,3 +307,8 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand-400); outl
 
 .urdu { line-height: 1.5 !important; display: inline-block; }
 h4 .urdu, h3 .urdu { line-height: 1.4 !important; }
+
+a:not(.btn):not(.nav-item) { color: #1d6f6b; text-decoration: underline; text-underline-offset: 2px; }
+[data-theme="dark"] a:not(.btn):not(.nav-item) { color: #81e6d9; }
+a:not(.btn):not(.nav-item):hover { color: #2c9f98; }
+[data-theme="dark"] a:not(.btn):not(.nav-item):hover { color: #b2f5ea; }
