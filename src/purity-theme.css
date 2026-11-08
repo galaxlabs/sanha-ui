@@ -302,3 +302,5 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand-400); outl
 .page-body .flex.gap-2 .btn { display: inline-flex; justify-content: center; }
 
 [style*="border-radius: 6px 0px 0px 6px"] { border-right-style: solid !important; border-right-width: 1.2px !important; border-right-color: var(--border-input) !important; border-radius: 14px !important; }
+
+.urdu { unicode-bidi: isolate; font-family: "Jameel Noori Nastaleeq", "Segoe UI", Arial, Tahoma, sans-serif; }
