@@ -13,6 +13,7 @@ import QueryFilters from '../components/UI/QueryFilters';
 import { similarity } from '../utils/fuzzy';
 import { getSummaryStatus } from '../utils/statusGroups';
 import PrintConfig from './PrintConfig';
+import SelectField from '../components/UI/SelectField';
 
 /* ─── Workflow states ─── */
 const ALL_STATES = ['Draft','Submitted','Submitted to SB','Under Review','Returned',
@@ -581,7 +582,7 @@ export default function Reports() {
       {isAdminUser && (
         <div className="card" style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: '#f8fafc' }}>
           <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>Admin Reporting Scope</div>
-          <select
+          <SelectField
             className="form-control form-select"
             style={{ flex: '1 1 260px', maxWidth: 360, fontSize: '0.82rem' }}
             value={clientFilter}
@@ -589,7 +590,7 @@ export default function Reports() {
           >
             <option value="">All Clients</option>
             {allClients.map(client => <option key={client} value={client}>{client}</option>)}
-          </select>
+          </SelectField>
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
             {clientFilter ? `${filtered.length} queries for ${clientFilter}` : `${filtered.length} queries across ${allClients.length} clients`}
           </span>

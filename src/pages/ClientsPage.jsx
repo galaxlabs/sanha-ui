@@ -11,6 +11,7 @@ import * as frappe from '../api/frappe';
 import { Spinner, EmptyState } from '../components/UI/Loaders';
 import StatusBadge from '../components/UI/StatusBadge';
 import Modal from '../components/UI/Modal';
+import SelectField from '../components/UI/SelectField';
 
 /* ─── Validation ─── */
 function validateClient(form) {
@@ -161,7 +162,7 @@ function ClientFormModal({ initial, onSave, onClose }) {
           <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 16, marginTop: 4 }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location & Scope</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
-              <div><label>Region</label><select className="form-control" value={form.region || ''} onChange={e => setForm(prev => ({ ...prev, region: e.target.value }))}><option value="">Select region</option>{['Punjab', 'Sindh', 'KPK'].map(region => <option key={region}>{region}</option>)}</select></div>
+              <div><label>Region</label><SelectField className="form-control" value={form.region || ''} onChange={e => setForm(prev => ({ ...prev, region: e.target.value }))}><option value="">Select region</option>{['Punjab', 'Sindh', 'KPK'].map(region => <option key={region}>{region}</option>)}</SelectField></div>
               <Field label="City" name="city" {...fp} />
               <Field label="Address Type" name="address_type" {...fp} />
               <Field label="Address" name="address" {...fp} />

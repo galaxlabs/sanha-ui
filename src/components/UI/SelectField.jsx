@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { Children, useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-export default function SelectField({ id, value, onChange, options, style, title, 'aria-label': ariaLabel }) {
+export default function SelectField({ id, value, onChange, options: optionsProp, children, style, title, disabled, 'aria-label': ariaLabel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const options = optionsProp || Children.toArray(children).filter(c => c?.props).map(c => ({ value: c.props.value, label: c.props.children }));
   const current = options.find(o => String(o.value) === String(value));
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function SelectField({ id, value, onChange, options, style, title
         aria-haspopup="listbox"
         aria-expanded={open}
         className="select-field-trigger"
+        disabled={disabled}
         onClick={() => setOpen(o => !o)}
       >
         <span>{current ? current.label : ''}</span>

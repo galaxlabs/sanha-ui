@@ -13,6 +13,7 @@ import StaffAIReview from '../components/UI/StaffAIReview';
 import { useLiveRecord } from '../hooks/useLiveData';
 import { peekLiveDataset } from '../api/liveData';
 import { isFinalDecision, materialFieldStyle } from '../utils/materialEvidence';
+import SelectField from '../components/UI/SelectField';
 
 const editableSignature = doc => JSON.stringify({ fields: ['raw_material', 'query_types', 'supplier', 'supplier_contact', 'manufacturer', 'manufacturer_contact', 'client_name'].map(field => doc[field] || ''), documents: (doc.documents || []).map(row => [row.name || '', row.documents || '', row.issue_date || '', row.expiry_date || '', row.attachment || '']) });
 const childStamp = doc => `${(doc.documents || []).length}:${(doc.documents || []).map(row => String(row.modified || '')).sort().at(-1) || ''}`;
@@ -555,7 +556,7 @@ export default function QueryForm() {
             </div>
             <div className="form-group">
               <label className="form-label">Query Type <span className="required">*</span></label>
-              <select
+              <SelectField
                 className={`form-control form-select ${errors.query_types ? 'error' : ''}`}
                 value={doc.query_types}
                 onChange={e => set('query_types', e.target.value)}
@@ -565,7 +566,7 @@ export default function QueryForm() {
                 {queryTypes.map(qt => (
                   <option key={qt.name} value={qt.name}>{qt.query_type_name || qt.name}</option>
                 ))}
-              </select>
+              </SelectField>
               {errors.query_types && <div className="form-error">{errors.query_types}</div>}
             </div>
             <div className="form-group">
@@ -641,7 +642,7 @@ export default function QueryForm() {
               const rowCanEdit = canEdit || (canAppendDocuments && isNewDocumentRow);
               return (
               <div key={idx} className="doc-table-row cols-5">
-                <select
+                <SelectField
                   className="form-control form-select"
                   style={{ fontSize: '0.8125rem', padding: '6px 30px 6px 8px' }}
                   value={row.documents}
@@ -650,7 +651,7 @@ export default function QueryForm() {
                 >
                   <option value="">— Select —</option>
                   {docTypes.map(dt => <option key={dt.name} value={dt.name}>{dt.name}</option>)}
-                </select>
+                </SelectField>
                 <input
                   type="date" className="form-control"
                   style={{ fontSize: '0.8125rem', padding: '6px 8px' }}
