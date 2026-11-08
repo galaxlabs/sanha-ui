@@ -8,6 +8,7 @@ import {
   Globe, Award, Hash, RefreshCw, Plus, Eye, User,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import ClientHeader from '../components/UI/ClientHeader';
 import { useToast } from '../contexts/ToastContext';
 import { getQueries, getStateCounts } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
@@ -129,6 +130,8 @@ export default function ClientDashboard() {
         </div>
         <button onClick={() => navigate('/queries/new')} style={{ background: '#fff', color: '#0f766e', border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>+ New Query</button>
       </div>
+      <ClientHeader />
+
       <h3 style={{ margin: '0 0 14px', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>My Queries</h3>
       {/* ── My Query Stats ── */}
       <div className="dashboard-stat-grid">
