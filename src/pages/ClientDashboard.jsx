@@ -120,7 +120,7 @@ export default function ClientDashboard() {
     <div style={{ minHeight: '100%' }}>
       <div style={{ background: 'linear-gradient(135deg, #0f766e 0%, #2c9f98 100%)', borderRadius: 20, padding: '22px 26px', marginBottom: 20, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, boxShadow: '0 14px 34px rgba(79, 209, 197, .25)' }}>
         <div>
-          <div style={{ fontSize: '0.72rem', opacity: 0.8, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700 }}>Welcome back</div>
+          <div style={{ fontSize: '0.72rem', opacity: 0.85, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700 }}>Welcome back · {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
           <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: 4 }}>
             {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}, {(user?.full_name || user?.name || '').split(' ')[0]}
           </div>
