@@ -302,3 +302,15 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand-400); outl
 .page-body .flex.gap-2 .btn { display: inline-flex; justify-content: center; }
 
 [style*="border-radius: 6px 0px 0px 6px"] { border-right-style: solid !important; border-right-width: 1.2px !important; border-right-color: var(--border-input) !important; border-radius: 14px !important; }
+
+.urdu { unicode-bidi: isolate; font-family: "Jameel Noori Nastaleeq", "Segoe UI", Arial, Tahoma, sans-serif; }
+
+.urdu { line-height: 1.5 !important; display: inline-block; }
+h4 .urdu, h3 .urdu { line-height: 1.4 !important; }
+
+a:not(.btn):not(.nav-item) { color: #1d6f6b; text-decoration: underline; text-underline-offset: 2px; }
+[data-theme="dark"] a:not(.btn):not(.nav-item) { color: #81e6d9; }
+a:not(.btn):not(.nav-item):hover { color: #2c9f98; }
+[data-theme="dark"] a:not(.btn):not(.nav-item):hover { color: #b2f5ea; }
+
+[style*="var(--gray-100)"] { background-color: var(--surface-hover) !important; }

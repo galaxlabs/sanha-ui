@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import SelectField from '../components/UI/SelectField';
+import Bilingual from '../components/UI/Bilingual';
 
 const COLUMNS = [
   { key: 'name', label: 'Query ID', defaultStaff: true, defaultClient: false },
@@ -157,15 +158,15 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             <div style={{ flex: 1 }}>
-              <label htmlFor="report-sort-field" style={labelStyle}>Sort By / ترتیب</label>
+              <label htmlFor="report-sort-field" style={labelStyle}><Bilingual text={"Sort By / ترتیب"} /></label>
               <SelectField id="report-sort-field" className="form-control" value={sortField} onChange={e => { const field = e.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
-                <option value="raw_material">Raw Material — حروفِ تہجی</option>
-                <option value="creation">Created — بننے کی تاریخ</option>
-                <option value="modified">Last Updated — آخری ترمیم</option>
+                <option value="raw_material"><Bilingual text={"Raw Material — حروفِ تہجی"} /></option>
+                <option value="creation"><Bilingual text={"Created — بننے کی تاریخ"} /></option>
+                <option value="modified"><Bilingual text={"Last Updated — آخری ترمیم"} /></option>
               </SelectField>
             </div>
             <div style={{ flex: 1 }}>
-              <label htmlFor="report-sort-direction" style={labelStyle}>Direction / ترتیب کی سمت</label>
+              <label htmlFor="report-sort-direction" style={labelStyle}><Bilingual text={"Direction / ترتیب کی سمت"} /></label>
               <SelectField id="report-sort-direction" className="form-control" value={sortDirection} onChange={e => setSortDirection(e.target.value)}>
                 <option value="asc">{sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے'}</option>
                 <option value="desc">{sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے'}</option>

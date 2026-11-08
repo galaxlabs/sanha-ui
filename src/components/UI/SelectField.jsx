@@ -1,5 +1,6 @@
 import { Children, useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import Bilingual from './Bilingual';
 
 export default function SelectField({ id, value, onChange, options: optionsProp, children, style, title, disabled, 'aria-label': ariaLabel }) {
   const [open, setOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function SelectField({ id, value, onChange, options: optionsProp,
         disabled={disabled}
         onClick={() => setOpen(o => !o)}
       >
-        <span>{current ? current.label : ''}</span>
+        <span><Bilingual text={current ? current.label : ''} /></span>
         <ChevronDown size={14} />
       </button>
       {open && (
@@ -47,7 +48,7 @@ export default function SelectField({ id, value, onChange, options: optionsProp,
                 className={`select-field-option${active ? ' is-active' : ''}`}
                 onClick={() => { onChange({ target: { value: o.value } }); setOpen(false); }}
               >
-                {o.label}
+                <Bilingual text={o.label} />
               </li>
             );
           })}

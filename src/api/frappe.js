@@ -771,12 +771,12 @@ export async function getStaffReviewStatus(token) {
   return res.message;
 }
 
-export async function getQuerySummary(query) {
-  const res = await request('GET', `/api/method/sanha.api.review_cache.latest?query=${encodeURIComponent(query)}`, null, { cache: false });
+export async function getQuerySummary(query, language = 'ur') {
+  const res = await request('GET', `/api/method/sanha.api.review_cache.latest?query=${encodeURIComponent(query)}&language=${language}`, null, { cache: false });
   return res.message;
 }
-export async function ensureQuerySummary(query, retry = false) {
-  const res = await request('POST', '/api/method/sanha.api.review_cache.ensure', { query, retry: retry ? 1 : 0 });
+export async function ensureQuerySummary(query, retry = false, language = 'ur') {
+  const res = await request('POST', '/api/method/sanha.api.review_cache.ensure', { query, retry: retry ? 1 : 0, language });
   return res.message;
 }
 export async function getRelatedReviewDecisions(query) {
