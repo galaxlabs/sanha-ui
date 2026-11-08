@@ -18,6 +18,7 @@ export default function StaffAIReview({ query }) {
   const { isAdmin, hasRole } = useAuth();
   const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState('');
+  const [language, setLanguage] = useState('ur');
   const [refresh, setRefresh] = useState(0);
   const [related, setRelated] = useState(null);
   const [relatedBusy, setRelatedBusy] = useState(false);
@@ -33,13 +34,13 @@ export default function StaffAIReview({ query }) {
       .finally(() => { if (active) setRelatedBusy(false); });
     const poll = async () => {
       try {
-        const result = await getQuerySummary(query);
+        const result = await getQuerySummary(query, language);
         if (!active) return;
         const requestKey = result.request_key || result.fingerprint;
         if (['missing', 'retry_available'].includes(result.status) && result.auto_enabled && result.providers_ready) {
           if (!requested.has(requestKey)) {
             requested.add(requestKey);
-            const queued = await ensureQuerySummary(query);
+            const queued = await ensureQuerySummary(query, false, language);
             if (!active) return;
             result.status = queued.status;
           } else result.status = 'queued';
@@ -52,9 +53,9 @@ export default function StaffAIReview({ query }) {
     };
     poll();
     return () => { active = false; clearTimeout(timer); };
-  }, [query, refresh]);
+  }, [query, refresh, language]);
   async function retry() {
-    try { setError(''); await ensureQuerySummary(query, true); setRefresh(value => value + 1); }
+    try { setError(''); await ensureQuerySummary(query, true, language); setRefresh(value => value + 1); }
     catch (e) { setError(e.message); }
   }
   async function loadRelated() {
@@ -66,6 +67,7 @@ export default function StaffAIReview({ query }) {
   }
   const review = snapshot?.review;
   const summary = review?.summaries?.[0];
+  const rtl = language === 'ur';
   const department = hasRole('SB User') ? 'SBM' : hasRole('Evaluation') ? 'Evaluation' : hasRole('Certificate Manager') ? 'CM' : null;
   const note = review?.department_notes?.[department];
   function reference(id) {
@@ -79,7 +81,7 @@ export default function StaffAIReview({ query }) {
     const clause = review?.clauses?.find(item => item.id === id);
     return <span key={id} title={clause?.text || ''} style={{ marginRight: 8 }}>{id}</span>;
   }
-  return <section className="card" style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
+  return <section className="card" dir={rtl ? 'rtl' : 'ltr'} style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><div role="group" aria-label="Response language" style={{ display: 'inline-flex', border: '1px solid var(--border-input)', borderRadius: 999, padding: 3 }}>{[['ur', 'اردو'], ['en', 'English']].map(([code, label]) => <button key={code} type="button" onClick={() => setLanguage(code)} aria-pressed={language === code} className="btn btn-sm" style={{ borderRadius: 999, background: language === code ? '#2c9f98' : 'transparent', color: language === code ? '#fff' : 'var(--text-secondary)', border: 'none', height: 30 }}>{label}</button>)}</div><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
     <p className="text-sm text-gray">Current Query documents, decided database references and retrieved public chemistry. No historical document files are read. Final decisions remain with staff.</p>
     <section><h4><Bilingual text={"پہلے سے فیصلہ شدہ database references"} /></h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
       {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
