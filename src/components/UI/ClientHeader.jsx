@@ -1,6 +1,7 @@
+import { Fragment } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl } from '../../api/frappe';
-import { Shield, Clock, AlertTriangle, CheckCircle, Building, MapPin, Globe, Award, Hash, Calendar, User, Mail } from 'lucide-react';
+import { Shield, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 
 function getStatusInfo(expiry) {
   if (!expiry) return { label: 'Unknown', color: '#64748b', icon: Shield };
@@ -13,20 +14,6 @@ function getStatusInfo(expiry) {
 
 const fmt = value => (value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null);
 
-function InfoTile({ icon: Icon, label, value }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: '1px solid var(--border-base)', background: 'var(--surface-hover)' }}>
-      <div style={{ width: 38, height: 38, borderRadius: 11, background: '#4fd1c5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(79, 209, 197, .3)' }}>
-        <Icon size={17} color="#fff" />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-        <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600, overflowWrap: 'anywhere' }}>{value || '—'}</div>
-      </div>
-    </div>
-  );
-}
-
 export default function ClientHeader() {
   const { user } = useAuth();
   const clientData = user?.clientData;
@@ -34,6 +21,12 @@ export default function ClientHeader() {
   const logoUrl = getPortalLogoUrl();
   const StatusIcon = statusInfo?.icon || Shield;
   const daysLabel = statusInfo?.days == null ? null : statusInfo.days < 0 ? `${-statusInfo.days} overdue` : `${statusInfo.days} days`;
+
+  const clientRows = clientData ? [
+    [['Full Name', user.full_name || user.name], ['Email', user.email], ['Company', clientData.client_name || clientData.business_name], ['Code', clientData.client_code]],
+    [['Category', clientData.category], ['Scope', clientData.scope], ['Standards', clientData.standards], ['Certified Since', fmt(clientData.certified_since)]],
+    [['Expiry', fmt(clientData.certified_expiry)], ['Days Left', daysLabel], ['Extension', fmt(clientData.ext)], ['Region / City', [clientData.region, clientData.city].filter(Boolean).join(' / ')]],
+  ] : [];
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -70,20 +63,21 @@ export default function ClientHeader() {
               )}
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
-            <InfoTile icon={User} label="Full Name" value={user.full_name || user.name} />
-            <InfoTile icon={Mail} label="Email" value={user.email} />
-            <InfoTile icon={Building} label="Company" value={clientData.client_name || clientData.business_name} />
-            <InfoTile icon={Hash} label="Code" value={clientData.client_code} />
-            <InfoTile icon={Award} label="Category" value={clientData.category} />
-            <InfoTile icon={Globe} label="Scope" value={clientData.scope} />
-            <InfoTile icon={Shield} label="Standards" value={clientData.standards} />
-            <InfoTile icon={Calendar} label="Certified Since" value={fmt(clientData.certified_since)} />
-            <InfoTile icon={Calendar} label="Expiry" value={fmt(clientData.certified_expiry)} />
-            <InfoTile icon={Clock} label="Days Left" value={daysLabel} />
-            <InfoTile icon={Calendar} label="Extension" value={fmt(clientData.ext)} />
-            <InfoTile icon={MapPin} label="Region" value={clientData.region} />
-            <InfoTile icon={MapPin} label="City" value={clientData.city} />
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <tbody>
+                {clientRows.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: i < clientRows.length - 1 ? '1px solid var(--border-base)' : 'none' }}>
+                    {row.map(([label, value]) => (
+                      <Fragment key={label}>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', width: '1%' }}>{label}</th>
+                        <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{value || '—'}</td>
+                      </Fragment>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
