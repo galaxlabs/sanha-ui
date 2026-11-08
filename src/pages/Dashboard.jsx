@@ -18,17 +18,38 @@ import { useTheme } from '../contexts/ThemeContext';
 import { getOverviewMetrics, getStateCounts, getQueries, getAllQueries } from '../api/frappe';
 import { Spinner } from '../components/UI/Loaders';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, Filler);
+const tealGlow = {
+  id: 'tealGlow',
+  beforeDatasetDraw(chart) {
+    const c = chart.ctx;
+    c.save();
+    c.shadowColor = 'rgba(79, 209, 197, .45)';
+    c.shadowBlur = 14;
+    c.shadowOffsetY = 6;
+  },
+  afterDatasetDraw(chart) { chart.ctx.restore(); },
+};
+
+const tealBar = ({ chart }) => {
+  const { ctx, chartArea } = chart;
+  if (!chartArea) return '#4fd1c5';
+  const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  g.addColorStop(0, '#4fd1c5');
+  g.addColorStop(1, 'rgba(79, 209, 197, .15)');
+  return g;
+};
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, Filler, tealGlow);
 
 /* ── Stat definitions per role ── */
 const STAT_DEFS_ADMIN = [
   { state: 'Draft',        icon: FileText,    gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', label: 'Draft' },
-  { state: 'Submitted',    icon: FileText,    gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Submitted' },
+  { state: 'Submitted',    icon: FileText,    gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Submitted' },
   { state: 'Submitted to SB', icon: TrendingUp, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'Submitted to SB' },
-  { state: 'Under Review', icon: Clock,       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
+  { state: 'Under Review', icon: Clock,       gradient: 'linear-gradient(135deg, #38b2ac, #2c9f98)', label: 'Under Review' },
   { state: 'Returned',     icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned' },
   { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #fb923c, #ea580c)', label: 'Returned to Evaluation' },
-  { state: 'Approved',     icon: CheckCircle, gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
+  { state: 'Approved',     icon: CheckCircle, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Approved' },
   { state: 'Doubtful',     icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Doubtful' },
   { state: 'Hold',         icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
   { state: 'Rejected',     icon: XCircle,     gradient: 'linear-gradient(135deg, #f87171, #ef4444)', label: 'Rejected' },
@@ -37,28 +58,28 @@ const STAT_DEFS_ADMIN = [
 
 const STAT_DEFS_CLIENT = [
   { state: 'Draft',    icon: FileText,      gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', label: 'Draft' },
-  { state: 'Submitted', icon: TrendingUp,   gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Submitted' },
+  { state: 'Submitted', icon: TrendingUp,   gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Submitted' },
   { state: 'Returned', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Returned' },
-  { state: 'Approved', icon: CheckCircle,   gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
+  { state: 'Approved', icon: CheckCircle,   gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Approved' },
   { state: 'Rejected', icon: XCircle,       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Rejected' },
 ];
 
 const STAT_DEFS_EVAL = [
-  { state: 'Submitted',              icon: FileText,      gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', label: 'Pending Review' },
+  { state: 'Submitted',              icon: FileText,      gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Pending Review' },
   { state: 'Submitted to SB',        icon: TrendingUp,    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'Forwarded to SB' },
   { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned to Eval' },
-  { state: 'Under Review',           icon: Clock,         gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
+  { state: 'Under Review',           icon: Clock,         gradient: 'linear-gradient(135deg, #38b2ac, #2c9f98)', label: 'Under Review' },
   { state: 'Returned',               icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Returned to Client' },
-  { state: 'Approved',               icon: CheckCircle,   gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
+  { state: 'Approved',               icon: CheckCircle,   gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Approved' },
   { state: 'Rejected',               icon: XCircle,       gradient: 'linear-gradient(135deg, #f87171, #ef4444)', label: 'Rejected' },
   { state: 'Hold',                   icon: Clock,         gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
 ];
 
 const STAT_DEFS_SBU = [
   { state: 'Submitted to SB', icon: FileText,    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', label: 'New to Review' },
-  { state: 'Under Review',    icon: Clock,       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', label: 'Under Review' },
+  { state: 'Under Review',    icon: Clock,       gradient: 'linear-gradient(135deg, #38b2ac, #2c9f98)', label: 'Under Review' },
   { state: 'Hold',            icon: Clock,       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', label: 'On Hold' },
-  { state: 'Approved',        icon: CheckCircle, gradient: 'linear-gradient(135deg, #10b981, #059669)', label: 'Approved' },
+  { state: 'Approved',        icon: CheckCircle, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', label: 'Approved' },
   { state: 'Rejected',        icon: XCircle,     gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', label: 'Rejected' },
   { state: 'Doubtful',        icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Doubtful' },
   { state: 'Returned To Evaluation', icon: AlertTriangle, gradient: 'linear-gradient(135deg, #f97316, #ea580c)', label: 'Returned to Evaluation' },
@@ -66,9 +87,9 @@ const STAT_DEFS_SBU = [
 
 /* ── Chart colors ── */
 const STATE_COLORS = {
-  Draft: '#94a3b8', Submitted: '#22c55e', 'Submitted to SB': '#3b82f6',
-  'Under Review': '#8b5cf6', Returned: '#f59e0b', 'Returned To Evaluation': '#f97316',
-  Hold: '#06b6d4', Approved: '#10b981', Halal: '#065f46', Haram: '#ef4444',
+  Draft: '#94a3b8', Submitted: '#81e6d9', 'Submitted to SB': '#3b82f6',
+  'Under Review': '#1d6f6b', Returned: '#f59e0b', 'Returned To Evaluation': '#f97316',
+  Hold: '#06b6d4', Approved: '#4fd1c5', Halal: '#2c9f98', Haram: '#ef4444',
   Doubtful: '#f59e0b', Rejected: '#f87171', Delisted: '#64748b',
 };
 
@@ -93,8 +114,8 @@ export default function Dashboard() {
   const isSBRole = hasRole('SB User') && !isAdmin();
   const isDark = theme === 'dark';
   const chartTheme = isDark
-    ? { grid: 'rgba(255,255,255,.08)', text: '#a9b2d0', muted: '#74809f', tooltip: '#171b35' }
-    : { grid: 'rgba(81,74,137,.08)', text: '#5d6480', muted: '#8991ac', tooltip: '#25204b' };
+    ? { grid: 'rgba(79,209,197,.10)', text: '#b8c7d9', muted: '#7d8fa6', tooltip: '#0f2a2d' }
+    : { grid: 'rgba(36,127,123,.10)', text: '#4a5d6e', muted: '#8797ab', tooltip: '#134e4a' };
 
   let statDefs = STAT_DEFS_ADMIN;
   if (isClientRole) statDefs = STAT_DEFS_CLIENT;
@@ -169,11 +190,11 @@ export default function Dashboard() {
   /* ── Pipeline bar chart ── */
   const pipeline = [
     { state: 'Draft', color: '#94a3b8' },
-    { state: 'Submitted', color: '#22c55e' },
+    { state: 'Submitted', color: '#4fd1c5' },
     { state: 'Submitted to SB', color: '#3b82f6' },
-    { state: 'Under Review', color: '#8b5cf6' },
+    { state: 'Under Review', color: '#1d6f6b' },
     { state: 'Rejected', color: '#f87171' },
-    { state: 'Approved', color: '#10b981' },
+    { state: 'Approved', color: '#4fd1c5' },
   ].filter(p => counts[p.state] > 0);
 
   const barData = {
@@ -181,8 +202,8 @@ export default function Dashboard() {
     datasets: [{
       label: 'Queries',
       data: pipeline.map(p => counts[p.state] || 0),
-      backgroundColor: pipeline.map(p => p.color + '99'),
-      borderColor: pipeline.map(p => p.color),
+      backgroundColor: tealBar,
+      borderColor: '#4fd1c5',
       borderWidth: 0,
       borderRadius: 8,
       borderSkipped: false,
@@ -215,7 +236,7 @@ export default function Dashboard() {
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   });
   const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const typeColors = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
+  const typeColors = ['#4fd1c5', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
   const typeChartData = {
     labels: typeEntries.map(([k]) => k),
     datasets: [{
@@ -235,7 +256,7 @@ export default function Dashboard() {
     clientCounts[c] = (clientCounts[c] || 0) + 1;
   });
   const clientEntries = Object.entries(clientCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const clientColors = ['#065f46', '#16a34a', '#22c55e', '#10b981', '#14b8a6', '#0d9488', '#0f766e', '#115e59', '#134e4a', '#042f2e'];
+  const clientColors = ['#4fd1c5', '#5ed9cf', '#6fdfd6', '#81e6d9', '#4fd1c5', '#7ee3da', '#94ebe3', '#a7f0ea', '#b2f5ef', '#c6f6ef'];
   const clientChartData = {
     labels: clientEntries.map(([k]) => k.length > 20 ? k.slice(0, 18) + '…' : k),
     datasets: [{
@@ -254,7 +275,7 @@ export default function Dashboard() {
     if (q.manufacturer) mfrCounts[q.manufacturer] = (mfrCounts[q.manufacturer] || 0) + 1;
   });
   const mfrEntries = Object.entries(mfrCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const mfrColors = ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#6d28d9', '#5b21b6', '#4c1d95', '#3b0764', '#2e1065', '#1e1b4b'];
+  const mfrColors = ['#2c9f98', '#4fd1c5', '#1d6f6b', '#81e6d9', '#38b2ac', '#a7f0ea', '#247f7b', '#5ed9cf', '#2c7a7b', '#c6f6ef'];
   const mfrChartData = {
     labels: mfrEntries.map(([k]) => k.length > 18 ? k.slice(0, 16) + '…' : k),
     datasets: [{
@@ -274,7 +295,7 @@ export default function Dashboard() {
     docStateCounts[s] = (docStateCounts[s] || 0) + 1;
   });
   const docStates = Object.entries(docStateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const docColors = ['#16a34a', '#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#94a3b8'];
+  const docColors = ['#2c9f98', '#4fd1c5', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#94a3b8'];
   const docChartData = {
     labels: docStates.map(([k]) => k),
     datasets: [{
@@ -295,7 +316,7 @@ export default function Dashboard() {
     labels: ['Other non-duplicate Queries', 'Duplicate-marked Queries', 'Non-duplicate master Queries'],
     datasets: [{
       data: [uniqueCount, dupCount, masterCount],
-      backgroundColor: ['#22c55e99', '#f59e0b99', '#3b82f699'],
+      backgroundColor: ['#4fd1c599', '#f59e0b99', '#3b82f699'],
       borderWidth: 0,
       hoverOffset: 6,
     }],
@@ -336,37 +357,72 @@ export default function Dashboard() {
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="dashboard-stat-grid">
-        {statDefs.map(s => {
-          const Icon = s.icon;
-          const value = counts[s.state] ?? 0;
-          return (
-            <div
-              key={s.state}
-              onClick={() => navigate(`/queries?state=${encodeURIComponent(s.state)}`)}
-              className="dashboard-stat"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
-                  background: s.gradient,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: `0 4px 12px ${s.gradient.includes('#22c55e') ? 'rgba(34,197,94,.3)' : 'rgba(0,0,0,.1)'}`,
-                }}>
-                  <Icon size={22} color="#fff" />
+            <div className="dashboard-body">
+        <div className="dashboard-main">
+          <div className="dashboard-stat-grid">
+                  {statDefs.map(s => {
+                    const Icon = s.icon;
+                    const value = counts[s.state] ?? 0;
+                    return (
+                      <div
+                        key={s.state}
+                        onClick={() => navigate(`/queries?state=${encodeURIComponent(s.state)}`)}
+                        className="dashboard-stat"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                          <div>
+                            <div className="dashboard-stat-label">{s.label}</div>
+                            <div className="dashboard-stat-value">{value}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                              {totalQueries ? `${Math.round((value / totalQueries) * 100)}% of total` : '—'}
+                            </div>
+                          </div>
+                          <div style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 14,
+                            background: '#4fd1c5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 6px 16px rgba(79, 209, 197, .35)',
+                            flexShrink: 0,
+                          }}>
+                            <Icon size={22} color="#fff" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <div className="dashboard-stat-value">{value}</div>
-                  <div className="dashboard-stat-label">{s.label}</div>
-                </div>
+        </div>
+        <aside className="dashboard-side">
+          {allQueries.length > 0 && (() => {
+            const byClient = {};
+            allQueries.forEach(q => {
+              const c = q.client_name || 'Unknown';
+              if (!byClient[c]) byClient[c] = { total: 0, approved: 0 };
+              byClient[c].total += 1;
+              if (q.workflow_state === 'Approved') byClient[c].approved += 1;
+            });
+            const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
+            return (
+              <div className="dashboard-panel">
+                <div className="dashboard-panel-title">Top Clients</div>
+                {rows.map(([name, r]) => (
+                  <div key={name} className="dashboard-list-row">
+                    <div className="dashboard-list-chip">{name.charAt(0).toUpperCase()}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="dashboard-list-title">{name}</div>
+                      <div className="dashboard-list-sub">{r.approved} approved · {Math.round((r.total / allQueries.length) * 100)}% share</div>
+                    </div>
+                    <div className="dashboard-list-value">{r.total}</div>
+                  </div>
+                ))}
               </div>
-            </div>
-          );
-        })}
+            );
+          })()}
+        </aside>
       </div>
 
       {/* ── Charts Section ── */}
@@ -413,7 +469,7 @@ export default function Dashboard() {
           padding: 24,
           marginBottom: 28,
         }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16, color: '#065f46' }}>My Query Status</div>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16, color: '#2c9f98' }}>My Query Status</div>
           <div style={{ height: 140 }}>
             <Bar
               data={{
@@ -421,8 +477,8 @@ export default function Dashboard() {
                 datasets: [{
                   label: 'My Queries',
                   data: Object.keys(counts).filter(k => counts[k] > 0).map(k => counts[k]),
-                  backgroundColor: Object.keys(counts).filter(k => counts[k] > 0).map(k => (STATE_COLORS[k] || '#22c55e') + '88'),
-                  borderColor: Object.keys(counts).filter(k => counts[k] > 0).map(k => STATE_COLORS[k] || '#22c55e'),
+                  backgroundColor: Object.keys(counts).filter(k => counts[k] > 0).map(k => (STATE_COLORS[k] || '#4fd1c5') + '88'),
+                  borderColor: Object.keys(counts).filter(k => counts[k] > 0).map(k => STATE_COLORS[k] || '#4fd1c5'),
                   borderWidth: 0,
                   borderRadius: 8,
                   borderSkipped: false,
@@ -543,14 +599,14 @@ export default function Dashboard() {
       {/* ── Quick Stats Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
         {[
-          { label: 'Total Queries', value: totalQueries, color: '#2563eb', bg: '#eff6ff' },
-          { label: clientTotal === null ? 'Clients with Queries' : 'Clients', value: clientTotal ?? new Set(allQueries.map(q => q.client_name).filter(Boolean)).size, color: '#16a34a', bg: '#f0fdf4' },
-          { label: 'Unique Materials', value: Number(metrics.unique_materials ?? new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size), color: '#7c3aed', bg: '#f5f3ff' },
-          { label: 'Duplicate Rate', value: totalQueries ? `${((Number(metrics.duplicate_queries ?? dupCount) / totalQueries) * 100).toFixed(2)}%` : '0%', color: '#f59e0b', bg: '#fffbeb' },
+          { label: 'Total Queries', value: totalQueries, accent: '#4fd1c5' },
+          { label: clientTotal === null ? 'Clients with Queries' : 'Clients', value: clientTotal ?? new Set(allQueries.map(q => q.client_name).filter(Boolean)).size, accent: '#4fd1c5' },
+          { label: 'Unique Materials', value: Number(metrics.unique_materials ?? new Set(allQueries.map(q => q.raw_material).filter(Boolean)).size), accent: '#4fd1c5' },
+          { label: 'Duplicate Rate', value: totalQueries ? `${((Number(metrics.duplicate_queries ?? dupCount) / totalQueries) * 100).toFixed(2)}%` : '0%', accent: '#4fd1c5' },
         ].map((stat, i) => (
-          <div key={i} style={{ background: stat.bg, borderRadius: 14, padding: '18px 20px' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: stat.color }}>{stat.value}</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, marginTop: 2 }}>{stat.label}</div>
+          <div key={i} style={{ background: 'var(--surface-card)', border: '1px solid var(--border-base)', borderLeft: `4px solid ${stat.accent}`, borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--shadow-md)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{stat.value}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: 2 }}>{stat.label}</div>
           </div>
         ))}
       </div>
@@ -564,7 +620,7 @@ export default function Dashboard() {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#16a34a',
+              color: '#2c9f98',
               fontWeight: 600,
               fontSize: '0.8125rem',
               cursor: 'pointer',
@@ -602,7 +658,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/queries/new')}
                 style={{
                   marginTop: 16,
-                  background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                  background: 'linear-gradient(135deg, #2c9f98, #2c9f98)',
                   border: 'none',
                   borderRadius: 10,
                   padding: '10px 20px',

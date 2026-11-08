@@ -63,7 +63,7 @@ function MultiSelectFilter({ label, allLabel, options, value = [], onChange, get
         <div className="dropdown-menu" style={{ top: 'calc(100% + 4px)', left: 0, minWidth: 220, maxHeight: 280, overflow: 'auto', zIndex: 30 }}>
           <div style={{ padding: '6px 10px 4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '.05em' }}>{label}</div>
           {allowSingleAll && selected.length > 0 && (
-            <button type="button" className="dropdown-item" onClick={() => onChange([])} style={{ cursor: 'pointer', color: '#2563eb', fontWeight: 700 }}>
+            <button type="button" className="dropdown-item" onClick={() => onChange([])} style={{ cursor: 'pointer', color: '#247f7b', fontWeight: 700 }}>
               {allLabel}
             </button>
           )}
