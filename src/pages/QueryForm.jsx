@@ -429,7 +429,7 @@ export default function QueryForm() {
         {!isNew && <StatusBadge state={doc.workflow_state} />}
         {otherViewers.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#f0f9ff', borderRadius: 999, fontSize: '0.72rem', color: '#0369a1', fontWeight: 500 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 1.5s ease infinite' }} />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4fd1c5', animation: 'pulse 1.5s ease infinite' }} />
             {otherViewers.map(v => v.user?.split('@')[0]).join(', ')} viewing
           </div>
         )}
@@ -517,7 +517,7 @@ export default function QueryForm() {
                 )}
                 {materialStatus && (
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>
-                    {materialStatusCode === 'halal' ? <CheckCircle size={16} color="#16a34a" /> :
+                    {materialStatusCode === 'halal' ? <CheckCircle size={16} color="#2c9f98" /> :
                      materialStatusCode === 'haram' ? <XCircle size={16} color="#dc2626" /> :
                      <AlertTriangle size={16} color="#d97706" />}
                   </span>
@@ -769,7 +769,7 @@ function SimilarQueryCard({ match, compact = false }) {
       {docs.length > 0 && (
         <div style={{ marginTop: 6, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           {docs.slice(0, 5).map((doc, idx) => (
-            <span key={`${doc.documents || 'doc'}-${idx}`} style={{ padding: '2px 8px', borderRadius: 999, background: compact ? '#fef3c7' : '#d1fae5', border: '1px solid rgba(0,0,0,.08)', fontSize: '0.72rem' }}>
+            <span key={`${doc.documents || 'doc'}-${idx}`} style={{ padding: '2px 8px', borderRadius: 999, background: compact ? '#fef3c7' : '#d2f1ed', border: '1px solid rgba(0,0,0,.08)', fontSize: '0.72rem' }}>
               {doc.documents || 'Document'}{doc.expiry_date ? ` exp ${new Date(doc.expiry_date).toLocaleDateString('en-GB')}` : ''}
             </span>
           ))}
@@ -797,7 +797,7 @@ function FilePreviewModal({ fileUrl, onClose }) {
           <X size={14} /> Close
         </button>
         <span style={{ color: '#e2e8f0', fontSize: '0.8rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
-        <a href={fileUrl} download={fileName} style={{ color: '#60a5fa', fontSize: '0.8rem', textDecoration: 'none' }}>⬇ Download</a>
+        <a href={fileUrl} download={fileName} style={{ color: '#4fd1c5', fontSize: '0.8rem', textDecoration: 'none' }}>⬇ Download</a>
       </div>
       {/* Preview area */}
       <div style={{ flex: 1, overflow: 'hidden', background: '#0f172a' }}>

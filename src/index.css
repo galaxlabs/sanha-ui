@@ -17,17 +17,17 @@
   --brand-900: #2b2260;
 
   /* Accent / Blue */
-  --accent-50:  #eff6ff;
-  --accent-100: #dbeafe;
-  --accent-400: #60a5fa;
-  --accent-500: #3b82f6;
-  --accent-600: #2563eb;
-  --accent-700: #1d4ed8;
+  --accent-50:  #e6f7f5;
+  --accent-100: #e0f7f5;
+  --accent-400: #4fd1c5;
+  --accent-500: #2c9f98;
+  --accent-600: #247f7b;
+  --accent-700: #1d6f6b;
 
   /* Violet */
-  --violet-100: #ede9fe;
-  --violet-500: #8b5cf6;
-  --violet-600: #7c3aed;
+  --violet-100: #e6f7f5;
+  --violet-500: #2c9f98;
+  --violet-600: #1d6f6b;
 
   /* Amber */
   --amber-100: #fef3c7;

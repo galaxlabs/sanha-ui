@@ -19,7 +19,7 @@ function ExcludeButton({ active, disabled, onClick, title }) {
   );
 }
 
-function OptionButton({ active, children, onClick, color = '#16a34a' }) {
+function OptionButton({ active, children, onClick, color = '#2c9f98' }) {
   return (
     <button
       type="button"
@@ -71,7 +71,7 @@ function MultiSelectFilter({ label, allLabel, options, value = [], onChange, get
             const checked = selected.includes(option);
             return (
               <label key={option} className="dropdown-item" style={{ gap: 8, cursor: 'pointer' }}>
-                <input type="checkbox" checked={checked} onChange={() => toggle(option)} style={{ accentColor: '#16a34a' }} />
+                <input type="checkbox" checked={checked} onChange={() => toggle(option)} style={{ accentColor: '#2c9f98' }} />
                 <span>{getOptionLabel(option)}</span>
               </label>
             );

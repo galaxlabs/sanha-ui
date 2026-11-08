@@ -12,9 +12,9 @@ const FONT_SIZES = { xs: 9, s: 10, m: 11, l: 13 };
 const STATE_ORDER = ['Draft','Submitted','Submitted to SB','Under Review','Returned','Returned To Evaluation','Hold','Approved','Halal','Haram','Doubtful','Rejected','Delisted'];
 
 const STATE_COLORS = {
-  Draft:'#94a3b8', Submitted:'#6366f1', 'Submitted to SB':'#8b5cf6',
+  Draft:'#94a3b8', Submitted:'#2c9f98', 'Submitted to SB':'#2c9f98',
   'Under Review':'#f59e0b', Returned:'#ef4444', 'Returned To Evaluation':'#f97316',
-  Hold:'#475569', Approved:'#059669', Halal:'#065f46', Haram:'#b91c1c',
+  Hold:'#64748b', Approved:'#2c9f98', Halal:'#1d6f6b', Haram:'#b91c1c',
   Doubtful:'#d97706', Rejected:'#64748b', Delisted:'#1e293b',
 };
 
@@ -81,7 +81,7 @@ export default function PrintReport() {
   };
   const TH = {
     padding: compact ? '4px 8px' : '6px 10px', textAlign: 'left', fontWeight: 700, fontSize: fs,
-    color: '#475569', border: '1px solid #e2e8f0', background: '#f1f5f9', whiteSpace: 'nowrap',
+    color: '#64748b', border: '1px solid #e2e8f0', background: '#f1f5f9', whiteSpace: 'nowrap',
   };
 
   const renderCompanyHeader = () => (
@@ -103,7 +103,7 @@ export default function PrintReport() {
   const renderClientInfo = () => {
     if (!showClientInfo || !clientInfo) return null;
     return (
-      <div style={{ margin: '18px auto', maxWidth: 680, border: '1px solid #dbeafe', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
+      <div style={{ margin: '18px auto', maxWidth: 680, border: '1px solid #e0f7f5', borderRadius: 10, overflow: 'hidden', background: '#f8fbff' }}>
         <div style={{ background: '#317eac', color: '#fff', textAlign: 'center', padding: '7px 12px', fontWeight: 700, fontSize: fs + 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Client Information</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
@@ -142,8 +142,8 @@ export default function PrintReport() {
     return (
       <div key={groupName} style={{ marginBottom: groupName ? 16 : 0 }}>
         {groupName && (
-          <div style={{ padding: '9px 14px', background: (STATE_COLORS[groupName] || '#475569') + '15', borderTop: `2px solid ${STATE_COLORS[groupName] || '#475569'}`, borderBottom: `1px solid ${(STATE_COLORS[groupName] || '#475569')}40`, marginBottom: 0 }}>
-            <span style={{ fontWeight: 800, fontSize: fs + 1, color: STATE_COLORS[groupName] || '#475569' }}>{groupName}</span>
+          <div style={{ padding: '9px 14px', background: (STATE_COLORS[groupName] || '#64748b') + '15', borderTop: `2px solid ${STATE_COLORS[groupName] || '#64748b'}`, borderBottom: `1px solid ${(STATE_COLORS[groupName] || '#64748b')}40`, marginBottom: 0 }}>
+            <span style={{ fontWeight: 800, fontSize: fs + 1, color: STATE_COLORS[groupName] || '#64748b' }}>{groupName}</span>
             <span style={{ marginLeft: 10, fontSize: fs - 1, color: '#94a3b8' }}>{groupRows.length} record{groupRows.length !== 1 ? 's' : ''}</span>
           </div>
         )}
@@ -166,7 +166,7 @@ export default function PrintReport() {
             {groupRows.map((r, i) => (
               <tr key={r.name} style={{ borderBottom: '1px solid #e2e8f0', background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
                 <td style={{ ...TD, textAlign: 'center', color: '#94a3b8', fontSize: fs - 1 }}>{serial++}</td>
-                {showColumn('name') && <td style={{ ...TD, fontFamily: 'monospace', fontWeight: 600, color: '#2563eb', fontSize: fs }}>{r.name}</td>}
+                {showColumn('name') && <td style={{ ...TD, fontFamily: 'monospace', fontWeight: 600, color: '#247f7b', fontSize: fs }}>{r.name}</td>}
                 {showColumn('raw_material') && <td style={{ ...TD, fontWeight: 500 }}>{r.raw_material || '—'}</td>}
                 {showColumn('query_types') && <td style={TD}>{r.query_types || '—'}</td>}
                 {showColumn('manufacturer') && <td style={TD}>{r.manufacturer || '—'}</td>}
@@ -246,8 +246,8 @@ function clientLabelStyle(fs) {
     fontWeight: 700,
     fontSize: fs,
     color: '#317eac',
-    border: '1px solid #dbeafe',
-    background: '#eff6ff',
+    border: '1px solid #e0f7f5',
+    background: '#e6f7f5',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   };
@@ -259,7 +259,7 @@ function clientValueStyle(fs) {
     textAlign: 'center',
     fontSize: fs + 1,
     color: '#1e293b',
-    border: '1px solid #dbeafe',
+    border: '1px solid #e0f7f5',
     background: '#fff',
     fontWeight: 600,
   };

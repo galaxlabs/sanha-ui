@@ -72,7 +72,7 @@ Try clicking one of the suggestions below or type your own question!` },
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-base)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #2c9f98, #2c9f98)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Bot size={18} color="#fff" />
           </div>
           <div>

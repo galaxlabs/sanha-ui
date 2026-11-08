@@ -31,7 +31,7 @@ const splitParam = (value) => value ? value.split(',').map(v => v.trim()).filter
 /* ─── Active filter tag ─── */
 function Tag({ label, onRemove }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#e6f7f5', border: '1px solid #bfdbfe', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: '#1d6f6b' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: '#e6f7f5', border: '1px solid #b2f5ea', borderRadius: 999, fontSize: '0.75rem', fontWeight: 600, color: '#1d6f6b' }}>
       {label}
       <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#81e6d9', padding: 0, lineHeight: 1 }}><X size={11} /></button>
     </span>
@@ -391,7 +391,7 @@ export default function QueryList() {
 
       {/* ─── Selection action bar ─── */}
       {someChecked && (
-        <div style={{ background: '#e6f7f5', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 18px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ background: '#e6f7f5', border: '1px solid #b2f5ea', borderRadius: 8, padding: '10px 18px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1d6f6b' }}>
             {allMatchingSelected ? `All ${totalCount} records selected` : `${selected.size} of ${queries.length} selected`}
           </span>
@@ -567,7 +567,7 @@ export default function QueryList() {
 
           {/* Selection footer */}
           {someChecked && (
-            <div style={{ padding: '10px 18px', borderTop: '1px solid #bfdbfe', background: '#e6f7f5', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ padding: '10px 18px', borderTop: '1px solid #b2f5ea', background: '#e6f7f5', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', color: '#1d6f6b', fontWeight: 600 }}>
                 {allMatchingSelected ? `All ${totalCount} records` : `${selected.size} selected`}
               </span>

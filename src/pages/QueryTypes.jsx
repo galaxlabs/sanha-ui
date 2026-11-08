@@ -60,7 +60,7 @@ export default function QueryTypes() {
       </div>
 
       {showForm && (
-        <div className="card mb-4" style={{ borderLeft: '4px solid #16a34a' }}>
+        <div className="card mb-4" style={{ borderLeft: '4px solid #2c9f98' }}>
           <h4 style={{ marginBottom: 14 }}>{editing ? 'Edit Query Type' : 'New Query Type'}</h4>
           <div className="grid-2">
             <div className="form-group">

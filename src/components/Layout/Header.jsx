@@ -11,9 +11,9 @@ import { useLiveRevision } from '../../hooks/useLiveData';
 
 /* ── state badge colors for notification list ── */
 const N_COLORS = {
-  Halal: '#16a34a', Approved: '#059669', Haram: '#dc2626', Rejected: '#ef4444',
-  Doubtful: '#d97706', Draft: '#64748b', Submitted: '#2563eb',
-  'Under Review': '#7c3aed', Hold: '#ea580c', Returned: '#f59e0b',
+  Halal: '#2c9f98', Approved: '#2c9f98', Haram: '#dc2626', Rejected: '#ef4444',
+  Doubtful: '#d97706', Draft: '#64748b', Submitted: '#247f7b',
+  'Under Review': '#1d6f6b', Hold: '#ea580c', Returned: '#f59e0b',
   'Submitted to SB': '#0891b2', 'Returned To Evaluation': '#c2410c',
 };
 
@@ -289,7 +289,7 @@ export default function Header({ onToggleSidebar }) {
                               {relTime(n.time)}
                             </div>
                             {!isRead && (
-                              <div style={{ width: 6, height: 6, borderRadius: 999, background: '#2563eb',
+                              <div style={{ width: 6, height: 6, borderRadius: 999, background: '#247f7b',
                                 flexShrink: 0, alignSelf: 'center', marginLeft: 2 }} />
                             )}
                           </div>

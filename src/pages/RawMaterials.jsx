@@ -55,7 +55,7 @@ export default function RawMaterials() {
 
   const statusColor = status => {
     switch (status) {
-      case 'Halal': return '#16a34a';
+      case 'Halal': return '#2c9f98';
       case 'Haram': return '#dc2626';
       case 'Doubtful': return '#d97706';
       case 'Mushbooh': return '#f59e0b';

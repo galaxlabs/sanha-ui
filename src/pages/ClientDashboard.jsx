@@ -22,13 +22,13 @@ function getStatusInfo(expiry) {
   const days = Math.ceil((new Date(expiry) - new Date()) / 86400000);
   if (days < 0) return { label: 'Expired', color: '#b91c1c', bg: '#fee2e2', icon: AlertTriangle, days };
   if (days < 30) return { label: 'Expiring', color: '#d97706', bg: '#fef3c7', icon: Clock, days };
-  if (days < 65) return { label: 'Expiring Soon', color: '#2563eb', bg: '#dbeafe', icon: Clock, days };
-  return { label: 'Valid', color: '#059669', bg: '#d1fae5', icon: CheckCircle, days };
+  if (days < 65) return { label: 'Expiring Soon', color: '#247f7b', bg: '#e0f7f5', icon: Clock, days };
+  return { label: 'Valid', color: '#2c9f98', bg: '#d2f1ed', icon: CheckCircle, days };
 }
 
 const STATE_COLORS = {
-  Draft: '#94a3b8', Submitted: '#22c55e', Returned: '#f59e0b',
-  Approved: '#10b981', Halal: '#065f46', Haram: '#ef4444',
+  Draft: '#94a3b8', Submitted: '#4fd1c5', Returned: '#f59e0b',
+  Approved: '#4fd1c5', Halal: '#1d6f6b', Haram: '#ef4444',
   Rejected: '#f87171', Hold: '#06b6d4', Doubtful: '#f59e0b',
 };
 
@@ -119,7 +119,7 @@ export default function ClientDashboard() {
     <div style={{ minHeight: '100%' }}>
       {/* ── Welcome Banner ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0f766e 0%, #16a34a 50%, #059669 100%)',
+        background: 'linear-gradient(135deg, #0f766e 0%, #2c9f98 50%, #2c9f98 100%)',
         borderRadius: 20,
         padding: '28px 32px',
         marginBottom: 24,
@@ -204,7 +204,7 @@ export default function ClientDashboard() {
                 border: 'none',
                 borderRadius: 10,
                 padding: '8px 16px',
-                color: '#059669',
+                color: '#2c9f98',
                 fontWeight: 700,
                 fontSize: '0.78rem',
                 cursor: 'pointer',
@@ -249,26 +249,26 @@ export default function ClientDashboard() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px 18px' }}>
-          <InfoItem icon={User} label="Portal User" value={user.full_name || user.name} color="#2563eb" />
-          <InfoItem icon={Award} label="Category" value={clientData?.category} color="#8b5cf6" />
+          <InfoItem icon={User} label="Portal User" value={user.full_name || user.name} color="#247f7b" />
+          <InfoItem icon={Award} label="Category" value={clientData?.category} color="#2c9f98" />
           <InfoItem icon={Globe} label="Scope" value={clientData?.scope} color="#f59e0b" />
-          <InfoItem icon={Shield} label="Standards" value={clientData?.standards} color="#6366f1" />
-          <InfoItem icon={Calendar} label="Certification" value={certificationWindow || null} color={statusInfo?.color || '#059669'} />
-          <InfoItem icon={Calendar} label="Extension" value={fmtDate(clientData?.ext)} color="#8b5cf6" />
-          <InfoItem icon={MapPin} label="Location" value={[clientData?.city, clientData?.region].filter(Boolean).join(', ')} color="#16a34a" />
+          <InfoItem icon={Shield} label="Standards" value={clientData?.standards} color="#2c9f98" />
+          <InfoItem icon={Calendar} label="Certification" value={certificationWindow || null} color={statusInfo?.color || '#2c9f98'} />
+          <InfoItem icon={Calendar} label="Extension" value={fmtDate(clientData?.ext)} color="#2c9f98" />
+          <InfoItem icon={MapPin} label="Location" value={[clientData?.city, clientData?.region].filter(Boolean).join(', ')} color="#2c9f98" />
         </div>
       </div>
 
       {/* ── My Query Stats ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'My Queries', value: totalQueries, gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)', state: null },
+          { label: 'My Queries', value: totalQueries, gradient: 'linear-gradient(135deg, #247f7b, #1d6f6b)', state: null },
           { label: 'Draft', value: counts.Draft || 0, gradient: 'linear-gradient(135deg, #94a3b8, #64748b)', state: 'Draft' },
-          { label: 'Submitted', value: counts.Submitted || 0, gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', state: 'Submitted' },
-          { label: 'Submitted to SB', value: counts['Submitted to SB'] || 0, gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)', state: 'Submitted to SB' },
-          { label: 'Under Review', value: counts['Under Review'] || 0, gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', state: 'Under Review' },
+          { label: 'Submitted', value: counts.Submitted || 0, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', state: 'Submitted' },
+          { label: 'Submitted to SB', value: counts['Submitted to SB'] || 0, gradient: 'linear-gradient(135deg, #2c9f98, #247f7b)', state: 'Submitted to SB' },
+          { label: 'Under Review', value: counts['Under Review'] || 0, gradient: 'linear-gradient(135deg, #2c9f98, #1d6f6b)', state: 'Under Review' },
           { label: 'Returned', value: counts.Returned || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Returned' },
-          { label: 'Approved', value: counts.Approved || 0, gradient: 'linear-gradient(135deg, #10b981, #059669)', state: 'Approved' },
+          { label: 'Approved', value: counts.Approved || 0, gradient: 'linear-gradient(135deg, #4fd1c5, #2c9f98)', state: 'Approved' },
           { label: 'On Hold', value: counts.Hold || 0, gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', state: 'Hold' },
           { label: 'Doubtful', value: counts.Doubtful || 0, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', state: 'Doubtful' },
           { label: 'Rejected', value: counts.Rejected || 0, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', state: 'Rejected' },
@@ -324,7 +324,7 @@ export default function ClientDashboard() {
           <button
             onClick={() => navigate('/queries')}
             style={{
-              background: 'transparent', border: 'none', color: '#16a34a',
+              background: 'transparent', border: 'none', color: '#2c9f98',
               fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
@@ -350,7 +350,7 @@ export default function ClientDashboard() {
             <button
               onClick={() => navigate('/queries/new')}
               style={{
-                background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                background: 'linear-gradient(135deg, #2c9f98, #2c9f98)',
                 border: 'none', borderRadius: 10,
                 padding: '10px 20px', color: '#fff',
                 fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
@@ -377,7 +377,7 @@ export default function ClientDashboard() {
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.06)'; }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', fontWeight: 600, color: '#2563eb' }}>{q.name}</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', fontWeight: 600, color: '#247f7b' }}>{q.name}</span>
                     <span style={{
                       fontSize: '0.6rem', fontWeight: 600, padding: '2px 8px',
                       borderRadius: 999, background: stateColor + '15', color: stateColor,
@@ -397,9 +397,9 @@ export default function ClientDashboard() {
       {/* ── Quick Actions ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {[
-          { label: 'Submit New Query', icon: Plus, action: () => navigate('/queries/new'), color: '#16a34a', bg: '#f0fdf4' },
-          { label: 'View My Queries', icon: Eye, action: () => navigate('/queries'), color: '#2563eb', bg: '#eff6ff' },
-          { label: 'View Reports', icon: FileText, action: () => navigate('/reports'), color: '#7c3aed', bg: '#f5f3ff' },
+          { label: 'Submit New Query', icon: Plus, action: () => navigate('/queries/new'), color: '#2c9f98', bg: '#e6f7f5' },
+          { label: 'View My Queries', icon: Eye, action: () => navigate('/queries'), color: '#247f7b', bg: '#e6f7f5' },
+          { label: 'View Reports', icon: FileText, action: () => navigate('/reports'), color: '#1d6f6b', bg: '#e6f7f5' },
         ].map((item, i) => (
           <button
             key={i}

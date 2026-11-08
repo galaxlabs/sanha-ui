@@ -117,9 +117,9 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                 {['xs','s','m','l'].map(s => (
                   <button key={s} onClick={() => setFontSize(s)}
                     style={{
-                      flex: 1, padding: '6px 0', borderRadius: 6, border: `1.5px solid ${fontSize === s ? '#16a34a' : '#d1d5db'}`,
+                      flex: 1, padding: '6px 0', borderRadius: 6, border: `1.5px solid ${fontSize === s ? '#2c9f98' : '#d1d5db'}`,
                       background: fontSize === s ? '#f0fdf4' : '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem',
-                      color: fontSize === s ? '#16a34a' : '#64748b',
+                      color: fontSize === s ? '#2c9f98' : '#64748b',
                     }}
                   >{s.toUpperCase()}</button>
                 ))}
@@ -128,7 +128,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
             <div style={{ flex: isClient ? 1 : 1 }}>
               <label style={labelStyle}>&nbsp;</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem', paddingTop: 4 }}>
-                <input type="checkbox" checked={compact} onChange={e => setCompact(e.target.checked)} style={{ accentColor: '#16a34a' }} />
+                <input type="checkbox" checked={compact} onChange={e => setCompact(e.target.checked)} style={{ accentColor: '#2c9f98' }} />
                 Compact Rows
               </label>
             </div>
@@ -148,7 +148,7 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>&nbsp;</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem', paddingTop: 4 }}>
-                <input type="checkbox" checked={allRecords} onChange={e => setAllRecords(e.target.checked)} style={{ accentColor: '#16a34a' }} />
+                <input type="checkbox" checked={allRecords} onChange={e => setAllRecords(e.target.checked)} style={{ accentColor: '#2c9f98' }} />
                 All Records
               </label>
             </div>
@@ -180,11 +180,11 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                 {COLUMNS.map(c => (
                   <label key={c.key} style={{
                     display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-                    borderRadius: 6, border: `1.5px solid ${columns[c.key] ? '#16a34a' : '#e2e8f0'}`,
+                    borderRadius: 6, border: `1.5px solid ${columns[c.key] ? '#2c9f98' : '#e2e8f0'}`,
                     background: columns[c.key] ? '#f0fdf4' : '#fff', cursor: 'pointer', fontSize: '0.8rem',
                     color: columns[c.key] ? '#166534' : '#64748b',
                   }}>
-                    <input type="checkbox" checked={columns[c.key]} onChange={() => toggleCol(c.key)} style={{ accentColor: '#16a34a' }} />
+                    <input type="checkbox" checked={columns[c.key]} onChange={() => toggleCol(c.key)} style={{ accentColor: '#2c9f98' }} />
                     {c.label}
                   </label>
                 ))}
@@ -238,11 +238,11 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
                   return (
                     <label key={item.key} style={{
                       display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-                      borderRadius: 6, border: `1.5px solid ${checked ? '#16a34a' : '#e2e8f0'}`,
+                      borderRadius: 6, border: `1.5px solid ${checked ? '#2c9f98' : '#e2e8f0'}`,
                       background: checked ? '#f0fdf4' : '#fff', cursor: item.alwaysOn ? 'not-allowed' : 'pointer',
                       fontSize: '0.8rem', color: checked ? '#166534' : '#64748b', opacity: item.alwaysOn ? 0.5 : 1,
                     }}>
-                      <input type="checkbox" checked={checked} onChange={onChange} disabled={item.alwaysOn} style={{ accentColor: '#16a34a' }} />
+                      <input type="checkbox" checked={checked} onChange={onChange} disabled={item.alwaysOn} style={{ accentColor: '#2c9f98' }} />
                       {item.label}
                     </label>
                   );

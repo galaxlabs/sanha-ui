@@ -9,8 +9,8 @@ const STATE_ICONS = {
 };
 
 const STATE_COLORS = {
-  Submitted: '#2563eb', Returned: '#f59e0b', 'Returned To Evaluation': '#c2410c',
-  Approved: '#16a34a', Halal: '#16a34a', Haram: '#dc2626', Rejected: '#ef4444',
+  Submitted: '#247f7b', Returned: '#f59e0b', 'Returned To Evaluation': '#c2410c',
+  Approved: '#2c9f98', Halal: '#2c9f98', Haram: '#dc2626', Rejected: '#ef4444',
   Doubtful: '#d97706',
 };
 

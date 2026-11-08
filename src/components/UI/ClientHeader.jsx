@@ -7,8 +7,8 @@ function getStatusInfo(expiry) {
   const days = Math.ceil((new Date(expiry) - new Date()) / 86400000);
   if (days < 0) return { label: 'Expired', color: '#b91c1c', bg: '#fee2e2', icon: AlertTriangle, days };
   if (days < 30) return { label: 'Expiring', color: '#d97706', bg: '#fef3c7', icon: Clock, days };
-  if (days < 65) return { label: 'Expiring Soon', color: '#2563eb', bg: '#dbeafe', icon: Clock, days };
-  return { label: 'Valid', color: '#059669', bg: '#d1fae5', icon: CheckCircle, days };
+  if (days < 65) return { label: 'Expiring Soon', color: '#247f7b', bg: '#e0f7f5', icon: Clock, days };
+  return { label: 'Valid', color: '#2c9f98', bg: '#d2f1ed', icon: CheckCircle, days };
 }
 
 function TableCell({ icon: Icon, label, value, color = '#64748b', highlight = false }) {
@@ -126,11 +126,11 @@ export default function ClientHeader() {
             </thead>
             <tbody>
               <tr>
-                <TableCell icon={User} label="Full Name" value={user.full_name || user.name} color="#2563eb" />
+                <TableCell icon={User} label="Full Name" value={user.full_name || user.name} color="#247f7b" />
                 <TableCell icon={Mail} label="Email" value={user.email} color="#06b6d4" />
-                <TableCell icon={Building} label="Company" value={clientData.client_name || clientData.business_name} color="#16a34a" />
-                <TableCell icon={Hash} label="Code" value={clientData.client_code} color="#7c3aed" />
-                <TableCell icon={Award} label="Category" value={clientData.category} color="#8b5cf6" />
+                <TableCell icon={Building} label="Company" value={clientData.client_name || clientData.business_name} color="#2c9f98" />
+                <TableCell icon={Hash} label="Code" value={clientData.client_code} color="#1d6f6b" />
+                <TableCell icon={Award} label="Category" value={clientData.category} color="#2c9f98" />
                 <TableCell icon={Globe} label="Scope" value={clientData.scope} color="#f59e0b" />
                 <td style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>Status</div>
@@ -163,12 +163,12 @@ export default function ClientHeader() {
             </thead>
             <tbody>
               <tr>
-                <TableCell icon={Shield} label="Standards" value={clientData.standards} color="#6366f1" />
-                <TableCell icon={Calendar} label="Since" value={clientData.certified_since ? new Date(clientData.certified_since).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#059669" />
+                <TableCell icon={Shield} label="Standards" value={clientData.standards} color="#2c9f98" />
+                <TableCell icon={Calendar} label="Since" value={clientData.certified_since ? new Date(clientData.certified_since).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#2c9f98" />
                 <TableCell icon={Calendar} label="Expiry" value={clientData.certified_expiry ? new Date(clientData.certified_expiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color={statusInfo?.color || '#64748b'} highlight />
                 <TableCell icon={Clock} label="Days Left" value={statusInfo?.days != null ? (statusInfo.days < 0 ? `${-statusInfo.days} overdue` : `${statusInfo.days} days`) : '—'} color={statusInfo?.color || '#64748b'} highlight />
-                <TableCell icon={Calendar} label="Extension" value={clientData.ext ? new Date(clientData.ext).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#8b5cf6" />
-                <TableCell icon={MapPin} label="Region" value={clientData.region} color="#16a34a" />
+                <TableCell icon={Calendar} label="Extension" value={clientData.ext ? new Date(clientData.ext).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} color="#2c9f98" />
+                <TableCell icon={MapPin} label="Region" value={clientData.region} color="#2c9f98" />
                 <TableCell icon={MapPin} label="City" value={clientData.city} color="#f59e0b" />
               </tr>
             </tbody>
