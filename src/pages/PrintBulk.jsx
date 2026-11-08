@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { authorizePrintSnapshot } from '../api/liveData';
 import { useLiveRevision } from '../hooks/useLiveData';
 import PrintHeader from './PrintHeader';
+import SelectField from '../components/UI/SelectField';
 
 const DISCLAIMER = 'This report is issued by SANHA Halal Pakistan based on information provided at the time of evaluation. It is valid only for the records and materials mentioned herein. Any misuse, alteration, or use beyond its intended purpose is strictly prohibited. SANHA Halal Pakistan reserves the right to revoke any evaluation in case of non-compliance or deviation from Halal standards.';
 
@@ -123,7 +124,7 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
         </div>
         <div>
           <Label>Per Page</Label>
-          <select
+          <SelectField
             value={opts.perPage}
             onChange={e => set('perPage', e.target.value === 'all' ? 'all' : Number(e.target.value))}
             style={{ padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.8rem', background: '#fff', cursor: 'pointer', color: '#374151' }}
@@ -133,7 +134,7 @@ function BulkSettings({ opts, setOpts, isSingleClient, isClientUser }) {
             <option value={50}>50 per page</option>
             <option value={25}>25 per page</option>
             <option value={10}>10 per page</option>
-          </select>
+          </SelectField>
         </div>
         {!isClientUser && (
           <div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import SelectField from '../components/UI/SelectField';
 
 const COLUMNS = [
   { key: 'name', label: 'Query ID', defaultStaff: true, defaultClient: false },
@@ -92,10 +93,10 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Orientation</label>
-              <select className="form-control" value={orientation} onChange={e => setOrientation(e.target.value)} style={{ fontSize: '0.85rem' }}>
+              <SelectField className="form-control" value={orientation} onChange={e => setOrientation(e.target.value)} style={{ fontSize: '0.85rem' }}>
                 <option value="portrait">Portrait</option>
                 <option value="landscape">Landscape</option>
-              </select>
+              </SelectField>
             </div>
           </div>
 
@@ -104,11 +105,11 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
             {!isClient && (
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Header Align</label>
-                <select className="form-control" value={headerAlign} onChange={e => setHeaderAlign(e.target.value)} style={{ fontSize: '0.85rem' }}>
+                <SelectField className="form-control" value={headerAlign} onChange={e => setHeaderAlign(e.target.value)} style={{ fontSize: '0.85rem' }}>
                   <option value="left">Left</option>
                   <option value="center">Centre</option>
                   <option value="right">Right</option>
-                </select>
+                </SelectField>
               </div>
             )}
             <div style={{ flex: isClient ? 1 : 1 }}>
@@ -138,12 +139,12 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Rows Per Page</label>
-              <select className="form-control" value={perPage} onChange={e => setPerPage(Number(e.target.value))} disabled={allRecords} style={{ fontSize: '0.85rem' }}>
+              <SelectField className="form-control" value={perPage} onChange={e => setPerPage(Number(e.target.value))} disabled={allRecords} style={{ fontSize: '0.85rem' }}>
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
-              </select>
+              </SelectField>
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>&nbsp;</label>
@@ -157,18 +158,18 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             <div style={{ flex: 1 }}>
               <label htmlFor="report-sort-field" style={labelStyle}>Sort By / ترتیب</label>
-              <select id="report-sort-field" className="form-control" value={sortField} onChange={e => { const field = e.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
+              <SelectField id="report-sort-field" className="form-control" value={sortField} onChange={e => { const field = e.target.value; setSortField(field); setSortDirection(field === 'raw_material' ? 'asc' : 'desc'); }}>
                 <option value="raw_material">Raw Material — حروفِ تہجی</option>
                 <option value="creation">Created — بننے کی تاریخ</option>
                 <option value="modified">Last Updated — آخری ترمیم</option>
-              </select>
+              </SelectField>
             </div>
             <div style={{ flex: 1 }}>
               <label htmlFor="report-sort-direction" style={labelStyle}>Direction / ترتیب کی سمت</label>
-              <select id="report-sort-direction" className="form-control" value={sortDirection} onChange={e => setSortDirection(e.target.value)}>
+              <SelectField id="report-sort-direction" className="form-control" value={sortDirection} onChange={e => setSortDirection(e.target.value)}>
                 <option value="asc">{sortField === 'raw_material' ? 'A–Z' : 'Oldest first — پرانی پہلے'}</option>
                 <option value="desc">{sortField === 'raw_material' ? 'Z–A' : 'Newest first — نئی پہلے'}</option>
-              </select>
+              </SelectField>
             </div>
           </div>
 
@@ -196,19 +197,19 @@ export default function PrintConfig({ open, onClose, onGenerate, isClient }) {
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Group By</label>
-              <select className="form-control" value={groupBy} onChange={e => setGroupBy(e.target.value)} style={{ fontSize: '0.85rem' }}>
+              <SelectField className="form-control" value={groupBy} onChange={e => setGroupBy(e.target.value)} style={{ fontSize: '0.85rem' }}>
                 <option value="none">None</option>
                 <option value="raw_material">Raw Material</option>
                 <option value="query_types">Query Type</option>
                 <option value="workflow_state">Status</option>
-              </select>
+              </SelectField>
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Serial #</label>
-              <select className="form-control" value={serialMode} onChange={e => setSerialMode(e.target.value)} style={{ fontSize: '0.85rem' }}>
+              <SelectField className="form-control" value={serialMode} onChange={e => setSerialMode(e.target.value)} style={{ fontSize: '0.85rem' }}>
                 <option value="continuous">Continuous</option>
                 <option value="per_group">Per Group</option>
-              </select>
+              </SelectField>
             </div>
           </div>
 

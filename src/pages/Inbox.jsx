@@ -4,6 +4,7 @@ import { ArrowLeft, MessageCircle, Search, Send, Smile, AtSign, X, ShieldCheck, 
 import { messageApi } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
 import QueryTimeline from '../components/UI/QueryTimeline';
+import SelectField from '../components/UI/SelectField';
 
 const EMOJIS = {
   Faces: ['😀', '😊', '🙂', '😄', '😂', '😍', '🤔', '😌', '😎', '🙁', '😮', '🥳'],
@@ -93,7 +94,7 @@ export default function Inbox() {
       <aside className="messenger-members">
         <header className="messenger-list-header"><div className="messenger-avatar messenger-avatar--brand"><MessageCircle size={22} /></div><div><strong>Conversations</strong><small>{contacts.length} available members</small></div></header>
         <div className="messenger-search"><Search size={16} /><input aria-label="Search available members" placeholder="Search members" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <select aria-label="Filter members by department" className="messenger-department" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</select>
+        <SelectField aria-label="Filter members by department" className="messenger-department" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</SelectField>
         <div className="messenger-member-list">{visible.length === 0 && <p className="messenger-muted">No available members match.</p>}{visible.map(item => <button type="button" disabled={sending} className={`messenger-member ${contact === item.name ? 'is-selected' : ''}`} key={item.name} onClick={() => { setContact(item.name); setError(''); }}><span className="messenger-avatar">{initials(item.full_name || item.name)}</span><span className="messenger-member-text"><strong>{item.full_name || item.name}</strong><small>{item.departments.join(' · ')}</small></span></button>)}</div>
         <footer className="messenger-list-footer">karachi@sanha.org.pk</footer>
       </aside>
