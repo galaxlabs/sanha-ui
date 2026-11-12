@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import QueryTimeline from '../components/UI/QueryTimeline';
 import SelectField from '../components/UI/SelectField';
 import { roleTitle } from '../utils/roleTitles';
+import DraftMessage from '../components/UI/DraftMessage';
 
 const EMOJIS = {
   Faces: ['😀', '😊', '🙂', '😄', '😂', '😍', '🤔', '😌', '😎', '🙁', '😮', '🥳'],
@@ -24,6 +25,7 @@ export default function Inbox() {
   const [department, setDepartment] = useState('');
   const [rows, setRows] = useState([]);
   const [text, setText] = useState('');
+  const [showDraft, setShowDraft] = useState(false);
   const [query, setQuery] = useState('');
   const [querySearch, setQuerySearch] = useState('');
   const [options, setOptions] = useState([]);
@@ -89,8 +91,9 @@ export default function Inbox() {
   }
 
   return <div className="messenger-page">
-    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span></div>
+    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span><button type="button" className="btn btn-outline btn-sm" onClick={() => setShowDraft(value => !value)} aria-expanded={showDraft}>{showDraft ? 'بند کریں' : 'پیغام تیار کریں'}</button></div>
     {error && <div className="messenger-error" role="alert">{error}</div>}
+    {showDraft && <DraftMessage onUseText={contact ? (body => setText(body)) : undefined} />}
     <div className={`messenger ${contact ? 'messenger--conversation' : ''}`}>
       <aside className="messenger-members">
         <header className="messenger-list-header"><div className="messenger-avatar messenger-avatar--brand"><MessageCircle size={22} /></div><div><strong>Conversations</strong><small>{contacts.length} available members</small></div></header>
