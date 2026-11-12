@@ -77,12 +77,20 @@ export default function StaffAIReview({ query }) {
     if (research?.kind === 'historical_decision') return <Link key={id} to={`/queries/${encodeURIComponent(research.query)}`} style={{ marginRight: 8 }}>{id} · {research.query}</Link>;
     if (research?.kind === 'public_chemistry' && research.url?.startsWith('https://')) return <a key={id} href={research.url} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · {research.title || 'Public chemistry'}</a>;
     if (research?.kind === 'document_metadata' && (research.url?.startsWith('/files/') || research.url?.startsWith('/private/files/'))) return <a key={id} href={`${FRAPPE_URL}${research.url}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · declared document metadata only</a>;
+    const knowledge = review?.research_sources?.find(item => item.id === id && item.kind === 'knowledge_source');
+    if (knowledge) {
+      const badgeLabel = knowledge.badge === 'Authentic' ? 'مستند' : 'منظور شدہ';
+      const label = `${id} · ${knowledge.title} (${badgeLabel}${knowledge.last_checked_on ? `، آخری تصدیق ${knowledge.last_checked_on}` : ''})`;
+      return knowledge.url?.startsWith('https://')
+        ? <a key={id} href={knowledge.url} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{label}</a>
+        : <span key={id} style={{ marginRight: 8 }}>{label}</span>;
+    }
     if (id === 'Q0') return <span key={id} style={{ marginRight: 8 }}>Q0 · entered Query information</span>;
     const clause = review?.clauses?.find(item => item.id === id);
     return <span key={id} title={clause?.text || ''} style={{ marginRight: 8 }}>{id}</span>;
   }
   return <section className="card" dir={rtl ? 'rtl' : 'ltr'} style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><div role="group" aria-label="Response language" style={{ display: 'inline-flex', border: '1px solid var(--border-input)', borderRadius: 999, padding: 3 }}>{[['ur', 'اردو'], ['en', 'English']].map(([code, label]) => <button key={code} type="button" onClick={() => setLanguage(code)} aria-pressed={language === code} className="btn btn-sm" style={{ borderRadius: 999, background: language === code ? '#2c9f98' : 'transparent', color: language === code ? '#fff' : 'var(--text-secondary)', border: 'none', height: 30 }}>{label}</button>)}</div><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
-    <p className="text-sm text-gray">Current Query documents, decided database references and retrieved public chemistry. No historical document files are read. Final decisions remain with staff.</p>
+    <p className="text-sm text-gray">Current Query documents, decided database references, public chemistry from PubChem, and approved knowledge sources (with their badge). No historical document files are read. Final decisions remain with staff.</p>
     <section><h4><Bilingual text={"پہلے سے فیصلہ شدہ database references"} /></h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
       {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
         <div className="table-wrap" style={{ maxHeight: 290, overflowY: 'auto' }}><table><thead><tr><th>Query</th><th>Material</th><th>Manufacturer / Supplier</th><th>Decision</th><th>Match</th></tr></thead><tbody>{related.rows.filter(isFinalDecision).map(row => <tr key={row.name}><td><Link to={`/queries/${encodeURIComponent(row.name)}`}>{row.name}</Link></td><td>{row.raw_material}</td><td>{row.manufacturer} / {row.supplier}</td><td>{row.workflow_state}</td><td>{row.same_material && row.same_manufacturer ? 'Same material + manufacturer' : 'Material reference only; identity not established'}</td></tr>)}</tbody></table></div></>}
@@ -98,7 +106,16 @@ export default function StaffAIReview({ query }) {
     {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{summary.text}</p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
     {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
     {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{review.assessment[key].text}</p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
-    {!!review?.follow_up_questions?.length && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{review.follow_up_questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>}
+    {(() => {
+      // The model sometimes repeats a question already shown in an assessment section; show it once.
+      const squash = value => String(value || '').replace(/[\s\p{P}\p{S}]+/gu, '').toLowerCase();
+      const assessmentText = squash(Object.values(review?.assessment || {}).map(item => item?.text || '').join(' '));
+      const questions = (review?.follow_up_questions || []).filter(item => {
+        const key = squash(item.text);
+        return key && !assessmentText.includes(key);
+      });
+      return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
+    })()}
     {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir="auto">{item.document}: {item.message} {(item.sources || []).map(reference)}</p>)}</details>}
     {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto">{item.text} <small>{item.sources.map(reference)}</small></p>)}</div>}
     {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index} dir="auto"><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
