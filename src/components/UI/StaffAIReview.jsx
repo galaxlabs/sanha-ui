@@ -106,7 +106,16 @@ export default function StaffAIReview({ query }) {
     {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{summary.text}</p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
     {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
     {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{review.assessment[key].text}</p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
-    {!!review?.follow_up_questions?.length && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{review.follow_up_questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>}
+    {(() => {
+      // The model sometimes repeats a question already shown in an assessment section; show it once.
+      const squash = value => String(value || '').replace(/[\s\p{P}\p{S}]+/gu, '').toLowerCase();
+      const assessmentText = squash(Object.values(review?.assessment || {}).map(item => item?.text || '').join(' '));
+      const questions = (review?.follow_up_questions || []).filter(item => {
+        const key = squash(item.text);
+        return key && !assessmentText.includes(key);
+      });
+      return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
+    })()}
     {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir="auto">{item.document}: {item.message} {(item.sources || []).map(reference)}</p>)}</details>}
     {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto">{item.text} <small>{item.sources.map(reference)}</small></p>)}</div>}
     {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index} dir="auto"><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
