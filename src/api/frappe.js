@@ -10,6 +10,17 @@ export async function draftText(payload) {
   return res.message || res;
 }
 
+// Team comments on a Query. Staff only; the server rejects client users.
+export async function listTeamComments(query) {
+  const res = await request('GET', `/api/method/sanha.api.query_comments.list_comments?query=${encodeURIComponent(query)}`, null, { cache: false });
+  return res.message || [];
+}
+
+export async function addTeamComment(query, content) {
+  const res = await request('POST', '/api/method/sanha.api.query_comments.add_comment', { query, content }, { cache: false });
+  return res.message;
+}
+
 // Unread counts for the signed-in user. The server marks incoming messages as delivered when this is called.
 export async function getUnreadSummary() {
   return messageApi('unread_summary');
