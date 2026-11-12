@@ -10,6 +10,16 @@ export async function draftText(payload) {
   return res.message || res;
 }
 
+// Unread counts for the signed-in user. The server marks incoming messages as delivered when this is called.
+export async function getUnreadSummary() {
+  return messageApi('unread_summary');
+}
+
+// Marks messages from this contact as read (blue ticks for the sender).
+export async function markMessagesRead(contact) {
+  return messageApi('mark_read', { contact }, true);
+}
+
 export async function messageApi(method, data = {}, write = false) {
   const params = new URLSearchParams(data);
   const res = await request(write ? 'POST' : 'GET', `/api/method/sanha.api.messaging.${method}${write ? '' : `?${params}`}`, write ? data : null, { cache: false });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, Search, Send, Smile, AtSign, X, ShieldCheck, History } from 'lucide-react';
-import { messageApi } from '../api/frappe';
+import { messageApi, markMessagesRead } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
 import QueryTimeline from '../components/UI/QueryTimeline';
 import SelectField from '../components/UI/SelectField';
@@ -15,6 +15,12 @@ const EMOJIS = {
   Appreciation: ['❤️', '💚', '💙', '✨', '🌟', '🎉', '💯', '🌹', '☀️', '☕', '🌙', '🕊️'],
 };
 const initials = name => (name || '?').split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
+// WhatsApp-style ticks for messages I sent: one grey tick sent, two grey delivered, two blue read.
+const receiptState = row => {
+  if (row.read_at) return { mark: '✓✓', label: 'پڑھ لیا', color: '#2563eb' };
+  if (row.delivered_at) return { mark: '✓✓', label: 'وصول ہو گیا', color: '#64748b' };
+  return { mark: '✓', label: 'بھیج دیا گیا', color: '#64748b' };
+};
 const time = value => new Date(value.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export default function Inbox() {
@@ -47,10 +53,20 @@ export default function Inbox() {
     let active = true;
     setRows([]); setQuery(''); setText(''); setPicker(false); setEmojiOpen(false); setLoading(true); setOptions([]); setQueryOffset(0); setQuerySearch(''); setTimeline(null);
     const load = () => messageApi('conversation', { contact })
-      .then(data => { if (active) { setRows(data); setError(''); } })
+      .then(data => {
+        if (!active) return;
+        setRows(data);
+        setError('');
+        // Opening the conversation marks what they sent me as read.
+        if (data.some(row => row.recipient === user.name && !row.read_at)) {
+          markMessagesRead(contact).then(() => {
+            if (active) setRows(prev => prev.map(row => (row.recipient === user.name && !row.read_at ? { ...row, read_at: new Date().toISOString(), delivered_at: row.delivered_at || new Date().toISOString() } : row)));
+          }).catch(() => {});
+        }
+      })
       .catch(e => { if (active) setError(e.message); })
       .finally(() => { if (active) setLoading(false); });
-    load(); const timer = setInterval(load, 10000);
+    load(); const timer = setInterval(load, 4000);
     return () => { active = false; clearInterval(timer); };
   }, [contact]);
   useEffect(() => { bottom.current?.scrollIntoView({ block: 'nearest' }); }, [rows.length, contact]);
@@ -111,7 +127,7 @@ export default function Inbox() {
             {loading ? <p className="messenger-muted">Loading messages…</p> : rows.length === 0 ? <p className="messenger-muted">No messages yet. Say hello 👋</p> : rows.map((row, index) => {
               const date = row.creation.split(' ')[0];
               const previousDate = rows[index - 1]?.creation.split(' ')[0];
-              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name ? 'messenger-bubble--sent' : ''}`}><p dir="auto">{row.message}</p>{row.query_reference && <><Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link><button type="button" className="messenger-icon" title="Query Timeline" onClick={() => setTimeline({ query: row.query_reference })}><History size={14} /> Timeline</button></>}<time>{time(row.creation)}</time></article></div>;
+              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name ? 'messenger-bubble--sent' : ''}`}><p dir="auto">{row.message}</p>{row.query_reference && <><Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link><button type="button" className="messenger-icon" title="Query Timeline" onClick={() => setTimeline({ query: row.query_reference })}><History size={14} /> Timeline</button></>}<time>{time(row.creation)}{row.sender === user.name && (() => { const receipt = receiptState(row); return <span title={receipt.label} aria-label={receipt.label} style={{ marginInlineStart: 6, color: receipt.color, letterSpacing: '-2px' }}>{receipt.mark}</span>; })()}</time></article></div>;
             })}<div ref={bottom} />
           </div>
           <form className="messenger-compose" onSubmit={send}>
