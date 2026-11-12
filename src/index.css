@@ -591,53 +591,23 @@ tbody tr { transition: background .1s; }
 .doc-table-row:hover { background: var(--surface-hover); }
 
 /* ─────────────── Login ─────────────── */
+/* Login uses the same theme tokens as the app (light by default, dark via [data-theme="dark"]). */
 .login-page {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #0c1445 0%, #0f172a 40%, #163c2a 100%);
-  position: relative; overflow: hidden;
-}
-.login-page::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 30% 50%, rgba(22,163,74,.15) 0%, transparent 60%),
-              radial-gradient(ellipse at 75% 20%, rgba(37,99,235,.12) 0%, transparent 50%);
+  background: var(--surface-bg);
+  padding: 16px;
 }
 .login-card {
   width: 100%; max-width: 440px;
   position: relative; z-index: 1;
-  padding: 16px;
 }
 .login-logo  { text-align: center; margin-bottom: 24px; }
-.login-logo-circle {
-  width: 64px; height: 64px;
-  background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 14px;
-  box-shadow: 0 8px 24px rgba(22,163,74,.4);
-}
-.login-logo h1 { color: #fff; font-size: 1.625rem; margin-bottom: 0; letter-spacing: .02em; }
-.login-logo p  { color: #94a3b8; font-size: 0.8325rem; margin-top: 5px; }
-.login-card .card {
-  background: rgba(255,255,255,.04);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,.1);
-  box-shadow: 0 20px 60px rgba(0,0,0,.4);
-}
-.login-card .card .form-label  { color: #94a3b8; }
-.login-card .card .form-control {
-  background: rgba(255,255,255,.06);
-  border-color: rgba(255,255,255,.12);
-  color: #e2e8f0;
-}
-.login-card .card .form-control:focus {
-  border-color: var(--brand-500);
-  background: rgba(255,255,255,.09);
-}
-.login-card .card .form-control::placeholder { color: rgba(255,255,255,.25); }
-.login-card .card h3 { color: #f1f5f9; font-size: 1.1rem; }
-.login-card .card p  { color: #64748b; }
+.login-logo h1 { color: var(--text-primary); font-size: 1.625rem; margin-bottom: 0; letter-spacing: .02em; }
+.login-logo p  { color: var(--text-secondary); font-size: 0.8325rem; margin-top: 5px; }
+.login-card .card h3 { color: var(--text-primary); font-size: 1.1rem; }
+.login-card .card p  { color: var(--text-secondary); }
+.login-footnote { color: var(--text-muted); margin-top: 18px; font-size: 0.72rem; text-align: center; }
 
 /* ─────────────── Utility classes ─────────────── */
 .flex  { display: flex; }

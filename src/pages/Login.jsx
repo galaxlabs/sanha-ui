@@ -44,7 +44,7 @@ export default function Login() {
           <img
             src={logoUrl}
             alt="SANHA"
-            style={{ height: 90, width: 'auto', objectFit: 'contain', marginBottom: 6, filter: 'drop-shadow(0 2px 12px rgba(0,0,0,.25))' }}
+            style={{ height: 90, width: 'auto', objectFit: 'contain', marginBottom: 6 }}
             onError={e => { e.target.onerror = null; e.target.src = '/sanha-logo.png'; }}
           />
           <h1>SANHA</h1>
@@ -53,7 +53,7 @@ export default function Login() {
 
         {/* Redirect notice */}
         {from !== '/dashboard' && (
-          <div style={{ background: 'rgba(37,99,235,.12)', border: '1px solid rgba(96,165,250,.3)', color: '#81e6d9', padding: '9px 14px', borderRadius: 9, fontSize: '0.8rem', marginBottom: 12, textAlign: 'center', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: 'rgba(56,178,172,.12)', border: '1px solid rgba(56,178,172,.35)', color: 'var(--brand-700)', padding: '9px 14px', borderRadius: 12, fontSize: '0.8rem', marginBottom: 12, textAlign: 'center' }}>
             Please sign in to continue to <code style={{ fontSize: '0.75rem' }}>{from}</code>
           </div>
         )}
@@ -64,7 +64,7 @@ export default function Login() {
           <p className="text-sm" style={{ marginBottom: 22 }}>Sign in to access your portal</p>
 
           {err && (
-            <div style={{ background: 'rgba(239,68,68,.12)', color: '#fca5a5', padding: '10px 14px', borderRadius: 8, fontSize: '0.875rem', marginBottom: 16, border: '1px solid rgba(239,68,68,.25)' }}>
+            <div role="alert" style={{ background: 'rgba(229,62,62,.08)', color: '#c53030', padding: '10px 14px', borderRadius: 12, fontSize: '0.875rem', marginBottom: 16, border: '1px solid rgba(229,62,62,.3)' }}>
               {err}
             </div>
           )}
@@ -97,7 +97,7 @@ export default function Login() {
                 <button
                   type="button"
                   className="btn btn-ghost btn-icon"
-                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', padding: '6px', color: '#94a3b8' }}
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', padding: '6px', color: 'var(--text-muted)' }}
                   onClick={() => setShowPwd(v => !v)}
                 >
                   {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -120,7 +120,7 @@ export default function Login() {
           </form>
         </div>
 
-        <p style={{ color: 'rgba(100,116,139,.6)', marginTop: 18, fontSize: '0.72rem', textAlign: 'center' }}>
+        <p className="login-footnote">
           SANHA Halal Pakistan · Certification Query Management System
         </p>
       </div>
