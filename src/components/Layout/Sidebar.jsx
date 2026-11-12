@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl } from '../../api/frappe';
+import { roleTitle } from '../../utils/roleTitles';
 
 /* ─── Report sub-items (shared across all roles that have Reports) ─── */
 const REPORT_CHILDREN = [
@@ -47,6 +48,7 @@ const NAV_GROUPS = {
     { label: 'On Hold',        icon: Clock,            to: '/queries?state=Hold' },
     { label: 'Approved',       icon: CheckCircle,      to: '/queries?state=Approved' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
   Client: [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
@@ -71,6 +73,7 @@ const NAV_GROUPS = {
     { label: 'Halal',          icon: Star,             to: '/queries?state=Halal' },
     { label: 'Haram',          icon: XCircle,          to: '/queries?state=Haram' },
     { label: 'Reports',        icon: BarChart2,        to: '/reports', children: REPORT_CHILDREN },
+    { label: 'Messages',       icon: MessageSquare,    to: '/messages' },
   ],
 };
 
@@ -170,7 +173,7 @@ export default function Sidebar({ collapsed, onClose }) {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {group && !sidebarCollapsed && <div className="sidebar-role-badge">{group}</div>}
+        {group && !sidebarCollapsed && <div className="sidebar-role-badge">{roleTitle(group)}</div>}
         {sidebarLinks.map(link => {
           const hasChildren = link.children?.length > 0;
           const isOpen = expanded.has(link.label);
@@ -256,7 +259,7 @@ export default function Sidebar({ collapsed, onClose }) {
             <div className="user-avatar">{initials}</div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <div className="user-name truncate">{user?.full_name || user?.name || 'User'}</div>
-              <div className="user-role">{user?.clientName || group || ''}</div>
+              <div className="user-role">{user?.clientName || roleTitle(group)}</div>
             </div>
             <button onClick={handleLogout} className="btn btn-ghost btn-icon" title="Logout" style={{ color: '#94a3b8' }}>
               <LogOut size={17} />
