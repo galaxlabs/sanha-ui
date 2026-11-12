@@ -77,12 +77,20 @@ export default function StaffAIReview({ query }) {
     if (research?.kind === 'historical_decision') return <Link key={id} to={`/queries/${encodeURIComponent(research.query)}`} style={{ marginRight: 8 }}>{id} · {research.query}</Link>;
     if (research?.kind === 'public_chemistry' && research.url?.startsWith('https://')) return <a key={id} href={research.url} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · {research.title || 'Public chemistry'}</a>;
     if (research?.kind === 'document_metadata' && (research.url?.startsWith('/files/') || research.url?.startsWith('/private/files/'))) return <a key={id} href={`${FRAPPE_URL}${research.url}`} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{id} · declared document metadata only</a>;
+    const knowledge = review?.research_sources?.find(item => item.id === id && item.kind === 'knowledge_source');
+    if (knowledge) {
+      const badgeLabel = knowledge.badge === 'Authentic' ? 'مستند' : 'منظور شدہ';
+      const label = `${id} · ${knowledge.title} (${badgeLabel}${knowledge.last_checked_on ? `، آخری تصدیق ${knowledge.last_checked_on}` : ''})`;
+      return knowledge.url?.startsWith('https://')
+        ? <a key={id} href={knowledge.url} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>{label}</a>
+        : <span key={id} style={{ marginRight: 8 }}>{label}</span>;
+    }
     if (id === 'Q0') return <span key={id} style={{ marginRight: 8 }}>Q0 · entered Query information</span>;
     const clause = review?.clauses?.find(item => item.id === id);
     return <span key={id} title={clause?.text || ''} style={{ marginRight: 8 }}>{id}</span>;
   }
   return <section className="card" dir={rtl ? 'rtl' : 'ltr'} style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><div role="group" aria-label="Response language" style={{ display: 'inline-flex', border: '1px solid var(--border-input)', borderRadius: 999, padding: 3 }}>{[['ur', 'اردو'], ['en', 'English']].map(([code, label]) => <button key={code} type="button" onClick={() => setLanguage(code)} aria-pressed={language === code} className="btn btn-sm" style={{ borderRadius: 999, background: language === code ? '#2c9f98' : 'transparent', color: language === code ? '#fff' : 'var(--text-secondary)', border: 'none', height: 30 }}>{label}</button>)}</div><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
-    <p className="text-sm text-gray">Current Query documents and decided database references. No public or external sources are used. No historical document files are read. Final decisions remain with staff.</p>
+    <p className="text-sm text-gray">Current Query documents, decided database references, public chemistry from PubChem, and approved knowledge sources (with their badge). No historical document files are read. Final decisions remain with staff.</p>
     <section><h4><Bilingual text={"پہلے سے فیصلہ شدہ database references"} /></h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
       {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
         <div className="table-wrap" style={{ maxHeight: 290, overflowY: 'auto' }}><table><thead><tr><th>Query</th><th>Material</th><th>Manufacturer / Supplier</th><th>Decision</th><th>Match</th></tr></thead><tbody>{related.rows.filter(isFinalDecision).map(row => <tr key={row.name}><td><Link to={`/queries/${encodeURIComponent(row.name)}`}>{row.name}</Link></td><td>{row.raw_material}</td><td>{row.manufacturer} / {row.supplier}</td><td>{row.workflow_state}</td><td>{row.same_material && row.same_manufacturer ? 'Same material + manufacturer' : 'Material reference only; identity not established'}</td></tr>)}</tbody></table></div></>}
