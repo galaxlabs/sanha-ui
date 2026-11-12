@@ -7,6 +7,7 @@ import { getNotifications } from '../../api/frappe';
 import Breadcrumbs from '../UI/Breadcrumbs';
 import CommandPalette from '../UI/CommandPalette';
 import LiveDataStatus from '../UI/LiveDataStatus';
+import { roleTitle } from '../../utils/roleTitles';
 
 /* ── state badge colors for notification list ── */
 const N_COLORS = {
@@ -144,7 +145,7 @@ export default function Header({ onToggleSidebar }) {
     ? 'Administrator'
     : user?.clientName
       ? user.clientName
-      : user?.roles?.find(r => ['Client','Evaluation','SB User','Certificate Manager'].includes(r)) || '';
+      : roleTitle(user?.roles?.find(r => ['Client','Evaluation','SB User','Certificate Manager'].includes(r)) || '');
 
   const ThemeIcon = THEME_ICONS[theme] || Sun;
 

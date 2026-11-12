@@ -14,6 +14,7 @@ import { useLiveRecord } from '../hooks/useLiveData';
 import { peekLiveDataset } from '../api/liveData';
 import { isFinalDecision, materialFieldStyle } from '../utils/materialEvidence';
 import SelectField from '../components/UI/SelectField';
+import DraftMessage from '../components/UI/DraftMessage';
 
 const editableSignature = doc => JSON.stringify({ fields: ['raw_material', 'query_types', 'supplier', 'supplier_contact', 'manufacturer', 'manufacturer_contact', 'client_name'].map(field => doc[field] || ''), documents: (doc.documents || []).map(row => [row.name || '', row.documents || '', row.issue_date || '', row.expiry_date || '', row.attachment || '']) });
 const childStamp = doc => `${(doc.documents || []).length}:${(doc.documents || []).map(row => String(row.modified || '')).sort().at(-1) || ''}`;
@@ -355,6 +356,7 @@ export default function QueryForm() {
 
   /* Auto-save draft to localStorage for new queries */
   const [recoveredDraft, setRecoveredDraft] = useState(null);
+  const [showAssist, setShowAssist] = useState(false);
   useEffect(() => {
     if (!isNew) return;
     const saved = loadDraft();
@@ -445,6 +447,33 @@ export default function QueryForm() {
       {isClient && isDraft && <div className="card" style={{ marginBottom: 16 }}>
         <p>You can save an incomplete draft and complete it later. Automatic submission starts on 11 November 2026 at 00:00 Pakistan time. Only drafts saved by the Client after activation are checked five minutes after their last save, and submitted if complete. Older untouched drafts remain drafts.</p>
       </div>}
+      {isClient && (isNew || isDraft) && (() => {
+        // Shows what is still missing. Submission rules are enforced by the server, not by this card.
+        const missing = [
+          !doc.raw_material?.trim() && 'Raw Material',
+          !doc.query_types && 'Query Type',
+          ...validateDocuments(doc.documents),
+        ].filter(Boolean);
+        return (
+          <div className="card" style={{ marginBottom: 16 }} aria-live="polite">
+            <strong>{missing.length === 0 ? 'تمام ضروری معلومات مکمل ہیں' : 'یہ معلومات باقی ہیں'}</strong>
+            {missing.length > 0 && (
+              <ul style={{ margin: '8px 0 0', paddingInlineStart: 18, fontSize: '0.875rem' }}>
+                {missing.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+              </ul>
+            )}
+            <p className="text-sm" style={{ marginTop: 8 }}>
+              {missing.length === 0
+                ? 'محفوظ کرنے کے پانچ منٹ بعد سسٹم اس ڈرافٹ کو خود سبمٹ کرے گا۔ سرور یہی شرائط دوبارہ جانچتا ہے۔'
+                : 'جب تک یہ معلومات مکمل نہیں ہوں گی، یہ Query خود بخود سبمٹ نہیں ہوگی۔'}
+            </p>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAssist(value => !value)}>
+              {showAssist ? 'بند کریں' : 'پیغام تیار کریں'}
+            </button>
+            {showAssist && <div style={{ marginTop: 12 }}><DraftMessage /></div>}
+          </div>
+        );
+      })()}
       {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={`${doc.name}:${doc.modified}`} query={doc.name} />}
       {/* Recovered draft banner */}
       {recoveredDraft && (

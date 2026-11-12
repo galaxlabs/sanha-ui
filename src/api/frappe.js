@@ -4,6 +4,12 @@ import { collectPages } from '../utils/pagination';
 import { frappeErrorMessage } from '../utils/frappeError';
 import { ensureLiveDataset, liveDataEnabled, liveRows, notifyMutation, reportDataset, stopLiveData, supportsLive } from './liveData';
 
+// Returns subject and body text for copy-paste. Nothing is sent by this call.
+export async function draftText(payload) {
+  const res = await request('POST', '/api/method/sanha.api.drafts.draft_text', payload, { cache: false });
+  return res.message || res;
+}
+
 export async function messageApi(method, data = {}, write = false) {
   const params = new URLSearchParams(data);
   const res = await request(write ? 'POST' : 'GET', `/api/method/sanha.api.messaging.${method}${write ? '' : `?${params}`}`, write ? data : null, { cache: false });

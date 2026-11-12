@@ -5,6 +5,8 @@ import { messageApi } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
 import QueryTimeline from '../components/UI/QueryTimeline';
 import SelectField from '../components/UI/SelectField';
+import { roleTitle } from '../utils/roleTitles';
+import DraftMessage from '../components/UI/DraftMessage';
 
 const EMOJIS = {
   Faces: ['😀', '😊', '🙂', '😄', '😂', '😍', '🤔', '😌', '😎', '🙁', '😮', '🥳'],
@@ -23,6 +25,7 @@ export default function Inbox() {
   const [department, setDepartment] = useState('');
   const [rows, setRows] = useState([]);
   const [text, setText] = useState('');
+  const [showDraft, setShowDraft] = useState(false);
   const [query, setQuery] = useState('');
   const [querySearch, setQuerySearch] = useState('');
   const [options, setOptions] = useState([]);
@@ -88,19 +91,20 @@ export default function Inbox() {
   }
 
   return <div className="messenger-page">
-    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span></div>
+    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span><button type="button" className="btn btn-outline btn-sm" onClick={() => setShowDraft(value => !value)} aria-expanded={showDraft}>{showDraft ? 'بند کریں' : 'پیغام تیار کریں'}</button></div>
     {error && <div className="messenger-error" role="alert">{error}</div>}
+    {showDraft && <DraftMessage onUseText={contact ? (body => setText(body)) : undefined} />}
     <div className={`messenger ${contact ? 'messenger--conversation' : ''}`}>
       <aside className="messenger-members">
         <header className="messenger-list-header"><div className="messenger-avatar messenger-avatar--brand"><MessageCircle size={22} /></div><div><strong>Conversations</strong><small>{contacts.length} available members</small></div></header>
         <div className="messenger-search"><Search size={16} /><input aria-label="Search available members" placeholder="Search members" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <SelectField aria-label="Filter members by department" className="messenger-department" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</SelectField>
-        <div className="messenger-member-list">{visible.length === 0 && <p className="messenger-muted">No available members match.</p>}{visible.map(item => <button type="button" disabled={sending} className={`messenger-member ${contact === item.name ? 'is-selected' : ''}`} key={item.name} onClick={() => { setContact(item.name); setError(''); }}><span className="messenger-avatar">{initials(item.full_name || item.name)}</span><span className="messenger-member-text"><strong>{item.full_name || item.name}</strong><small>{item.departments.join(' · ')}</small></span></button>)}</div>
+        <SelectField aria-label="Filter members by department" className="messenger-department" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value} value={value}>{roleTitle(value)}</option>)}</SelectField>
+        <div className="messenger-member-list">{visible.length === 0 && <p className="messenger-muted">No available members match.</p>}{visible.map(item => <button type="button" disabled={sending} className={`messenger-member ${contact === item.name ? 'is-selected' : ''}`} key={item.name} onClick={() => { setContact(item.name); setError(''); }}><span className="messenger-avatar">{initials(item.full_name || item.name)}</span><span className="messenger-member-text"><strong>{item.full_name || item.name}</strong><small>{item.departments.map(roleTitle).join(' · ')}</small></span></button>)}</div>
         <footer className="messenger-list-footer">karachi@sanha.org.pk</footer>
       </aside>
       <section className="messenger-chat" aria-label="Conversation">
         {!contact ? <div className="messenger-empty"><div className="messenger-empty-icon"><MessageCircle size={42} /></div><h2>Your SANHA conversations</h2><p>Select a member to discuss a Query or contact your team.</p><small>Clients can contact staff only. Staff can contact colleagues and Clients.</small></div> : <>
-          <header className="messenger-chat-header"><button type="button" disabled={sending} className="messenger-icon messenger-back" aria-label="Back to members" onClick={() => setContact('')}><ArrowLeft size={20} /></button><div className="messenger-avatar">{initials(member?.full_name || contact)}</div><div style={{ flex: 1 }}><strong>{member?.full_name || contact}</strong><small>{member?.departments.join(' · ')} · Refreshes every 10 seconds</small></div><button type="button" className="messenger-icon" title="Query Timeline" aria-label="Open Query timeline" onClick={() => setTimeline({ query: query || '' })}><History size={22} /></button></header>
+          <header className="messenger-chat-header"><button type="button" disabled={sending} className="messenger-icon messenger-back" aria-label="Back to members" onClick={() => setContact('')}><ArrowLeft size={20} /></button><div className="messenger-avatar">{initials(member?.full_name || contact)}</div><div style={{ flex: 1 }}><strong>{member?.full_name || contact}</strong><small>{member?.departments.map(roleTitle).join(' · ')} · Refreshes every 10 seconds</small></div><button type="button" className="messenger-icon" title="Query Timeline" aria-label="Open Query timeline" onClick={() => setTimeline({ query: query || '' })}><History size={22} /></button></header>
           {timeline && <QueryTimeline key={`${contact}:${timeline.query}`} contact={contact} initialQuery={timeline.query} onClose={() => setTimeline(null)} />}
           <div className="messenger-history" role="log" aria-label="Messages">
             <div className="messenger-note">Only participants can access this conversation through the portal.</div>
