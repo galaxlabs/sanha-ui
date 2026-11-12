@@ -25,6 +25,7 @@ const time = value => new Date(value.replace(' ', 'T')).toLocaleTimeString([], {
 
 export default function Inbox() {
   const { user } = useAuth();
+  const isClientUser = !!user?.roles?.includes('Client');
   const [contacts, setContacts] = useState([]);
   const [contact, setContact] = useState('');
   const [search, setSearch] = useState('');
@@ -107,7 +108,7 @@ export default function Inbox() {
   }
 
   return <div className="messenger-page">
-    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span><button type="button" className="btn btn-outline btn-sm" onClick={() => setShowDraft(value => !value)} aria-expanded={showDraft}>{showDraft ? 'بند کریں' : 'پیغام تیار کریں'}</button></div>
+    <div className="messenger-heading"><div><p className="page-kicker">SANHA CONNECT</p><h1>Messages</h1></div><span><ShieldCheck size={15} /> Role-protected conversations</span>{isClientUser ? <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowDraft(value => !value)} aria-expanded={showDraft}>{showDraft ? 'بند کریں' : 'پیغام تیار کریں'}</button> : <span className="messenger-muted" title="Assistant view for staff">اسسٹنٹ: مسودہ صرف کلائنٹ کے لیے</span>}</div>
     {error && <div className="messenger-error" role="alert">{error}</div>}
     {showDraft && <DraftMessage onUseText={contact ? (body => setText(body)) : undefined} />}
     <div className={`messenger ${contact ? 'messenger--conversation' : ''}`}>
