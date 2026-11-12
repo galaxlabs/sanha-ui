@@ -107,12 +107,25 @@ export default function StaffAIReview({ query }) {
     {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
     {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{review.assessment[key].text}</p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
     {(() => {
-      // The model sometimes repeats a question already shown in an assessment section; show it once.
-      const squash = value => String(value || '').replace(/[\s\p{P}\p{S}]+/gu, '').toLowerCase();
-      const assessmentText = squash(Object.values(review?.assessment || {}).map(item => item?.text || '').join(' '));
+      // The model often restates a question already shown in an assessment section (wording differs slightly).
+      // A follow-up is hidden when most of its words already appear in one sentence of the sections above.
+      const words = value => new Set(String(value || '').toLowerCase().replace(/[\p{P}\p{S}]/gu, ' ').split(/\s+/).filter(w => w.length >= 2));
+      const sentences = Object.values(review?.assessment || {})
+        .flatMap(item => String(item?.text || '').split(/[\n۔?.!]+/))
+        .map(words)
+        .filter(set => set.size >= 3);
+      const overlap = (a, b) => {
+        const shared = [...a].filter(w => b.has(w)).length;
+        return a.size && b.size ? shared / Math.min(a.size, b.size) : 0;
+      };
+      const seen = [];
       const questions = (review?.follow_up_questions || []).filter(item => {
-        const key = squash(item.text);
-        return key && !assessmentText.includes(key);
+        const set = words(item.text);
+        if (set.size < 3) return true;
+        const repeatsSection = sentences.some(sentence => overlap(set, sentence) >= 0.5);
+        const repeatsEarlier = seen.some(prev => overlap(set, prev) >= 0.6);
+        seen.push(set);
+        return !repeatsSection && !repeatsEarlier;
       });
       return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
     })()}
