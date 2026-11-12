@@ -5,6 +5,20 @@ import { addTeamComment, listTeamComments } from '../../api/frappe';
 // Comments are shown as plain text. Older Frappe comments may contain HTML, so tags are removed.
 const plainText = value => String(value || '').replace(/<[^>]+>/g, '').trim();
 
+// "ابھی", "5 منٹ پہلے", "2 گھنٹے پہلے", "3 دن پہلے"; older items show the date.
+const howLongAgo = value => {
+  const then = new Date(String(value || '').replace(' ', 'T')).getTime();
+  if (Number.isNaN(then)) return '';
+  const minutes = Math.max(0, Math.floor((Date.now() - then) / 60000));
+  if (minutes < 1) return 'ابھی';
+  if (minutes < 60) return `${minutes} منٹ پہلے`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} گھنٹے پہلے`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} دن پہلے`;
+  return new Date(then).toLocaleDateString();
+};
+
 /* Team comments on one Query. Visible to staff only; the server enforces this too. */
 export default function TeamComments({ query }) {
   const [comments, setComments] = useState([]);
@@ -54,7 +68,7 @@ export default function TeamComments({ query }) {
           <article key={item.name} style={{ border: '1px solid var(--border-base)', borderRadius: 12, padding: '10px 12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               <strong style={{ color: 'var(--text-primary)' }}>{item.comment_by || item.comment_email}</strong>
-              <time>{String(item.creation || '').replace('T', ' ').slice(0, 16)}</time>
+              <time title={String(item.creation || '').replace('T', ' ').slice(0, 16)}>{howLongAgo(item.creation)}</time>
             </div>
             <p dir="auto" style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{plainText(item.content)}</p>
           </article>

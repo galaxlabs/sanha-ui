@@ -22,6 +22,19 @@ const receiptState = row => {
   return { mark: '✓', label: 'بھیج دیا گیا', color: '#64748b' };
 };
 const time = value => new Date(value.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+// "How long ago" label, e.g. "ابھی", "5 منٹ پہلے", "2 گھنٹے پہلے", "3 دن پہلے"; older items show the date.
+const timeAgo = value => {
+  const then = new Date(String(value).replace(' ', 'T')).getTime();
+  if (Number.isNaN(then)) return '';
+  const minutes = Math.max(0, Math.floor((Date.now() - then) / 60000));
+  if (minutes < 1) return 'ابھی';
+  if (minutes < 60) return `${minutes} منٹ پہلے`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} گھنٹے پہلے`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} دن پہلے`;
+  return new Date(then).toLocaleDateString();
+};
 
 export default function Inbox() {
   const { user } = useAuth();
@@ -128,7 +141,7 @@ export default function Inbox() {
             {loading ? <p className="messenger-muted">Loading messages…</p> : rows.length === 0 ? <p className="messenger-muted">No messages yet. Say hello 👋</p> : rows.map((row, index) => {
               const date = row.creation.split(' ')[0];
               const previousDate = rows[index - 1]?.creation.split(' ')[0];
-              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name ? 'messenger-bubble--sent' : ''}`}><p dir="auto">{row.message}</p>{row.query_reference && <><Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link><button type="button" className="messenger-icon" title="Query Timeline" onClick={() => setTimeline({ query: row.query_reference })}><History size={14} /> Timeline</button></>}<time>{time(row.creation)}{row.sender === user.name && (() => { const receipt = receiptState(row); return <span title={receipt.label} aria-label={receipt.label} style={{ marginInlineStart: 6, color: receipt.color, letterSpacing: '-2px' }}>{receipt.mark}</span>; })()}</time></article></div>;
+              return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name && !row.is_comment ? 'messenger-bubble--sent' : ''}`}>{row.is_comment && <small style={{ display: 'block', fontWeight: 600, color: 'var(--brand-700)', marginBottom: 4 }}>ٹیم کا کمنٹ{row.query_reference ? ` · ${row.query_reference}` : ''}</small>}<p dir="auto">{row.message}</p>{row.query_reference && <><Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link><button type="button" className="messenger-icon" title="Query Timeline" onClick={() => setTimeline({ query: row.query_reference })}><History size={14} /> Timeline</button></>}<time title={time(row.creation)}>{timeAgo(row.creation)} · {time(row.creation)}{row.sender === user.name && !row.is_comment && (() => { const receipt = receiptState(row); return <span title={receipt.label} aria-label={receipt.label} style={{ marginInlineStart: 6, color: receipt.color, letterSpacing: '-2px' }}>{receipt.mark}</span>; })()}</time></article></div>;
             })}<div ref={bottom} />
           </div>
           <form className="messenger-compose" onSubmit={send}>
