@@ -15,6 +15,7 @@ import { peekLiveDataset } from '../api/liveData';
 import { isFinalDecision, materialFieldStyle } from '../utils/materialEvidence';
 import SelectField from '../components/UI/SelectField';
 import DraftMessage from '../components/UI/DraftMessage';
+import TeamComments from '../components/UI/TeamComments';
 
 const editableSignature = doc => JSON.stringify({ fields: ['raw_material', 'query_types', 'supplier', 'supplier_contact', 'manufacturer', 'manufacturer_contact', 'client_name'].map(field => doc[field] || ''), documents: (doc.documents || []).map(row => [row.name || '', row.documents || '', row.issue_date || '', row.expiry_date || '', row.attachment || '']) });
 const childStamp = doc => `${(doc.documents || []).length}:${(doc.documents || []).map(row => String(row.modified || '')).sort().at(-1) || ''}`;
@@ -474,6 +475,7 @@ export default function QueryForm() {
           </div>
         );
       })()}
+      {!isNew && doc.name && !isClient && <TeamComments query={doc.name} />}
       {!isNew && doc.name && doc.workflow_state !== 'Draft' && (isAdmin() || hasRole('Evaluation') || hasRole('SB User') || hasRole('Certificate Manager')) && <StaffAIReview key={`${doc.name}:${doc.modified}`} query={doc.name} />}
       {/* Recovered draft banner */}
       {recoveredDraft && (

@@ -8,7 +8,7 @@ import {
   MessageSquare, PanelLeftClose, PanelLeft, BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getPortalLogoUrl } from '../../api/frappe';
+import { getPortalLogoUrl, getUnreadSummary } from '../../api/frappe';
 import { roleTitle } from '../../utils/roleTitles';
 
 /* ─── Report sub-items (shared across all roles that have Reports) ─── */
@@ -110,6 +110,18 @@ export default function Sidebar({ collapsed, onClose }) {
     ? [{ label: 'Staff AI Review', icon: Search, to: '/ai-review' }, ...(group === 'Admin' ? [{ label: 'AI Agent Settings', icon: Settings, to: '/settings/ai-agent' }] : [])]
     : [];
   const sidebarLinks = uniqueLinks([...links, ...agentLinks]);
+  // Unread message count for the Messages link. Polled every 5 seconds; calling the endpoint also marks messages as delivered.
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (!user?.name) return undefined;
+    let active = true;
+    const load = () => getUnreadSummary()
+      .then(summary => { if (active) setUnread(summary?.total || 0); })
+      .catch(() => {});
+    load();
+    const timer = setInterval(load, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [user?.name]);
   const [logoUrl, setLogoUrl] = useState(() => getPortalLogoUrl());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Track which expandable items are open (default: Reports open if on /reports)
@@ -231,6 +243,15 @@ export default function Sidebar({ collapsed, onClose }) {
             >
               <link.icon size={18} />
               {!sidebarCollapsed && link.label}
+              {link.to === '/messages' && unread > 0 && (
+                <span
+                  className="nav-badge"
+                  aria-label={`${unread} unread messages`}
+                  style={{ marginInlineStart: 'auto', background: '#dc2626', color: '#fff', borderRadius: 999, minWidth: 20, height: 20, padding: '0 6px', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
             </NavLink>
           );
         })}
