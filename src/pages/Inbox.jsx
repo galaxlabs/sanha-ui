@@ -95,6 +95,8 @@ export default function Inbox() {
 
   const departments = [...new Set(contacts.flatMap(item => item.departments))];
   const member = contacts.find(item => item.name === contact);
+  // Team comments belong to one Query. Show them only when that Query is selected; otherwise show plain messages.
+  const visibleRows = query ? rows.filter(row => row.query_reference === query) : rows.filter(row => !row.is_comment);
   const visible = contacts.filter(item => (!department || item.departments.includes(department)) && `${item.full_name} ${item.name}`.toLowerCase().includes(search.toLowerCase()));
   function openQueryPicker() {
     setQueryOffset(0);
@@ -138,9 +140,9 @@ export default function Inbox() {
           {timeline && <QueryTimeline key={`${contact}:${timeline.query}`} contact={contact} initialQuery={timeline.query} onClose={() => setTimeline(null)} />}
           <div className="messenger-history" role="log" aria-label="Messages">
             <div className="messenger-note">Only participants can access this conversation through the portal.</div>
-            {loading ? <p className="messenger-muted">Loading messages…</p> : rows.length === 0 ? <p className="messenger-muted">No messages yet. Say hello 👋</p> : rows.map((row, index) => {
+            {loading ? <p className="messenger-muted">Loading messages…</p> : visibleRows.length === 0 ? <p className="messenger-muted">No messages yet. Say hello 👋</p> : visibleRows.map((row, index) => {
               const date = row.creation.split(' ')[0];
-              const previousDate = rows[index - 1]?.creation.split(' ')[0];
+              const previousDate = visibleRows[index - 1]?.creation.split(' ')[0];
               return <div key={row.name}>{date !== previousDate && <div className="messenger-date">{date}</div>}<article className={`messenger-bubble ${row.sender === user.name && !row.is_comment ? 'messenger-bubble--sent' : ''}`}>{row.is_comment && <small style={{ display: 'block', fontWeight: 600, color: 'var(--brand-700)', marginBottom: 4 }}>ٹیم کا کمنٹ{row.query_reference ? ` · ${row.query_reference}` : ''}</small>}<p dir="auto">{row.message}</p>{row.query_reference && <><Link className="messenger-query" to={`/queries/${encodeURIComponent(row.query_reference)}`}><AtSign size={13} /> {row.query_reference}</Link><button type="button" className="messenger-icon" title="Query Timeline" onClick={() => setTimeline({ query: row.query_reference })}><History size={14} /> Timeline</button></>}<time title={time(row.creation)}>{timeAgo(row.creation)} · {time(row.creation)}{row.sender === user.name && !row.is_comment && (() => { const receipt = receiptState(row); return <span title={receipt.label} aria-label={receipt.label} style={{ marginInlineStart: 6, color: receipt.color, letterSpacing: '-2px' }}>{receipt.mark}</span>; })()}</time></article></div>;
             })}<div ref={bottom} />
           </div>
