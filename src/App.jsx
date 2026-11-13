@@ -23,6 +23,7 @@ import ClientReport from './pages/ClientReport';
 import Learning from './pages/Learning';
 import References from './pages/References';
 import KnowledgeAdmin from './pages/KnowledgeAdmin';
+import Masters from './pages/Masters';
 import Chat from './pages/Chat';
 import ClientResources from './pages/ClientResources';
 import StaffReviewPage from './pages/StaffReviewPage';
@@ -114,6 +115,7 @@ function AppRoutes() {
       <Route path="/learning" element={<ProtectedRoute><AppLayout><Learning /></AppLayout></ProtectedRoute>} />
       <Route path="/assistant" element={<ProtectedRoute><AppLayout><Chat /></AppLayout></ProtectedRoute>} />
       <Route path="/knowledge-admin" element={<ProtectedRoute allowedRoles={['Admin', 'System Manager', 'Administrator']}><AppLayout><KnowledgeAdmin /></AppLayout></ProtectedRoute>} />
+      <Route path="/masters/:kind" element={<ProtectedRoute allowedRoles={['Admin', 'System Manager', 'Administrator']}><AppLayout><Masters /></AppLayout></ProtectedRoute>} />
       <Route path="/references" element={<ProtectedRoute><AppLayout><References /></AppLayout></ProtectedRoute>} />
       <Route path="/resources/:type" element={<ProtectedRoute><AppLayout><ClientResourcesRoute /></AppLayout></ProtectedRoute>} />
 

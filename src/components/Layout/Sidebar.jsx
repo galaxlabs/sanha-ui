@@ -113,7 +113,11 @@ export default function Sidebar({ collapsed, onClose }) {
   const referenceLinks = [{ label: 'حوالہ جات', icon: BookOpen, to: '/references' }];
   const assistantLinks = [{ label: 'AI اسسٹنٹ', icon: MessageSquare, to: '/assistant' }];
   const adminKnowledgeLinks = group === 'Admin' ? [{ label: 'حوالہ جات کا انتظام', icon: ShieldCheck, to: '/knowledge-admin' }] : [];
-  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks, ...assistantLinks, ...adminKnowledgeLinks]);
+  const adminMasterLinks = group === 'Admin' ? [
+    { label: 'دستاویز کی اقسام', icon: List, to: '/masters/document-types' },
+    { label: 'شہر', icon: Building2, to: '/masters/cities' },
+  ] : [];
+  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks, ...assistantLinks, ...adminKnowledgeLinks, ...adminMasterLinks]);
   // Unread message count for the Messages link. Polled every 5 seconds; calling the endpoint also marks messages as delivered.
   const [unread, setUnread] = useState(0);
   useEffect(() => {
