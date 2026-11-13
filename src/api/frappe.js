@@ -10,6 +10,12 @@ export async function draftText(payload) {
   return res.message || res;
 }
 
+// Published reference library (Active, badged, in-date sources). Clients see only Authoritative sources.
+export async function listKnowledgeSources() {
+  const res = await request('GET', '/api/method/sanha.api.knowledge_library.list_sources', null, { cache: false });
+  return res.message || [];
+}
+
 // Team comments on a Query. Staff only; the server rejects client users.
 export async function listTeamComments(query) {
   const res = await request('GET', `/api/method/sanha.api.query_comments.list_comments?query=${encodeURIComponent(query)}`, null, { cache: false });

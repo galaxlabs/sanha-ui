@@ -109,7 +109,10 @@ export default function Sidebar({ collapsed, onClose }) {
   const agentLinks = ['Admin', 'Evaluation', 'SB User', 'Certificate Manager'].includes(group)
     ? [{ label: 'Staff AI Review', icon: Search, to: '/ai-review' }, ...(group === 'Admin' ? [{ label: 'AI Agent Settings', icon: Settings, to: '/settings/ai-agent' }] : [])]
     : [];
-  const sidebarLinks = uniqueLinks([...links, ...agentLinks]);
+  // Reference page (includes learning and video links) is shown to everyone; clients only see Authoritative, published sources.
+  const referenceLinks = [{ label: 'حوالہ جات', icon: BookOpen, to: '/references' }];
+  const assistantLinks = [{ label: 'AI اسسٹنٹ', icon: MessageSquare, to: '/assistant' }];
+  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks, ...assistantLinks]);
   // Unread message count for the Messages link. Polled every 5 seconds; calling the endpoint also marks messages as delivered.
   const [unread, setUnread] = useState(0);
   useEffect(() => {
