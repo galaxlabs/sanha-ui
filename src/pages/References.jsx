@@ -5,6 +5,7 @@ import { FRAPPE_URL, listKnowledgeSources } from '../api/frappe';
 import { useAuth } from '../contexts/AuthContext';
 
 const BADGE_LABELS = { Approved: 'منظور شدہ', Authentic: 'مستند' };
+const SOURCE_TYPES = ['Website', 'PDF / Document', 'Book', 'Article', 'OIC Resolution', 'Standard', 'Institutional Clause', 'Regulation', 'Other'];
 
 /* Reference library: standards and approved sources, with their badge and E-Number links. */
 export default function References() {
@@ -25,7 +26,8 @@ export default function References() {
     return () => { active = false; };
   }, []);
 
-  const types = useMemo(() => [...new Set(items.map(item => item.source_type).filter(Boolean))].sort(), [items]);
+  // Always offer every source type, so the list is not empty before any source is published.
+  const types = useMemo(() => [...new Set([...SOURCE_TYPES, ...items.map(item => item.source_type).filter(Boolean)])], [items]);
 
   const visible = items.filter(item => {
     if (type && item.source_type !== type) return false;
