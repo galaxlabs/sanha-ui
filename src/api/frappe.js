@@ -10,6 +10,31 @@ export async function draftText(payload) {
   return res.message || res;
 }
 
+// Administrator knowledge-source management (Admin and System Manager only).
+export async function adminListKnowledgeSources() {
+  const res = await request('GET', '/api/method/sanha.api.knowledge_admin.admin_list', null, { cache: false });
+  return res.message || [];
+}
+
+export async function adminSaveKnowledgeSource(name, data) {
+  const res = await request('POST', '/api/method/sanha.api.knowledge_admin.admin_save', { name: name || null, data }, { cache: false });
+  return res.message;
+}
+
+// Uploads a private file attached to a Knowledge Source record and returns its file_url.
+export async function uploadKnowledgeFile(file, docname) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('is_private', '1');
+  fd.append('doctype', 'Knowledge Source');
+  if (docname) fd.append('docname', docname);
+  const headers = { Accept: 'application/json', ...authHeaders() };
+  const res = await fetch(BASE + '/api/method/upload_file', { method: 'POST', headers, credentials: 'include', body: fd });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.exc) throw new Error(json._error_message || json.message || 'Upload failed');
+  return json.message?.file_url;
+}
+
 // Published reference library (Active, badged, in-date sources). Clients see only Authoritative sources.
 export async function listKnowledgeSources() {
   const res = await request('GET', '/api/method/sanha.api.knowledge_library.list_sources', null, { cache: false });
