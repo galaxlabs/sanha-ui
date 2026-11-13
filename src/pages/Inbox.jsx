@@ -61,7 +61,15 @@ export default function Inbox() {
   const textarea = useRef(null);
   const bottom = useRef(null);
 
-  useEffect(() => { messageApi('contacts').then(setContacts).catch(e => setError(e.message)); }, []);
+  // Member list with unread counts; refreshed so badges drop when messages are read.
+  useEffect(() => {
+    let active = true;
+    const load = () => messageApi('contacts').then(data => { if (active) setContacts(data); }).catch(e => { if (active) setError(e.message); });
+    load();
+    const timer = setInterval(load, 6000);
+    return () => { active = false; clearInterval(timer); };
+  }, []);
+  const [listFilter, setListFilter] = useState('all');
   useEffect(() => {
     if (!contact) return;
     let active = true;
@@ -97,7 +105,8 @@ export default function Inbox() {
   const member = contacts.find(item => item.name === contact);
   // Team comments belong to one Query. Show them only when that Query is selected; otherwise show plain messages.
   const visibleRows = query ? rows.filter(row => row.query_reference === query) : rows.filter(row => !row.is_comment);
-  const visible = contacts.filter(item => (!department || item.departments.includes(department)) && `${item.full_name} ${item.name}`.toLowerCase().includes(search.toLowerCase()));
+  const isRecent = value => value && Date.now() - new Date(String(value).replace(' ', 'T')).getTime() < 24 * 60 * 60 * 1000;
+const visible = contacts.filter(item => (listFilter === 'all' || (listFilter === 'unread' && item.unread > 0) || (listFilter === 'recent' && isRecent(item.last_received_at))) && (!department || item.departments.includes(department)) && `${item.full_name} ${item.name}`.toLowerCase().includes(search.toLowerCase()));
   function openQueryPicker() {
     setQueryOffset(0);
     if (!picker) setOptions([]);
@@ -129,9 +138,10 @@ export default function Inbox() {
     <div className={`messenger ${contact ? 'messenger--conversation' : ''}`}>
       <aside className="messenger-members">
         <header className="messenger-list-header"><div className="messenger-avatar messenger-avatar--brand"><MessageCircle size={22} /></div><div><strong>Conversations</strong><small>{contacts.length} available members</small></div></header>
+        <div role="group" aria-label="Filter conversations" style={{ display: 'flex', gap: 6, padding: '0 12px 8px', flexWrap: 'wrap' }}>{[['all', 'سارے'], ['unread', 'نہ پڑھے ہوئے'], ['recent', 'نئے (24 گھنٹے)']].map(([value, text]) => <button key={value} type="button" className={`btn btn-sm ${listFilter === value ? 'btn-primary' : 'btn-outline'}`} aria-pressed={listFilter === value} onClick={() => setListFilter(value)}>{text}</button>)}</div>
         <div className="messenger-search"><Search size={16} /><input aria-label="Search available members" placeholder="Search members" value={search} onChange={e => setSearch(e.target.value)} /></div>
         <SelectField aria-label="Filter members by department" className="messenger-department" value={department} onChange={e => setDepartment(e.target.value)}><option value="">All departments</option>{departments.map(value => <option key={value} value={value}>{roleTitle(value)}</option>)}</SelectField>
-        <div className="messenger-member-list">{visible.length === 0 && <p className="messenger-muted">No available members match.</p>}{visible.map(item => <button type="button" disabled={sending} className={`messenger-member ${contact === item.name ? 'is-selected' : ''}`} key={item.name} onClick={() => { setContact(item.name); setError(''); }}><span className="messenger-avatar">{initials(item.full_name || item.name)}</span><span className="messenger-member-text"><strong>{item.full_name || item.name}</strong><small>{item.departments.map(roleTitle).join(' · ')}</small></span></button>)}</div>
+        <div className="messenger-member-list">{visible.length === 0 && <p className="messenger-muted">No available members match.</p>}{visible.map(item => <button type="button" disabled={sending} className={`messenger-member ${contact === item.name ? 'is-selected' : ''}`} key={item.name} onClick={() => { setContact(item.name); setError(''); }}><span className="messenger-avatar">{initials(item.full_name || item.name)}</span>{item.unread > 0 && <span aria-label={`${item.unread} unread`} style={{ marginInlineStart: 'auto', background: '#dc2626', color: '#fff', borderRadius: 999, minWidth: 20, height: 20, padding: '0 6px', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{item.unread > 99 ? '99+' : item.unread}</span>}<span className="messenger-member-text"><strong>{item.full_name || item.name}</strong><small>{item.departments.map(roleTitle).join(' · ')}</small></span></button>)}</div>
         <footer className="messenger-list-footer">karachi@sanha.org.pk</footer>
       </aside>
       <section className="messenger-chat" aria-label="Conversation">
