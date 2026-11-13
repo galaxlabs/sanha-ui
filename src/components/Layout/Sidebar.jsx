@@ -111,7 +111,8 @@ export default function Sidebar({ collapsed, onClose }) {
     : [];
   // The reference library is staff-only until it is approved for clients.
   const referenceLinks = group !== 'Client' && group !== 'Portal' ? [{ label: 'حوالہ جات', icon: BookOpen, to: '/references' }] : [];
-  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks]);
+  const assistantLinks = [{ label: 'AI اسسٹنٹ', icon: MessageSquare, to: '/assistant' }];
+  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks, ...assistantLinks]);
   // Unread message count for the Messages link. Polled every 5 seconds; calling the endpoint also marks messages as delivered.
   const [unread, setUnread] = useState(0);
   useEffect(() => {
