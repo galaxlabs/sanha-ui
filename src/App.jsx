@@ -112,7 +112,7 @@ function AppRoutes() {
       } />
       <Route path="/learning" element={<ProtectedRoute><AppLayout><Learning /></AppLayout></ProtectedRoute>} />
       <Route path="/assistant" element={<ProtectedRoute><AppLayout><Chat /></AppLayout></ProtectedRoute>} />
-      <Route path="/references" element={<ProtectedRoute allowedRoles={['Admin', 'System Manager', 'Administrator', 'Evaluation', 'SB User', 'Certificate Manager']}><AppLayout><References /></AppLayout></ProtectedRoute>} />
+      <Route path="/references" element={<ProtectedRoute><AppLayout><References /></AppLayout></ProtectedRoute>} />
       <Route path="/resources/:type" element={<ProtectedRoute><AppLayout><ClientResourcesRoute /></AppLayout></ProtectedRoute>} />
 
       <Route path="/reports" element={
