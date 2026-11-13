@@ -21,6 +21,7 @@ import PrintGrouped from './pages/PrintGrouped';
 import PrintReport from './pages/PrintReport';
 import ClientReport from './pages/ClientReport';
 import Learning from './pages/Learning';
+import References from './pages/References';
 import ClientResources from './pages/ClientResources';
 import StaffReviewPage from './pages/StaffReviewPage';
 import ChatAgentConfig from './pages/ChatAgentConfig';
@@ -109,6 +110,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/learning" element={<ProtectedRoute><AppLayout><Learning /></AppLayout></ProtectedRoute>} />
+      <Route path="/references" element={<ProtectedRoute><AppLayout><References /></AppLayout></ProtectedRoute>} />
       <Route path="/resources/:type" element={<ProtectedRoute><AppLayout><ClientResourcesRoute /></AppLayout></ProtectedRoute>} />
 
       <Route path="/reports" element={
