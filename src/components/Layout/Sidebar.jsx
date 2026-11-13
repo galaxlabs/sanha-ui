@@ -5,7 +5,7 @@ import {
   Settings, LogOut, Shield, Star, Package, BarChart2,
   CheckCircle, XCircle, AlertTriangle, Clock, Search,
   ChevronDown, ChevronRight, Layers, PieChart, List,
-  MessageSquare, PanelLeftClose, PanelLeft, BookOpen,
+  MessageSquare, PanelLeftClose, PanelLeft, BookOpen, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPortalLogoUrl, getUnreadSummary } from '../../api/frappe';
@@ -112,7 +112,8 @@ export default function Sidebar({ collapsed, onClose }) {
   // Reference page (includes learning and video links) is shown to everyone; clients only see Authoritative, published sources.
   const referenceLinks = [{ label: 'حوالہ جات', icon: BookOpen, to: '/references' }];
   const assistantLinks = [{ label: 'AI اسسٹنٹ', icon: MessageSquare, to: '/assistant' }];
-  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks, ...assistantLinks]);
+  const adminKnowledgeLinks = group === 'Admin' ? [{ label: 'حوالہ جات کا انتظام', icon: ShieldCheck, to: '/knowledge-admin' }] : [];
+  const sidebarLinks = uniqueLinks([...links, ...agentLinks, ...referenceLinks, ...assistantLinks, ...adminKnowledgeLinks]);
   // Unread message count for the Messages link. Polled every 5 seconds; calling the endpoint also marks messages as delivered.
   const [unread, setUnread] = useState(0);
   useEffect(() => {
