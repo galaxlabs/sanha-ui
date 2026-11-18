@@ -193,7 +193,7 @@ export default function Sidebar({ collapsed, onClose }) {
 
       {/* Nav */}
       <nav className="sidebar-nav">
-        {group && !sidebarCollapsed && <div className="sidebar-role-badge">{roleTitle(group)}</div>}
+        {group && !sidebarCollapsed && <div dir="auto" className="sidebar-role-badge">{roleTitle(group)}</div>}
         {sidebarLinks.map(link => {
           const hasChildren = link.children?.length > 0;
           const isOpen = expanded.has(link.label);
@@ -288,7 +288,7 @@ export default function Sidebar({ collapsed, onClose }) {
             <div className="user-avatar">{initials}</div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <div className="user-name truncate">{user?.full_name || user?.name || 'User'}</div>
-              <div className="user-role">{user?.clientName || roleTitle(group)}</div>
+              <div dir="auto" className="user-role">{user?.clientName || roleTitle(group)}</div>
             </div>
             <button onClick={handleLogout} className="btn btn-ghost btn-icon" title="Logout" style={{ color: '#94a3b8' }}>
               <LogOut size={17} />

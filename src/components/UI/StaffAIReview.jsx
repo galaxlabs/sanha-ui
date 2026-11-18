@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bot, RefreshCw } from 'lucide-react';
-import { FRAPPE_URL, getQuerySummary, ensureQuerySummary, getRelatedReviewDecisions } from '../../api/frappe';
+import { FRAPPE_URL, getQuerySummary, ensureQuerySummary, getRelatedReviewDecisions, listTeamComments } from '../../api/frappe';
 import { useAuth } from '../../contexts/AuthContext';
 import { isFinalDecision } from '../../utils/materialEvidence';
 import Bilingual from './Bilingual';
@@ -14,7 +14,23 @@ const ASSESSMENT_LABELS = {
   missing_evidence: 'مزید درکار معلومات اور documents',
 };
 
+/* English notices such as "No MSDS found" are shown in red, left to right, so they stay readable inside Urdu text. */
+const ABSENCE_NOTICE = /(No\s+[A-Za-z0-9 .\-\/]{1,30}?\s+(?:found|available|provided|submitted|attached)\b|Not\s+found\b)/g;
+
+function Highlight({ text }) {
+  if (typeof text !== 'string') return text ?? null;
+  return text.split(ABSENCE_NOTICE).map((part, i) => (i % 2 === 1
+    ? <span key={i} dir="ltr" style={{ color: '#c53030', fontWeight: 600 }}>{part}</span>
+    : <Bilingual key={i} text={part} />));
+}
+
+/* Team comments on this Query, shown as reference next to the AI review. Plain text only. */
+function plainComment(value) {
+  return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export default function StaffAIReview({ query }) {
+  const [teamComments, setTeamComments] = useState([]);
   const { isAdmin, hasRole } = useAuth();
   const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState('');
@@ -22,6 +38,15 @@ export default function StaffAIReview({ query }) {
   const [refresh, setRefresh] = useState(0);
   const [related, setRelated] = useState(null);
   const [relatedBusy, setRelatedBusy] = useState(false);
+
+  useEffect(() => {
+    if (!query) return undefined;
+    let active = true;
+    listTeamComments(query)
+      .then(rows => { if (active) setTeamComments(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (active) setTeamComments([]); });
+    return () => { active = false; };
+  }, [query]);
   const currentQuery = useRef(query);
   currentQuery.current = query;
   useEffect(() => {
@@ -129,8 +154,9 @@ export default function StaffAIReview({ query }) {
       });
       return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
     })()}
-    {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir="auto">{item.document}: {item.message} {(item.sources || []).map(reference)}</p>)}</details>}
-    {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto">{item.text} <small>{item.sources.map(reference)}</small></p>)}</div>}
+    {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir="auto">{item.document}: <Highlight text={item.message} /> {(item.sources || []).map(reference)}</p>)}</details>}
+    {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto"><Highlight text={item.text} /> <small>{item.sources.map(reference)}</small></p>)}</div>}
+    {!!teamComments.length && <div><h4>ٹیم کے تبصرے (حوالہ کے طور پر)</h4>{teamComments.map(item => <p key={item.name} dir="auto" style={{ whiteSpace: 'pre-wrap' }}><strong>{item.comment_by || item.comment_email}:</strong> {plainComment(item.content)}</p>)}</div>}
     {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index} dir="auto"><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
     {review && <details><summary>References, limits and unreadable-document notices</summary><p className="text-sm text-gray">{review.limits}</p>{review.documents?.filter(item => item.warning).map(item => <p key={item.id}>{item.id} ({item.type}): {item.warning}</p>)}{review.entity_warnings?.map((item, index) => <p key={index} dir="auto">{item}</p>)}{!review.clauses?.length && <p>No institutional clauses configured yet.</p>}{isAdmin() && review.department_notes && Object.entries(review.department_notes).map(([name, item]) => <p key={name} dir="auto"><strong>{name}:</strong> {item.text} {item.sources.map(reference)}</p>)}</details>}
   </section>;

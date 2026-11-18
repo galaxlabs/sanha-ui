@@ -58,7 +58,7 @@ export default function TeamComments({ query }) {
       <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
         <MessageSquare size={18} /> ٹیم کے کمنٹس
       </h3>
-      <p className="text-sm text-gray" style={{ marginTop: 0 }}>
+      <p dir="auto" className="text-sm text-gray" style={{ marginTop: 0 }}>
         یہ کمنٹس صرف SANHA کے ٹیم ممبران دیکھ سکتے ہیں۔
       </p>
 
