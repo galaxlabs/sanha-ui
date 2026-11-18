@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { renderAsync } from 'docx-preview';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Plus, X, Paperclip, Printer, AlertTriangle, AlertCircle, Info, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -813,9 +814,37 @@ function SimilarQueryCard({ match, compact = false }) {
 }
 
 /* Inline file preview modal */
+/* Renders a Word (.docx) file inside the viewer. The file is fetched and converted in the browser. */
+function DocxViewer({ url }) {
+  const holder = useRef(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setError('');
+    setLoading(true);
+    fetch(url, { credentials: 'include' })
+      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.blob(); })
+      .then(blob => (holder.current ? renderAsync(blob, holder.current, undefined, { inWrapper: true, ignoreWidth: false }) : null))
+      .then(() => { if (active) setLoading(false); })
+      .catch(err => { if (active) { setError(err.message || 'Unknown error'); setLoading(false); } });
+    return () => { active = false; };
+  }, [url]);
+
+  return (
+    <div style={{ height: '100%', overflow: 'auto', background: '#e5e7eb' }}>
+      {loading && !error && <p style={{ padding: 16, color: '#374151' }}>فائل لوڈ ہو رہی ہے…</p>}
+      {error && <p role="alert" style={{ padding: 16, color: '#b91c1c' }}>فائل دکھائی نہیں جا سکی: {error}۔ نیچے Download سے کھولیں۔</p>}
+      <div ref={holder} />
+    </div>
+  );
+}
+
 function FilePreviewModal({ fileUrl, onClose }) {
   const ext = fileUrl.split('?')[0].split('.').pop()?.toLowerCase();
   const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+  const isDocx = ext === 'docx';
   const fileName = decodeURIComponent(fileUrl.split('/').pop().split('?')[0]);
 
   return (
@@ -837,6 +866,8 @@ function FilePreviewModal({ fileUrl, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 16 }}>
             <img src={fileUrl} alt={fileName} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />
           </div>
+        ) : isDocx ? (
+          <DocxViewer url={fileUrl} />
         ) : (
           <iframe
             src={fileUrl}
