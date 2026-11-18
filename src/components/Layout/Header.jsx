@@ -166,8 +166,9 @@ export default function Header({ onToggleSidebar }) {
       </div>
       <div className="nav-clock-wrap">
         <div className="nav-clock digital-clock">
-          <span className="nc-date">{today} · {hijriDate}</span>
-          <span className="nc-time">{clockTime}</span>
+          <span className="nc-date" style={{ display: 'block' }}>{today}</span>
+          <span className="nc-date" dir="auto" style={{ display: 'block' }}>{hijriDate}</span>
+          <span className="nc-time" style={{ display: 'block' }}>{clockTime}</span>
         </div>
       </div>
 
