@@ -832,7 +832,7 @@ function FilePreviewModal({ fileUrl, onClose }) {
         <a href={fileUrl} download={fileName} style={{ color: '#4fd1c5', fontSize: '0.8rem', textDecoration: 'none' }}>⬇ Download</a>
       </div>
       {/* Preview area */}
-      <div style={{ flex: 1, overflow: 'hidden', background: '#0f172a' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', background: '#0f172a' }}>
         {isImage ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 16 }}>
             <img src={fileUrl} alt={fileName} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />

@@ -33,7 +33,7 @@ export default function Modal({ onClose, children, className = '', style = {} })
       aria-modal="true"
       aria-label="Dialog"
     >
-      <div ref={contentRef} className={style.background ? '' : 'modal'}>
+      <div ref={contentRef} className={style.background ? '' : 'modal'} style={style.background ? { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 } : undefined}>
         {children}
       </div>
     </div>
