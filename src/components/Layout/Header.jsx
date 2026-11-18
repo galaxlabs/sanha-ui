@@ -57,6 +57,7 @@ export default function Header({ onToggleSidebar }) {
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
   });
+  const hijriDate = new Intl.DateTimeFormat('ur-PK-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -165,7 +166,7 @@ export default function Header({ onToggleSidebar }) {
       </div>
       <div className="nav-clock-wrap">
         <div className="nav-clock digital-clock">
-          <span className="nc-date">{today}</span>
+          <span className="nc-date">{today} · {hijriDate}</span>
           <span className="nc-time">{clockTime}</span>
         </div>
       </div>

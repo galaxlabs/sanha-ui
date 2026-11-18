@@ -19,9 +19,11 @@ const ABSENCE_NOTICE = /((?:No\s+[A-Za-z0-9 .\-\/]{1,30}?\s+(?:found|available|p
 
 function Highlight({ text }) {
   if (typeof text !== 'string') return text ?? null;
-  return text.split(ABSENCE_NOTICE).map((part, i) => (i % 2 === 1
-    ? <span key={i} dir="ltr" style={{ color: '#c53030', fontWeight: 600 }}>{part}</span>
-    : <Bilingual key={i} text={part} />));
+  // A sentence that contains an absence notice is shown entirely in red.
+  if (new RegExp(ABSENCE_NOTICE.source).test(text)) {
+    return <span dir="auto" style={{ color: '#c53030', fontWeight: 600 }}><Bilingual text={text} /></span>;
+  }
+  return <Bilingual text={text} />;
 }
 
 /* Team comments on this Query, shown as reference next to the AI review. Plain text only. */
@@ -121,6 +123,7 @@ export default function StaffAIReview({ query }) {
       {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
         <div className="table-wrap" style={{ maxHeight: 290, overflowY: 'auto' }}><table><thead><tr><th>Query</th><th>Material</th><th>Manufacturer / Supplier</th><th>Decision</th><th>Match</th></tr></thead><tbody>{related.rows.filter(isFinalDecision).map(row => <tr key={row.name}><td><Link to={`/queries/${encodeURIComponent(row.name)}`}>{row.name}</Link></td><td>{row.raw_material}</td><td>{row.manufacturer} / {row.supplier}</td><td>{row.workflow_state}</td><td>{row.same_material && row.same_manufacturer ? 'Same material + manufacturer' : 'Material reference only; identity not established'}</td></tr>)}</tbody></table></div></>}
     </section>
+    {!!teamComments.length && <div><h4>ٹیم کے تبصرے (حوالہ کے طور پر)</h4>{teamComments.map(item => <p key={item.name} dir={textDir} style={{ whiteSpace: 'pre-wrap' }}><strong>{item.comment_by || item.comment_email}:</strong> {plainComment(item.content)}</p>)}</div>}
     {error && <p role="alert">{error}</p>}
     {!snapshot && !error && <p>Checking saved summary…</p>}
     {snapshot && <p className="text-sm text-gray">{snapshot.query} · {snapshot.current_material} · {snapshot.current_state}</p>}
@@ -157,7 +160,6 @@ export default function StaffAIReview({ query }) {
     })()}
     {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir={textDir}>{item.document}: <Highlight text={item.message} /> {(item.sources || []).map(reference)}</p>)}</details>}
     {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir={textDir}><Highlight text={item.text} /> <small>{item.sources.map(reference)}</small></p>)}</div>}
-    {!!teamComments.length && <div><h4>ٹیم کے تبصرے (حوالہ کے طور پر)</h4>{teamComments.map(item => <p key={item.name} dir={textDir} style={{ whiteSpace: 'pre-wrap' }}><strong>{item.comment_by || item.comment_email}:</strong> {plainComment(item.content)}</p>)}</div>}
     {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index} dir={textDir}><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
     {review && <details><summary>References, limits and unreadable-document notices</summary><p className="text-sm text-gray">{review.limits}</p>{review.documents?.filter(item => item.warning).map(item => <p key={item.id}>{item.id} ({item.type}): {item.warning}</p>)}{review.entity_warnings?.map((item, index) => <p key={index} dir={textDir}>{item}</p>)}{!review.clauses?.length && <p>No institutional clauses configured yet.</p>}{isAdmin() && review.department_notes && Object.entries(review.department_notes).map(([name, item]) => <p key={name} dir={textDir}><strong>{name}:</strong> {item.text} {item.sources.map(reference)}</p>)}</details>}
   </section>;
