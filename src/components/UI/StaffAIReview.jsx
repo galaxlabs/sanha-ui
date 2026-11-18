@@ -15,7 +15,7 @@ const ASSESSMENT_LABELS = {
 };
 
 /* English notices such as "No MSDS found" are shown in red, left to right, so they stay readable inside Urdu text. */
-const ABSENCE_NOTICE = /(No\s+[A-Za-z0-9 .\-\/]{1,30}?\s+(?:found|available|provided|submitted|attached)\b|Not\s+found\b)/g;
+const ABSENCE_NOTICE = /((?:No\s+[A-Za-z0-9 .\-\/]{1,30}?\s+(?:found|available|provided|submitted|attached)\b)|(?:Not\s+found\b)|(?:(?:[A-Za-z0-9.\-\/]+\s+)?(?:نہیں\s+ملا|نہیں\s+ملی|نہیں\s+ملے|موجود\s+نہیں|دستیاب\s+نہیں)))/g;
 
 function Highlight({ text }) {
   if (typeof text !== 'string') return text ?? null;
@@ -128,9 +128,9 @@ export default function StaffAIReview({ query }) {
     {snapshot && !snapshot.auto_enabled && snapshot.status !== 'complete' && <p>Automatic summaries are disabled in Agent Policy.</p>}
     {['queued', 'working'].includes(snapshot?.status) && <p role="status">Preparing a concise summary in the background… You can continue working.</p>}
     {['unavailable', 'failed'].includes(snapshot?.status) && <div role="status"><p>{snapshot.error || 'No valid cited summary is available. Check connection, budget and readable attachments.'}</p><button type="button" className="btn btn-outline btn-sm" onClick={retry}>Retry after correcting the issue</button></div>}
-    {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{summary.text}</p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
+    {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}><Highlight text={summary.text} /></p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
     {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
-    {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{review.assessment[key].text}</p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
+    {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}><Highlight text={review.assessment[key].text} /></p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
     {(() => {
       // The model often restates a question already shown in an assessment section (wording differs slightly).
       // A follow-up is hidden when most of its words already appear in one sentence of the sections above.
