@@ -35,6 +35,7 @@ export default function StaffAIReview({ query }) {
   const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState('');
   const [language, setLanguage] = useState('ur');
+  const textDir = language === 'ur' ? 'rtl' : 'ltr';
   const [refresh, setRefresh] = useState(0);
   const [related, setRelated] = useState(null);
   const [relatedBusy, setRelatedBusy] = useState(false);
@@ -128,9 +129,9 @@ export default function StaffAIReview({ query }) {
     {snapshot && !snapshot.auto_enabled && snapshot.status !== 'complete' && <p>Automatic summaries are disabled in Agent Policy.</p>}
     {['queued', 'working'].includes(snapshot?.status) && <p role="status">Preparing a concise summary in the background… You can continue working.</p>}
     {['unavailable', 'failed'].includes(snapshot?.status) && <div role="status"><p>{snapshot.error || 'No valid cited summary is available. Check connection, budget and readable attachments.'}</p><button type="button" className="btn btn-outline btn-sm" onClick={retry}>Retry after correcting the issue</button></div>}
-    {summary && <article><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}><Highlight text={summary.text} /></p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir="auto">{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
+    {summary && <article><p dir={textDir} style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}><Highlight text={summary.text} /></p><small>{summary.sources.map(reference)}</small>{note && <div><strong>{department} consideration</strong><p dir={textDir}>{note.text}</p><small>{note.sources.map(reference)}</small></div>}<p className="text-sm text-gray">Saved {review.reviewed_at}{review.provider_used ? ` · ${review.provider_used.provider} / ${review.provider_used.model}${review.provider_used.cache_hit ? ' · model response reused' : ''}` : ''}</p></article>}
     {review && !review.sources?.length && <p role="status">No document text was readable. General guidance and database/public references do not establish this product's actual composition or process.</p>}
-    {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir="auto" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}><Highlight text={review.assessment[key].text} /></p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
+    {review?.assessment && Object.entries(ASSESSMENT_LABELS).map(([key, label]) => review.assessment[key] ? <article key={key}><h4>{label}</h4><p dir={textDir} style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}><Highlight text={review.assessment[key].text} /></p><small>{review.assessment[key].sources.map(reference)}</small></article> : null)}
     {(() => {
       // The model often restates a question already shown in an assessment section (wording differs slightly).
       // A follow-up is hidden when most of its words already appear in one sentence of the sections above.
@@ -152,12 +153,12 @@ export default function StaffAIReview({ query }) {
         seen.push(set);
         return !repeatsSection && !repeatsEarlier;
       });
-      return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir="auto">{questions.map((item, index) => <li dir="auto" key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
+      return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir={textDir}>{questions.map((item, index) => <li dir={textDir} key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
     })()}
-    {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir="auto">{item.document}: <Highlight text={item.message} /> {(item.sources || []).map(reference)}</p>)}</details>}
-    {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir="auto"><Highlight text={item.text} /> <small>{item.sources.map(reference)}</small></p>)}</div>}
-    {!!teamComments.length && <div><h4>ٹیم کے تبصرے (حوالہ کے طور پر)</h4>{teamComments.map(item => <p key={item.name} dir="auto" style={{ whiteSpace: 'pre-wrap' }}><strong>{item.comment_by || item.comment_email}:</strong> {plainComment(item.content)}</p>)}</div>}
-    {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index} dir="auto"><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
-    {review && <details><summary>References, limits and unreadable-document notices</summary><p className="text-sm text-gray">{review.limits}</p>{review.documents?.filter(item => item.warning).map(item => <p key={item.id}>{item.id} ({item.type}): {item.warning}</p>)}{review.entity_warnings?.map((item, index) => <p key={index} dir="auto">{item}</p>)}{!review.clauses?.length && <p>No institutional clauses configured yet.</p>}{isAdmin() && review.department_notes && Object.entries(review.department_notes).map(([name, item]) => <p key={name} dir="auto"><strong>{name}:</strong> {item.text} {item.sources.map(reference)}</p>)}</details>}
+    {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir={textDir}>{item.document}: <Highlight text={item.message} /> {(item.sources || []).map(reference)}</p>)}</details>}
+    {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir={textDir}><Highlight text={item.text} /> <small>{item.sources.map(reference)}</small></p>)}</div>}
+    {!!teamComments.length && <div><h4>ٹیم کے تبصرے (حوالہ کے طور پر)</h4>{teamComments.map(item => <p key={item.name} dir={textDir} style={{ whiteSpace: 'pre-wrap' }}><strong>{item.comment_by || item.comment_email}:</strong> {plainComment(item.content)}</p>)}</div>}
+    {!!review?.alerts?.length && <div><h4>Configured term warnings</h4>{review.alerts.map((item, index) => <p key={index} dir={textDir}><strong>{item.term}</strong> {reference(item.source)}</p>)}</div>}
+    {review && <details><summary>References, limits and unreadable-document notices</summary><p className="text-sm text-gray">{review.limits}</p>{review.documents?.filter(item => item.warning).map(item => <p key={item.id}>{item.id} ({item.type}): {item.warning}</p>)}{review.entity_warnings?.map((item, index) => <p key={index} dir={textDir}>{item}</p>)}{!review.clauses?.length && <p>No institutional clauses configured yet.</p>}{isAdmin() && review.department_notes && Object.entries(review.department_notes).map(([name, item]) => <p key={name} dir={textDir}><strong>{name}:</strong> {item.text} {item.sources.map(reference)}</p>)}</details>}
   </section>;
 }
