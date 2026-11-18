@@ -153,7 +153,7 @@ export default function StaffAIReview({ query }) {
         seen.push(set);
         return !repeatsSection && !repeatsEarlier;
       });
-      return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir={textDir}>{questions.map((item, index) => <li dir={textDir} key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small></li>)}</ol></article>;
+      return questions.length > 0 && <article><h4><Bilingual text={"Supplier / Manufacturer سے اگلے سوالات"} /></h4><ol dir={textDir}>{questions.map((item, index) => <li dir={textDir} key={index} style={{ marginBottom: 10 }}>{item.text} <small>{item.sources.map(reference)}</small>{item.reason && <div style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: '0.85rem' }}><strong>وجہ: </strong>{item.reason}</div>}</li>)}</ol></article>;
     })()}
     {!!review?.document_observations?.length && <details><summary>Document gaps — information for staff, not a submission block</summary>{review.document_observations.map((item, index) => <p key={index} dir={textDir}>{item.document}: <Highlight text={item.message} /> {(item.sources || []).map(reference)}</p>)}</details>}
     {!!review?.findings?.length && <div><h4>Important findings</h4>{review.findings.map((item, index) => <p key={index} dir={textDir}><Highlight text={item.text} /> <small>{item.sources.map(reference)}</small></p>)}</div>}
