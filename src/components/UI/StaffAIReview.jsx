@@ -39,6 +39,7 @@ export default function StaffAIReview({ query }) {
   const [language, setLanguage] = useState('ur');
   const textDir = language === 'ur' ? 'rtl' : 'ltr';
   const [refresh, setRefresh] = useState(0);
+  const [regenerating, setRegenerating] = useState(false);
   const [related, setRelated] = useState(null);
   const [relatedBusy, setRelatedBusy] = useState(false);
 
@@ -117,7 +118,15 @@ export default function StaffAIReview({ query }) {
     const clause = review?.clauses?.find(item => item.id === id);
     return <span key={id} title={clause?.text || ''} style={{ marginRight: 8 }}>{id}</span>;
   }
-  return <section className="card" dir={rtl ? 'rtl' : 'ltr'} style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><div role="group" aria-label="Response language" style={{ display: 'inline-flex', border: '1px solid var(--border-input)', borderRadius: 999, padding: 3 }}>{[['ur', 'اردو'], ['en', 'English']].map(([code, label]) => <button key={code} type="button" onClick={() => setLanguage(code)} aria-pressed={language === code} className="btn btn-sm" style={{ borderRadius: 999, background: language === code ? '#2c9f98' : 'transparent', color: language === code ? '#fff' : 'var(--text-secondary)', border: 'none', height: 30 }}>{label}</button>)}</div><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14} /> Check status</button></div>
+  // Asks the server to build a new AI review for this Query (saved reviews are reused otherwise).
+  async function regenerate() {
+    setRegenerating(true); setError('');
+    try { await ensureQuerySummary(query, true, language); setRefresh(value => value + 1); }
+    catch (err) { setError(err.message || 'AI جائزہ نہیں بن سکا۔'); }
+    finally { setRegenerating(false); }
+  }
+
+  return <section className="card" dir={rtl ? 'rtl' : 'ltr'} style={{ marginBottom: 18 }}><div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Bot size={22} /><h3 style={{ margin: 0, flex: 1 }}>AI Query Analysis</h3><div role="group" aria-label="Response language" style={{ display: 'inline-flex', border: '1px solid var(--border-input)', borderRadius: 999, padding: 3 }}>{[['ur', 'اردو'], ['en', 'English']].map(([code, label]) => <button key={code} type="button" onClick={() => setLanguage(code)} aria-pressed={language === code} className="btn btn-sm" style={{ borderRadius: 999, background: language === code ? '#2c9f98' : 'transparent', color: language === code ? '#fff' : 'var(--text-secondary)', border: 'none', height: 30 }}>{label}</button>)}</div><button type="button" className="btn btn-primary btn-sm" disabled={regenerating} onClick={regenerate}><RefreshCw size={14} /> {regenerating ? 'AI جائزہ بن رہا ہے…' : 'AI جائزہ دوبارہ بنائیں'}</button><button type="button" className="btn btn-ghost btn-sm" onClick={() => setRefresh(value => value + 1)}>Check status</button></div>
     <p className="text-sm text-gray">Current Query documents, decided database references, public chemistry from PubChem, and approved knowledge sources (with their badge). No historical document files are read. Final decisions remain with staff.</p>
     <section><h4><Bilingual text={"پہلے سے فیصلہ شدہ database references"} /></h4><button type="button" className="btn btn-ghost btn-sm" disabled={relatedBusy} onClick={loadRelated}>{relatedBusy ? 'Loading decisions…' : 'Refresh decided references'}</button>
       {related && <><p>{related.total} related final decisions; Draft and pending records excluded. Historical files are not read.</p>
