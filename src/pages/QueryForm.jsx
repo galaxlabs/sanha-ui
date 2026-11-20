@@ -288,8 +288,17 @@ export default function QueryForm() {
   /* Save */
   const handleSave = async (e) => {
     e?.preventDefault();
+    await saveQuery(false);
+  };
+
+  /* Save and Submit: saves the Query, then submits it. Replaces automatic submission. */
+  const handleSaveAndSubmit = async () => {
+    await saveQuery(true);
+  };
+
+  const saveQuery = async (submitAfter) => {
     // Drafts intentionally allow incomplete data; required fields apply on submission.
-    if (doc.workflow_state !== 'Draft' && !validate(true)) return;
+    if ((doc.workflow_state !== 'Draft' || submitAfter) && !validate(true)) return;
     setSaving(true);
     try {
       let saved;
@@ -317,7 +326,12 @@ export default function QueryForm() {
       } else {
         saved = await frappe.updateDoc('Query', name, payload);
       }
-      success('Query saved successfully!');
+      if (submitAfter) {
+        await frappe.applyWorkflow('Query', saved.name, 'Submit');
+        success('Query saved and submitted.');
+      } else {
+        success('Query saved successfully!');
+      }
       setDoc(saved);
       savedSignature.current = editableSignature(saved); savedChildren.current = childStamp(saved); setRemoteChanged(false);
       navigate(`/queries/${saved.name}`);
@@ -771,6 +785,11 @@ export default function QueryForm() {
             <button type="submit" className="btn btn-primary" disabled={saving}>
               <Save size={15} /> {saving ? 'Saving...' : isNew ? 'Save Query' : canAppendDocuments ? 'Save Documents' : 'Save Changes'}
             </button>
+            {hasRole('Client') && (isNew || doc.workflow_state === 'Draft') && (
+              <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSaveAndSubmit}>
+                {saving ? 'Saving...' : 'Save and Submit'}
+              </button>
+            )}
           </div>
         )}
       </form>
