@@ -848,8 +848,8 @@ export async function getQuerySummary(query, language = 'ur') {
   const res = await request('GET', `/api/method/sanha.api.review_cache.latest?query=${encodeURIComponent(query)}&language=${language}`, null, { cache: false });
   return res.message;
 }
-export async function ensureQuerySummary(query, retry = false, language = 'ur') {
-  const res = await request('POST', '/api/method/sanha.api.review_cache.ensure', { query, retry: retry ? 1 : 0, language });
+export async function ensureQuerySummary(query, retry = false, language = 'ur', regenerate = false) {
+  const res = await request('POST', '/api/method/sanha.api.review_cache.ensure', { query, retry: retry ? 1 : 0, language, regenerate: regenerate ? 1 : 0 });
   return res.message;
 }
 export async function getRelatedReviewDecisions(query) {

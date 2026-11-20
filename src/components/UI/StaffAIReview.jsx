@@ -121,7 +121,7 @@ export default function StaffAIReview({ query }) {
   // Asks the server to build a new AI review for this Query (saved reviews are reused otherwise).
   async function regenerate() {
     setRegenerating(true); setError('');
-    try { await ensureQuerySummary(query, true, language); setRefresh(value => value + 1); }
+    try { await ensureQuerySummary(query, true, language, true); setRefresh(value => value + 1); }
     catch (err) { setError(err.message || 'AI جائزہ نہیں بن سکا۔'); }
     finally { setRegenerating(false); }
   }
